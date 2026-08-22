@@ -60,10 +60,10 @@ interface Props {
   onOpenTest: () => void;
 }
 
-// The realm is the same world as the tree, drawn on the same ground with the
-// same palette (lib/graphTheme.ts): slate for the lessons still ahead, blue for
-// the one in hand, purple for the cleared, gold for the test at the end. A
-// single palette is what makes the dive in and out read as one journey.
+// The realm is the same world as the tree, drawn on the same warm light ground
+// with the same site palette (lib/graphTheme.ts): warm neutral for lessons still
+// ahead, violet for the one in hand, blue for cleared lessons, and green for the
+// test at the end. A single palette makes the dive in and out read as one journey.
 const LESSON_CLEARED = GRAPH_ACCENTS.mastered;
 const LESSON_OPEN = GRAPH_ACCENTS.learning;
 const LESSON_CLOSED = GRAPH_ACCENTS.locked;
@@ -135,7 +135,7 @@ interface RealmTraversalNotice {
   message: string;
 }
 
-// @spec PROG-REALM-004, UI-GRAPH3D-013, UI-GRAPH3D-017, UI-GRAPH3D-019, UI-GRAPH3D-023, UI-GRAPH3D-025, UI-GRAPH3D-026, UI-GRAPH3D-027, UI-GRAPH3D-028
+// @spec PROG-REALM-004, UI-GRAPH3D-013, UI-GRAPH3D-017, UI-GRAPH3D-019, UI-GRAPH3D-023, UI-GRAPH3D-025, UI-GRAPH3D-026, UI-GRAPH3D-027, UI-GRAPH3D-028, UI-GRAPH3D-029, UI-GRAPH3D-030, UI-GRAPH3D-031
 export function SkillRealm3D({
   realm,
   onExit,
@@ -154,6 +154,8 @@ export function SkillRealm3D({
   // handing back to the tree.
   const leavingRef = useRef(false);
   const [playing, setPlaying] = useState<Lesson | null>(null);
+  const [standingLessonIndex, setStandingLessonIndex] = useState(0);
+  const standingLessonIndexRef = useRef(0);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
   const [realmCards, setRealmCards] = useState<RealmCard[]>([]);
@@ -162,6 +164,7 @@ export function SkillRealm3D({
   // The imperative handles the cards call into the canvas: a card click walks
   // to that lesson, and the test card opens the test.
   const realmActionsRef = useRef<{
+    openLesson: (id: string) => void;
     walkTo: (id: string) => void;
     openTest: () => void;
   } | null>(null);
@@ -318,7 +321,11 @@ export function SkillRealm3D({
     );
 
     // Which lesson the camera stands at, and the flight that walks it there.
-    let povIndex = 0;
+    const initialLessonIndex = Math.min(
+      standingLessonIndexRef.current,
+      Math.max(0, current.lessons.length - 1),
+    );
+    let povIndex = initialLessonIndex;
     const povLook = new THREE.Vector3();
     let povFlight: {
       id: number;
@@ -378,14 +385,21 @@ export function SkillRealm3D({
       camera.fov = POV_FOV;
       camera.updateProjectionMatrix();
       povIndex = index;
+      standingLessonIndexRef.current = index;
     }
 
-    /** Fly the camera to stand at an open lesson. */
+    function canWalkTo(index: number) {
+      const lesson = realmRef.current.lessons[index];
+      return canTraverseLesson(lesson);
+    }
+
+    /** Fly the camera to an adjacent lesson whose prerequisite is complete. */
     function flyPovTo(index: number) {
       if (entryFlight || povFlight || povExit || index === povIndex) return;
       const lesson = realmRef.current.lessons[index];
       if (!lesson) return;
-      if (!canTraverseLesson(lesson)) {
+      const isAdjacent = Math.abs(index - povIndex) === 1;
+      if (!isAdjacent || !canWalkTo(index)) {
         const currentLesson = realmRef.current.lessons[povIndex];
         setTraversalNotice({
           targetTitle: lesson.title,
@@ -399,6 +413,8 @@ export function SkillRealm3D({
       setTraversalNotice(null);
       if (prefersReducedMotion) {
         posePov(index);
+        setStandingLessonIndex(index);
+        standingLessonIndexRef.current = index;
         return;
       }
       const pose = povPoseFor(index);
@@ -440,9 +456,9 @@ export function SkillRealm3D({
     camera.fov = CLOSE_FOV;
     camera.updateProjectionMatrix();
     if (prefersReducedMotion) {
-      posePov(0);
+      posePov(initialLessonIndex);
     } else {
-      const first = povPoseFor(0);
+      const first = povPoseFor(initialLessonIndex);
       entryFlight = {
         fromAngle: ENTRY_START_ANGLE,
         toAngle: ENTRY_END_ANGLE,
@@ -576,17 +592,8 @@ export function SkillRealm3D({
             (entry) => entry.exercise_id === hit.id,
           );
           const lesson = index >= 0 ? live.lessons[index] : undefined;
-          if (lesson && canTraverseLesson(lesson)) {
+          if (lesson) {
             setPending(lesson);
-          } else if (lesson) {
-            const currentLesson = live.lessons[povIndex];
-            setTraversalNotice({
-              targetTitle: lesson.title,
-              currentTitle: currentLesson?.title ?? null,
-              message: currentLesson
-                ? `You haven't unlocked ${lesson.title} yet. Please complete ${currentLesson.title} first.`
-                : `You haven't unlocked ${lesson.title} yet. Complete the previous lesson first.`,
-            });
           }
         }
       }, 220);
@@ -624,6 +631,12 @@ export function SkillRealm3D({
     }
 
     realmActionsRef.current = {
+      openLesson: (id: string) => {
+        const lesson = realmRef.current.lessons.find(
+          (entry) => entry.exercise_id === id,
+        );
+        if (lesson) setPending(lesson);
+      },
       walkTo: (id: string) => {
         const index = realmRef.current.lessons.findIndex(
           (entry) => entry.exercise_id === id,
@@ -694,7 +707,8 @@ export function SkillRealm3D({
           entryFlight.fromFov + (POV_FOV - entryFlight.fromFov) * eased;
         camera.updateProjectionMatrix();
         if (progress >= 1) {
-          povIndex = 0;
+          povIndex = initialLessonIndex;
+          standingLessonIndexRef.current = initialLessonIndex;
           entryFlight = null;
         }
       }
@@ -715,6 +729,8 @@ export function SkillRealm3D({
         camera.updateProjectionMatrix();
         if (progress >= 1) {
           povIndex = povFlight.id;
+          setStandingLessonIndex(povFlight.id);
+          standingLessonIndexRef.current = povFlight.id;
           povFlight = null;
         }
       }
@@ -786,6 +802,7 @@ export function SkillRealm3D({
           const live = realmRef.current;
           const isTest = badge === "test";
           const lesson = isTest ? null : (live.lessons[index] ?? null);
+          const walkable = isTest ? live.test_open : canWalkTo(index);
           const accent = isTest
             ? live.test_open
               ? TEST_OPEN
@@ -793,7 +810,7 @@ export function SkillRealm3D({
             : lesson
               ? lesson.cleared
                 ? LESSON_CLEARED
-                : lesson.open
+                : walkable
                   ? LESSON_OPEN
                   : LESSON_CLOSED
               : LESSON_CLOSED;
@@ -825,9 +842,9 @@ export function SkillRealm3D({
               : lesson
                 ? lesson.cleared
                   ? `Cleared · best ${Math.round((lesson.best_score ?? 0) * 100)}%`
-                  : lesson.open
+                  : walkable
                     ? "Ready to play"
-                    : "Locked"
+                    : "Locked · complete the previous lesson first"
                 : "",
             progress: isTest
               ? `${live.lessons.filter((entry) => entry.cleared).length}/${live.lessons.length} lessons cleared`
@@ -840,8 +857,7 @@ export function SkillRealm3D({
             y,
             visible: true,
           });
-        };
-        // The line connects a lesson to the ones it touches: behind and
+        }; // The line connects a lesson to the ones it touches: behind and
         // ahead, and the test above the last lesson.
         if (povIndex > 0) pushCard(povIndex - 1, "previous");
         if (povIndex < current.lessons.length - 1) {
@@ -874,6 +890,15 @@ export function SkillRealm3D({
       if (canvas.parentNode === mount) mount.removeChild(canvas);
     };
   }, [shape, prefersReducedMotion]);
+
+  const standingLesson =
+    realm.lessons[standingLessonIndex] ?? realm.lessons[0] ?? null;
+  const lessonIndex = (lesson: Lesson) =>
+    realm.lessons.findIndex(
+      (entry) => entry.exercise_id === lesson.exercise_id,
+    );
+  const canWalkToLesson = (lesson: Lesson) => canTraverseLesson(lesson);
+  const pendingCanStart = pending?.open === true;
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent, action: () => void, enabled: boolean) => {
@@ -918,8 +943,8 @@ export function SkillRealm3D({
       {/* The chain's POV cards: standing at a lesson, the lesson the line
           connects it to -- the one ahead and the one behind -- floats beside
           its disc with its name, what it asks for, and current progress.
-          Clicking an open card walks to it; a closed card leaves the camera
-          in place and explains the prerequisite. */}
+          Clicking a card opens its lesson details; double-clicking an unlocked
+          neighbour walks to it, while a closed card explains the prerequisite. */}
       {realmCards.length > 0 && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {realmCards.map((card) => (
@@ -930,6 +955,12 @@ export function SkillRealm3D({
                 if (card.badge === "test") {
                   realmActionsRef.current?.openTest();
                 } else {
+                  realmActionsRef.current?.openLesson(card.id);
+                }
+              }}
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                if (card.badge !== "test") {
                   realmActionsRef.current?.walkTo(card.id);
                 }
               }}
@@ -995,8 +1026,8 @@ export function SkillRealm3D({
       </div>
 
       <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-graph-ink-quiet">
-        Right-drag to look around · click a lesson to open it · double-click to
-        walk to it
+        Right-drag to look around · click a lesson for details · double-click to
+        step to an unlocked neighbour
       </p>
 
       {/* What the lesson asks for, before committing to it. A click on a coin is
@@ -1027,6 +1058,11 @@ export function SkillRealm3D({
                 %. Playing it again can only help.
               </p>
             )}
+            {!pendingCanStart && (
+              <p className="mt-2 text-[11px] text-graph-decaying">
+                Complete the previous lesson before starting this lesson.
+              </p>
+            )}
             <div className="mt-5 flex gap-2">
               <button
                 type="button"
@@ -1037,13 +1073,27 @@ export function SkillRealm3D({
               </button>
               <button
                 type="button"
+                disabled={!pendingCanStart}
                 onClick={() => setPlaying(pending)}
                 className={`${BUTTON_PRIMARY} flex-1`}
               >
-                Play this lesson
+                {pending.cleared ? "Redo lesson" : "Start lesson"}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {standingLesson && !playing && (
+        <div className="absolute bottom-12 left-1/2 z-10 -translate-x-1/2">
+          <button
+            type="button"
+            disabled={!standingLesson.open}
+            onClick={() => setPlaying(standingLesson)}
+            className={`${BUTTON_PRIMARY} min-w-40 shadow-lg`}
+          >
+            {standingLesson.cleared ? "Redo lesson" : "Start lesson"}
+          </button>
         </div>
       )}
 
@@ -1080,14 +1130,14 @@ export function SkillRealm3D({
           <li
             key={lesson.exercise_id}
             tabIndex={0}
-            aria-disabled={!lesson.open}
-            aria-label={`${lesson.title}. ${lesson.cleared ? "Cleared." : canTraverseLesson(lesson) ? "Ready to play." : "Locked until the previous lesson is cleared."}`}
+            aria-disabled={!canWalkToLesson(lesson)}
+            aria-label={`${lesson.title}. ${lesson.cleared ? "Cleared and traversable." : lesson.open ? "Open for practice from its card." : "Locked until the previous lesson is cleared."}`}
             className={FOCUS_RING}
             onKeyDown={(event) =>
               onKeyDown(
                 event,
                 () => setPending(lesson),
-                canTraverseLesson(lesson),
+                canWalkToLesson(lesson),
               )
             }
           >

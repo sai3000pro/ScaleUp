@@ -3,7 +3,7 @@
  *
  * Every finding this file covers survived a full palette rewrite and a browser
  * walkthrough, because none of them look like bugs: text at 4.37:1 looks like
- * text, and a gradient into the previous palette's navy looks like a gradient.
+ * text, and a gradient into a superseded palette looks like a gradient.
  * They are all computable from source, so they are computed here.
  *
  * This reads app/globals.css off disk rather than importing it. The token block
@@ -15,11 +15,19 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { GRAPH_ACCENTS, GRAPH_GROUND, GRAPH_STRUCTURAL_ACCENT } from "@/lib/graphTheme";
+import {
+  GRAPH_ACCENTS,
+  GRAPH_GROUND,
+  GRAPH_SELECTED,
+  GRAPH_STRUCTURAL_ACCENT,
+} from "@/lib/graphTheme";
 import { STATE_STYLES } from "@/lib/nodeState";
 import { BUTTON_PRIMARY, MUTED } from "@/lib/ui";
 
-const CSS = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf-8");
+const CSS = readFileSync(
+  fileURLToPath(new URL("../app/globals.css", import.meta.url)),
+  "utf-8",
+);
 
 /** WCAG relative luminance. */
 function luminance(r: number, g: number, b: number): number {
@@ -32,7 +40,11 @@ function luminance(r: number, g: number, b: number): number {
 
 function hexLuminance(hex: string): number {
   const h = hex.replace("#", "");
-  return luminance(parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16));
+  return luminance(
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  );
 }
 
 /** WCAG contrast ratio between two opaque hex colours. */
@@ -44,7 +56,9 @@ export function contrast(a: string, b: string): number {
 /** Every `--color-*` declaration in the @theme block. */
 function tokens(): Record<string, string> {
   const found: Record<string, string> = {};
-  for (const match of CSS.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)) {
+  for (const match of CSS.matchAll(
+    /--color-([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi,
+  )) {
     found[match[1]] = match[2].toLowerCase();
   }
   return found;
@@ -75,30 +89,40 @@ describe("token layer", () => {
 
   // @spec UI-THEME-004
   it("keeps the neutral ramp monotonic, so a component written against any point on it holds", () => {
-    const ramp = [950, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50].map((step) => {
-      const hex = TOKENS[`slate-${step}`];
-      if (hex === undefined) throw new Error(`no token for slate-${step}`);
-      return { step, hex, lum: hexLuminance(hex) };
-    });
-    const descending = ramp.every((entry, i) => i === 0 || entry.lum < ramp[i - 1].lum);
-    expect(descending, `ramp out of order: ${ramp.map((r) => `${r.step}=${r.lum.toFixed(3)}`).join(" ")}`).toBe(true);
+    const ramp = [950, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50].map(
+      (step) => {
+        const hex = TOKENS[`slate-${step}`];
+        if (hex === undefined) throw new Error(`no token for slate-${step}`);
+        return { step, hex, lum: hexLuminance(hex) };
+      },
+    );
+    const descending = ramp.every(
+      (entry, i) => i === 0 || entry.lum < ramp[i - 1].lum,
+    );
+    expect(
+      descending,
+      `ramp out of order: ${ramp.map((r) => `${r.step}=${r.lum.toFixed(3)}`).join(" ")}`,
+    ).toBe(true);
   });
 
   // @spec UI-THEME-002
   it("keeps the node-state literals in step with their tokens", () => {
     for (const [state, style] of Object.entries(STATE_STYLES)) {
-      expect(style.accent.toLowerCase(), `nodeState.${state} has drifted from --color-node-${state}`).toBe(
-        TOKENS[`node-${state}`],
-      );
+      expect(
+        style.accent.toLowerCase(),
+        `nodeState.${state} has drifted from --color-node-${state}`,
+      ).toBe(TOKENS[`node-${state}`]);
     }
   });
 
   // @spec UI-THEME-007
-  it("retains no opaque colour from the superseded dark palette", () => {
+  it("retains no opaque colour from the superseded palette", () => {
     // A light theme has no surface dark enough to want one. Low alpha is
     // excluded: the page ink is legitimately used at 0.3 for hairline borders.
     const offenders: string[] = [];
-    for (const match of CSS.matchAll(/rgb\(\s*(\d+)\s+(\d+)\s+(\d+)\s*(?:\/\s*([\d.]+)\s*)?\)/g)) {
+    for (const match of CSS.matchAll(
+      /rgb\(\s*(\d+)\s+(\d+)\s+(\d+)\s*(?:\/\s*([\d.]+)\s*)?\)/g,
+    )) {
       const [r, g, b] = [Number(match[1]), Number(match[2]), Number(match[3])];
       const alpha = match[4] === undefined ? 1 : Number(match[4]);
       if (luminance(r, g, b) < 0.06 && alpha >= 0.5) {
@@ -147,8 +171,14 @@ describe("contrast", () => {
     // 500 and 400 are the two quiet inks; anything darker is stronger still.
     for (const step of [500, 400, 300, 200, 100, 50]) {
       const hex = TOKENS[`slate-${step}`];
-      expect(contrast(hex, PAGE()), `slate-${step} on the page`).toBeGreaterThanOrEqual(AA_TEXT);
-      expect(contrast(hex, CARD()), `slate-${step} on a card`).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(
+        contrast(hex, PAGE()),
+        `slate-${step} on the page`,
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(
+        contrast(hex, CARD()),
+        `slate-${step} on a card`,
+      ).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
 
@@ -163,14 +193,20 @@ describe("contrast", () => {
   it("clears AA for a page-white label on any accent fill it can land on", () => {
     for (const step of [500, 400, 300]) {
       const hex = TOKENS[`sky-${step}`];
-      expect(contrast(PAGE(), hex), `page white on sky-${step}`).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(
+        contrast(PAGE(), hex),
+        `page white on sky-${step}`,
+      ).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
 
   // @spec UI-A11Y-009
   it("clears the non-text minimum for every node-state colour", () => {
     for (const [state, style] of Object.entries(STATE_STYLES)) {
-      expect(contrast(style.accent, PAGE()), `node state ${state}`).toBeGreaterThanOrEqual(AA_NON_TEXT);
+      expect(
+        contrast(style.accent, PAGE()),
+        `node state ${state}`,
+      ).toBeGreaterThanOrEqual(AA_NON_TEXT);
     }
   });
 });
@@ -179,32 +215,44 @@ describe("graph palette", () => {
   // @spec UI-GRAPH3D-017
   it("keeps the graph-state literals in step with their tokens", () => {
     for (const [state, accent] of Object.entries(GRAPH_ACCENTS)) {
-      expect(accent.toLowerCase(), `graphTheme.${state} has drifted from --color-graph-${state}`).toBe(
-        TOKENS[`graph-${state}`],
+      expect(
+        accent.toLowerCase(),
+        `graphTheme.${state} has drifted from --color-graph-${state}`,
+      ).toBe(TOKENS[`graph-${state}`]);
+    }
+    expect(GRAPH_STRUCTURAL_ACCENT.toLowerCase()).toBe(
+      TOKENS["graph-structural"],
+    );
+    expect(GRAPH_GROUND.toLowerCase()).toBe(TOKENS["graph-ground"]);
+    expect(GRAPH_SELECTED.toLowerCase()).toBe(TOKENS["graph-selected"]);
+  });
+
+  // @spec UI-GRAPH3D-017, UI-GRAPH3D-029
+  it("clears the non-text minimum for every graph state on the light ground", () => {
+    const ground = TOKENS["graph-ground"];
+    for (const [state, accent] of Object.entries(GRAPH_ACCENTS)) {
+      expect(
+        contrast(accent, ground),
+        `graph state ${state}`,
+      ).toBeGreaterThanOrEqual(AA_NON_TEXT);
+    }
+    expect(
+      contrast(GRAPH_STRUCTURAL_ACCENT, ground),
+      "graph structural",
+    ).toBeGreaterThanOrEqual(AA_NON_TEXT);
+  });
+
+  // @spec UI-GRAPH3D-029
+  it("keeps graph state values aligned with the shared site state palette", () => {
+    for (const [state, style] of Object.entries(STATE_STYLES)) {
+      expect(GRAPH_ACCENTS[state as keyof typeof GRAPH_ACCENTS]).toBe(
+        style.accent,
       );
     }
-    expect(GRAPH_STRUCTURAL_ACCENT.toLowerCase()).toBe(TOKENS["graph-structural"]);
-    expect(GRAPH_GROUND.toLowerCase()).toBe(TOKENS["graph-ground"]);
-  });
-
-  // @spec UI-GRAPH3D-017
-  it("clears the non-text minimum for every actionable graph colour on the graph's own ground", () => {
-    const ground = TOKENS["graph-ground"];
-    // Actionable states only: locked and section are exempt, below.
-    for (const state of ["available", "learning", "decaying", "mastered"] as const) {
-      expect(contrast(GRAPH_ACCENTS[state], ground), `graph state ${state}`).toBeGreaterThanOrEqual(AA_NON_TEXT);
-    }
-  });
-
-  // @spec UI-GRAPH3D-017
-  it("lets locked and section recede below the line on the graph ground, by design", () => {
-    // Locked and section are the "what is still ahead" part of the tree. They
-    // are deliberately dimmer than 3:1 so the frontier reads first; their state
-    // is carried by the projected title, the hover card and the keyboard list,
-    // never by colour alone. Pinned here so a contrast "fix" that flattens the
-    // look cannot land silently.
-    const ground = TOKENS["graph-ground"];
-    expect(contrast(GRAPH_ACCENTS.locked, ground)).toBeLessThan(AA_NON_TEXT);
-    expect(contrast(GRAPH_STRUCTURAL_ACCENT, ground)).toBeLessThan(AA_NON_TEXT);
+    expect(GRAPH_STRUCTURAL_ACCENT).toBe(TOKENS["node-locked"]);
+    expect(GRAPH_SELECTED).toBe(TOKENS["graph-selected"]);
+    expect(
+      contrast(GRAPH_SELECTED, TOKENS["graph-ground"]),
+    ).toBeGreaterThanOrEqual(AA_NON_TEXT);
   });
 });

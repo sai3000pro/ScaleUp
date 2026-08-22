@@ -16,7 +16,6 @@ import { CourseDrawer } from "@/components/course/CourseDrawer";
 import { LessonWorkspace } from "@/components/course/LessonWorkspace";
 import { DrillPanel } from "@/components/drill/DrillPanel";
 import { GuidedPath } from "@/components/explore/GuidedPath";
-import { SearchBox } from "@/components/explore/SearchBox";
 import { SkillGraph3D } from "@/components/skill-tree/SkillGraph3D";
 import { SkillRealm3D } from "@/components/skill-tree/SkillRealm3D";
 import { SkillTreeOutline } from "@/components/skill-tree/SkillTreeOutline";
@@ -111,12 +110,7 @@ function CourseView() {
     focusNode,
   } = useGraphStore();
   const [course, setCourse] = useState<CourseDetail | null>(null);
-  // `null` means no search is running, which is different from a search that
-  // matched nothing -- the second dims the whole tree on purpose.
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [matchedNodeIds, setMatchedNodeIds] = useState<Set<string> | null>(
-    null,
-  );
   // The guided path's cursor is a function of mastery, so it has to be refetched
   // after a grade. Bumped rather than refetched inline so the panel owns its own
   // request and a failure there cannot blank the tree.
@@ -423,25 +417,6 @@ function CourseView() {
 
       <div className="mt-5 grid min-h-0 gap-4 lg:flex-1 lg:grid-cols-[1fr_340px]">
         <div className="relative hidden min-h-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:block lg:h-full max-lg:h-[70vh]">
-          {/* Over the canvas rather than beside it: search is a way of moving
-              around the tree, and putting it in the sidebar makes it read as
-              another panel of metadata. Above React Flow's own z-index so the
-              results list is not painted under an orb. */}
-          {/* Not inside a realm: there are three lessons in there, and a search
-              box over them would be an empty gesture sitting on top of the one
-              card that explains where the learner is. */}
-          {status === "ready" &&
-            snapshot &&
-            snapshot.nodes.length > 0 &&
-            realm === null && (
-              <div className="absolute left-3 top-3 z-10">
-                <SearchBox
-                  courseId={courseId}
-                  documents={course?.documents ?? []}
-                  onMatches={setMatchedNodeIds}
-                />
-              </div>
-            )}
           {status === "loading" && (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
               Loading the tree…
@@ -499,7 +474,6 @@ function CourseView() {
                 selectedNodeId={selectedNodeId}
                 onOpenLesson={requestLesson}
                 onSelect={select}
-                matchedNodeIds={matchedNodeIds}
                 arriveFrom={leftRealmAt}
               />
             ))}

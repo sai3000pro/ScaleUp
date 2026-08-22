@@ -53,11 +53,17 @@ describe("opening a lesson", () => {
 });
 
 describe("walking a lesson realm", () => {
-  // @spec UI-GRAPH3D-023, UI-GRAPH3D-025
-  it("allows an open lesson and blocks a closed lesson", () => {
-    expect(canTraverseLesson({ open: true })).toBe(true);
-    expect(canTraverseLesson({ open: false })).toBe(false);
+  // @spec UI-GRAPH3D-023, UI-GRAPH3D-025, UI-GRAPH3D-030
+  it("allows traversal only after the target lesson is cleared", () => {
+    expect(canTraverseLesson({ cleared: true })).toBe(true);
+    expect(canTraverseLesson({ cleared: false })).toBe(false);
     expect(canTraverseLesson(null)).toBe(false);
     expect(canTraverseLesson(undefined)).toBe(false);
+  });
+
+  // @spec UI-GRAPH3D-030
+  it("does not confuse practice access with traversal access", () => {
+    expect(canTraverseLesson({ cleared: false })).toBe(false);
+    expect(canTraverseLesson({ cleared: true })).toBe(true);
   });
 });

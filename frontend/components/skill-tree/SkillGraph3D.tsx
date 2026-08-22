@@ -16,18 +16,17 @@
  *
  * ## Why it looks the way it does
  *
- * The graph is a window into the curriculum, and it is the one place the light
- * page deliberately goes dark — near-black space, so a lit orb glows. Chrome
- * stays on the page; the canvas is where the learner stands in the curriculum.
+ * The graph is a focused curriculum surface in the same warm light world as the
+ * rest of the site. Chrome stays on the page; the canvas is where the learner
+ * stands in the curriculum, with depth and lighting supplying its distinction.
  *
  * Skills are lit discs, not shaded spheres: a key light and an ambient with
  * metalness and roughness make them read as objects in space rather than
  * stickers, while the state hue stays bright enough that five states read as
- * five colours under the rig. The palette is the reference scheme this design
- * follows — gold ready, slate locked, blue in hand, purple done, orange fading
- * — mapped once from the node states in `lib/graphTheme.ts`, because the
- * app's page palette is tuned against the light page and cannot clear 3:1 on
- * dark.
+ * five colours under the rig. The palette mirrors the site — green ready, warm
+ * neutral locked, violet learning, blue mastered and amber fading — mapped once
+ * from the node states in `lib/graphTheme.ts` so the scene and its HTML overlays
+ * share one visual vocabulary.
  *
  * Titles are HTML positioned over the canvas rather than drawn in the scene.
  * Text in WebGL means either a texture atlas that goes soft under the camera or
@@ -148,7 +147,7 @@ interface TraversalNotice {
 
 // @spec UI-GRAPH3D-001, UI-GRAPH3D-004, UI-GRAPH3D-005, UI-GRAPH3D-006, UI-GRAPH3D-007, UI-GRAPH3D-008
 // @spec UI-GRAPH3D-013, UI-GRAPH3D-014, UI-GRAPH3D-015, UI-GRAPH3D-016, UI-GRAPH3D-017, UI-GRAPH3D-019
-// @spec UI-GRAPH3D-020, UI-GRAPH3D-021, UI-GRAPH3D-022, UI-GRAPH3D-028
+// @spec UI-GRAPH3D-020, UI-GRAPH3D-021, UI-GRAPH3D-022, UI-GRAPH3D-028, UI-GRAPH3D-029, UI-GRAPH3D-029
 export function SkillGraph3D({
   snapshot,
   selectedNodeId,
@@ -1175,31 +1174,33 @@ export function SkillGraph3D({
     <div className="relative h-full overflow-hidden bg-graph-ground">
       <div ref={mountRef} className="absolute inset-0" aria-hidden="true" />
 
-      {/* Titles, projected. Pointer-events off so they never eat a click meant
-          for the skill underneath them. */}
-      <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
-        aria-hidden="true"
-      >
-        {labels.map((label) => (
-          <span
-            key={label.id}
-            className={`absolute -translate-x-1/2 whitespace-nowrap font-display font-semibold tracking-tight ${
-              label.id === selectedNodeId
-                ? "text-graph-ink"
-                : "text-graph-ink-quiet"
-            }`}
-            style={{
-              left: label.x,
-              top: label.y,
-              fontSize: `${label.size}px`,
-              opacity: label.visible ? 1 : 0,
-            }}
-          >
-            {label.title}
-          </span>
-        ))}
-      </div>
+      {/* Overview titles are hidden in POV so the projected overview label cannot
+          appear beneath the node the learner is standing on. */}
+      {!povNodeId && (
+        <div
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          aria-hidden="true"
+        >
+          {labels.map((label) => (
+            <span
+              key={label.id}
+              className={`absolute -translate-x-1/2 whitespace-nowrap font-display font-semibold tracking-tight ${
+                label.id === selectedNodeId
+                  ? "text-graph-ink"
+                  : "text-graph-ink-quiet"
+              }`}
+              style={{
+                left: label.x,
+                top: label.y,
+                fontSize: `${label.size}px`,
+                opacity: label.visible ? 1 : 0,
+              }}
+            >
+              {label.title}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* POV traversal: the neighbours of the skill being stood beside, as
           floating cards in the world. Clicking an unlocked card walks to it.

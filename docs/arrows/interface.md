@@ -19,13 +19,13 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `docs/intent/interface/interface-design.md`
 
 ### EARS
-- `docs/intent/interface/interface-specs.md` (84 specs)
+- `docs/intent/interface/interface-specs.md` (90 specs)
 
 ### Tests
 - `frontend/lib/layout3d.test.ts` — depth ordering, ring spacing, stability, framing
 - `frontend/lib/theme.test.ts` — computes contrast ratios and ramp order from the shipped
-  token block, checks the `nodeState.ts` mirror, and rejects colours from a superseded
-  palette
+  token block, checks the `nodeState.ts` and graphTheme mirrors, and rejects colours from
+  a superseded palette
 - `frontend/lib/quartzSprites.test.ts` — reads the committed WebP headers and asserts the
   manifest against the files it describes: one cell size, alpha present, both facings shipped
 - `frontend/lib/quartzClip.test.ts` — clip playback, including that a non-looping clip
@@ -35,7 +35,7 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `frontend/app/globals.css` — the `@theme` token block, shell styles, ambient decoration
 - `frontend/lib/ui.ts` — `FOCUS_RING`, `BUTTON_PRIMARY`, `BUTTON_SECONDARY`, `INPUT`, `CARD`, `NAV_LINK`, `MUTED`
 - `frontend/lib/nodeState.ts` — node-state literals mirroring the theme block
-- `frontend/lib/graphTheme.ts` — the graph's own dark ground and palette, mapped from the node states, mirroring the `--color-graph-*` tokens
+- `frontend/lib/graphTheme.ts` — the graph's warm light ground and shared site palette, mapped from the node states, mirroring the `--color-graph-*` tokens
 - `frontend/app/layout.tsx` — font binding, skip link, document language
 - `frontend/components/ExpBar.tsx` — the HUD composition
 - `frontend/lib/layout3d.ts` — where each skill sits in space
@@ -61,8 +61,7 @@ checkable claims.
 5. The shell — HUD, wordmark, navigation, and an explicit narrow-breakpoint reflow order.
 6. The mascot — an art sheet cut into a registered frame library by a committed script, and
    one component that draws it at any size from a character height.
-7. `lib/graphTheme.ts` — the graph's own dark ground and palette, the second declared mirror
-   after `nodeState.ts`, carrying the one surface where the light page goes dark.
+7. `lib/graphTheme.ts` — the graph's warm light ground and shared site palette, the second declared mirror after `nodeState.ts`, carrying the WebGL values that keep traversal aligned with the page.
 
 ## Spec Coverage
 
@@ -72,19 +71,18 @@ checkable claims.
 | Shared classes | `UI-SYS-001` – `005` | 3 | 0 | 2 |
 | Typography | `UI-TYPE-001` – `004` | 3 | 0 | 1 |
 | Accessibility | `UI-A11Y-001` – `009` | 9 | 0 | 0 |
-| Skill graph | `UI-GRAPH3D-001` – `028` | 26 | 0 | 2 |
+| Skill graph | `UI-GRAPH3D-001` – `UI-GRAPH3D-031` | 29 | 0 | 2 |
 | Sprite pipeline | `UI-SPRITE-001` – `016` | 16 | 0 | 0 |
 | Mascot | `UI-MASCOT-001` – `012` | 11 | 1 | 0 |
 | Shell | `UI-SHELL-001` – `007` | 6 | 0 | 1 |
 
-**Summary:** 79 of 87 implemented; 2 deliberate non-wants; 6 active gaps.
+**Summary:** 82 of 90 implemented; 2 deliberate non-wants; 6 active gaps.
 
 ## Key Findings
 
 1. **Presentation invariants break silently, and this segment exists because of it.** Every
    defect found here survived a full palette rewrite and a browser walkthrough, because none
-   of them look like bugs: text at 4.37:1 looks like text, and a gradient into the previous
-   palette's navy looks like a gradient. All of them are computable from source, which is why
+   of them look like bugs: text at 4.37:1 looks like text, and a gradient into a superseded palette looks like a gradient. All of them are computable from source, which is why
    the segment's specs are stated as ratios rather than as adjectives.
 
 2. **A token-layer repaint does not reach raw colour literals.** The ramp inversion repainted
@@ -110,8 +108,8 @@ checkable claims.
    application arrives through `FOCUS_RING`; there are zero ad-hoc ones. This is the
    strongest evidence for the one-definition principle working.
 
-6. **The declared duplicate held.** Both the theme block and `nodeState.ts` name each other,
-   and their five node-state values agree. A declared duplicate that stays in sync is a
+6. **The declared mirrors held.** Both the theme block and `nodeState.ts` name each other, and `graphTheme.ts` mirrors the graph tokens,
+   their five node-state values agree, and the graph values agree with the shared state palette. A declared mirror that stays in sync is a
    different thing from an undeclared one — and it is now asserted rather than trusted.
 
 7. **The mascot arrived as two facets and the coverage table did not move.** `UI-SPRITE` and

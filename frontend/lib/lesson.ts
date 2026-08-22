@@ -25,10 +25,14 @@ export function canOpenLesson(
   return node.progress.state !== "locked";
 }
 
-/** A lesson can be a POV destination only when the server has opened it. */
-// @spec UI-GRAPH3D-023, UI-GRAPH3D-025
+/**
+ * A lesson can be a POV destination only after that lesson is complete.
+ * Practice uses the server's `open` flag separately, so an open future lesson
+ * may be started from its card without moving the camera onto its node first.
+ */
+// @spec UI-GRAPH3D-023, UI-GRAPH3D-025, UI-GRAPH3D-030
 export function canTraverseLesson(
-  lesson: Pick<Lesson, "open"> | null | undefined,
+  lesson: Pick<Lesson, "cleared"> | null | undefined,
 ): boolean {
-  return lesson?.open === true;
+  return lesson?.cleared === true;
 }
