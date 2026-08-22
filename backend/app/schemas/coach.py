@@ -50,6 +50,7 @@ class CoachTakeStart(CoachFrame):
     take_id: uuid.UUID
     practice_session_id: uuid.UUID
     resume: bool = False
+    voice: str | None = None
 
 
 class CoachNotes(CoachFrame):

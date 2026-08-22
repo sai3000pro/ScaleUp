@@ -581,6 +581,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ answer }),
     }),
+
+  synthesizeAttemptSpeech: (attemptId: string, voice = "") =>
+    request<VoiceArtifact>(`/api/practice/attempts/${attemptId}/speech${voice ? `?voice=${encodeURIComponent(voice)}` : ""}`, {
+      method: "POST",
+    }),
 };
 
 const TERMINAL_STATES = new Set(["succeeded", "failed", "cancelled"]);

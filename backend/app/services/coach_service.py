@@ -161,9 +161,11 @@ class TakeState:
     notes_seen: int = 0
     remaining_budget_usd: Decimal = Decimal("0")
     last_cue_sent: float = -1.0
+    first_note_onset: float | None = None
     utterance_task: asyncio.Task | None = None
     cancel_event: asyncio.Event | None = None
     current_utterance: uuid.UUID | None = None
+    gemini_session: GeminiLiveCoachSession | None = None
 
 
 async def _load_take(session: AsyncSession, practice_session_id: uuid.UUID, user_id: uuid.UUID):
@@ -235,6 +237,8 @@ async def run_coach_session(
     finally:
         if state is not None:
             await _cancel_utterance(state, "socket_closed", None)
+            if state.gemini_session is not None:
+                await state.gemini_session.close()
             _release_take(state.take_id, _INSTANCE_ID)
 
 
@@ -287,6 +291,17 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
     )
     remaining = max(Decimal("0"), settings.course_llm_budget_usd - Decimal(str(spent or 0)))
 
+    voice_name = str(frame.get("voice", "")).strip() or None
+    gemini_session = GeminiLiveCoachSession(
+        instrument=instrument,
+        exercise_title=exercise.title,
+        tempo_bpm=score.tempo_bpm,
+        instructions=exercise.instructions or "",
+        voice_name=voice_name,
+    )
+    if settings.gemini_api_key:
+        asyncio.create_task(gemini_session.connect())
+
     await transport.send_json(
         {
             "v": 1,
@@ -315,6 +330,7 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
         expected=expected,
         timing_tolerance=tolerance,
         remaining_budget_usd=remaining,
+        gemini_session=gemini_session,
     )
 
 
@@ -322,9 +338,13 @@ async def _handle_notes(transport, state: TakeState, frame) -> None:
     state.clock_seconds = float(frame.get("take_clock_seconds", state.clock_seconds))
     for raw in frame.get("notes", []):
         note = PerformedNoteIn.model_validate(raw)
+        if state.first_note_onset is None:
+            state.first_note_onset = note.onset_seconds
+
+        rebased_onset = max(0.0, note.onset_seconds - state.first_note_onset)
         observation = ObservedEvent(
             pitch_midi=note.pitch_midi,
-            onset_seconds=note.onset_seconds,
+            onset_seconds=rebased_onset,
             duration_seconds=note.duration_seconds,
             confidence=note.confidence,
             drum=note.drum,
@@ -339,9 +359,6 @@ async def _handle_notes(transport, state: TakeState, frame) -> None:
         )
         state.notes_seen += 1
 
-    # Notes arriving while the coach is talking is the definition of a barge-in.
-    if frame.get("notes") and state.current_utterance is not None:
-        await _cancel_utterance(state, "barge_in", transport)
     state.silence_seconds = 0.0
     await _flush_and_cue(transport, state)
 
@@ -373,7 +390,8 @@ async def _flush_and_cue(transport, state: TakeState) -> None:
 
     # The cheap channel: always on, no model, no spend. This is what makes the
     # panel feel live even when the coach has nothing worth saying.
-    if state.clock_seconds - state.last_cue_sent >= CUE_INTERVAL_SECONDS:
+    effective_cue_interval = 0.5 if (state.gemini_session and state.gemini_session.is_active) else CUE_INTERVAL_SECONDS
+    if state.clock_seconds - state.last_cue_sent >= effective_cue_interval:
         state.last_cue_sent = state.clock_seconds
         await transport.send_json(
             {
@@ -430,7 +448,7 @@ async def _speak(transport, state: TakeState, turn: CoachTurn) -> None:
             }
         )
         spoken, provider, cancelled = await _stream_text(transport, state, turn, utterance_id, floor, cancel)
-        if not cancelled:
+        if not cancelled and provider != "gemini_live":
             await _stream_audio(transport, utterance_id, spoken, cancel)
     except asyncio.CancelledError:
         cancelled = True
@@ -486,6 +504,52 @@ async def _stream_text(transport, state: TakeState, turn: CoachTurn, utterance_i
         "deterministic_cue": floor,
         "recent_utterances": ", ".join(state.cue_times) or "(none)",
     }
+
+    # If Gemini Live session is active, stream direct multimodal output
+    if state.gemini_session is not None and state.gemini_session.is_active:
+        chunks: list[str] = []
+        cancelled = False
+        has_audio = False
+        try:
+            await state.gemini_session.send_text_context(
+                f"Student cue triggered: {turn.cue} ({turn.severity}). Guidance context: {floor}"
+            )
+            async with asyncio.timeout(settings.coach_utterance_timeout_seconds):
+                async for delta_text, audio_bytes, turn_complete in state.gemini_session.receive_stream(cancel):
+                    if cancel.is_set():
+                        cancelled = True
+                        break
+                    if delta_text:
+                        chunks.append(delta_text)
+                        await transport.send_json(
+                            {
+                                "v": 1,
+                                "type": "coach.delta",
+                                "seq": 0,
+                                "utterance_id": str(utterance_id),
+                                "text": delta_text,
+                            }
+                        )
+                    if audio_bytes:
+                        has_audio = True
+                        await transport.send_json(
+                            {
+                                "v": 1,
+                                "type": "coach.audio",
+                                "seq": 0,
+                                "utterance_id": str(utterance_id),
+                                "sequence": len(chunks),
+                                "format": "audio/pcm;rate=24000",
+                                "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
+                            }
+                        )
+                    if turn_complete:
+                        break
+            text = "".join(chunks).strip()
+            if text or has_audio:
+                return text or floor, "gemini_live", cancelled
+        except Exception as exc:
+            logger.info("Gemini Live stream error (%s); falling back to configured LLM", exc)
 
     stream = getattr(client, "stream_text", None)
     if stream is None:
@@ -673,6 +737,77 @@ async def _finalize(session, transport, user, state: TakeState, frame) -> None:
             "attempt": attempt.model_dump(mode="json"),
         }
     )
+
+    if state.gemini_session and state.gemini_session.is_active:
+        try:
+            score_pct = round(attempt.overall_score * 100)
+            summary = attempt.feedback.summary if (attempt.feedback and attempt.feedback.summary) else f"Take completed with {score_pct}% accuracy."
+            strengths_text = f"Strengths: {', '.join(attempt.feedback.strengths)}. " if (attempt.feedback and attempt.feedback.strengths) else ""
+            corrections_text = f"Areas to polish: {', '.join(attempt.feedback.corrections)}. " if (attempt.feedback and attempt.feedback.corrections) else ""
+            next_step_text = f"Next step: {attempt.feedback.next_step}." if (attempt.feedback and attempt.feedback.next_step) else ""
+            debrief_utterance_id = uuid.uuid4()
+            await transport.send_json(
+                {
+                    "v": 1,
+                    "type": "coach.begin",
+                    "seq": 0,
+                    "utterance_id": str(debrief_utterance_id),
+                    "cue": "take_debrief",
+                    "severity": "celebrate" if score_pct >= 80 else "nudge",
+                    "provider": "gemini_live",
+                    "audio_format": "audio/pcm;rate=24000",
+                }
+            )
+            debrief_prompt = (
+                f"The student finalized their take of {state.exercise.title} with overall score {score_pct}%. "
+                f"Evaluation summary: {summary}. {strengths_text}{corrections_text}{next_step_text} "
+                "Deliver a lively, encouraging, concise spoken debrief (2-3 sentences) with an actionable musical tip for their next take."
+            )
+            cancel = asyncio.Event()
+            await state.gemini_session.send_text_context(debrief_prompt)
+            chunks: list[str] = []
+            async for delta_text, audio_bytes, turn_complete in state.gemini_session.receive_stream(cancel):
+                if delta_text:
+                    chunks.append(delta_text)
+                    await transport.send_json(
+                        {
+                            "v": 1,
+                            "type": "coach.delta",
+                            "seq": 0,
+                            "utterance_id": str(debrief_utterance_id),
+                            "text": delta_text,
+                        }
+                    )
+                if audio_bytes:
+                    await transport.send_json(
+                        {
+                            "v": 1,
+                            "type": "coach.audio",
+                            "seq": 0,
+                            "utterance_id": str(debrief_utterance_id),
+                            "sequence": len(chunks),
+                            "format": "audio/pcm;rate=24000",
+                            "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
+                        }
+                    )
+                if turn_complete:
+                    break
+            spoken_text = "".join(chunks).strip() or summary
+            await transport.send_json(
+                {
+                    "v": 1,
+                    "type": "coach.end",
+                    "seq": 0,
+                    "utterance_id": str(debrief_utterance_id),
+                    "spoken_text": spoken_text,
+                    "cancelled": False,
+                    "provider": "gemini_live",
+                    "voice_provider": "gemini_live",
+                }
+            )
+        except Exception as exc:
+            logger.info("live debrief stream ended or unavailable: %s", exc)
+
     _release_take(state.take_id, _INSTANCE_ID)
 
 

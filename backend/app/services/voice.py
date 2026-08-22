@@ -106,9 +106,119 @@ class ElevenLabsVoiceProvider:
             return response.content
 
 
+def _pcm16_to_wav(pcm_data: bytes, sample_rate: int = 24000) -> bytes:
+    num_channels = 1
+    bits_per_sample = 16
+    byte_rate = sample_rate * num_channels * (bits_per_sample // 8)
+    block_align = num_channels * (bits_per_sample // 8)
+    data_size = len(pcm_data)
+    total_size = 36 + data_size
+    header = struct.pack(
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",
+        total_size,
+        b"WAVE",
+        b"fmt ",
+        16,
+        1,
+        num_channels,
+        sample_rate,
+        byte_rate,
+        block_align,
+        bits_per_sample,
+        b"data",
+        data_size,
+    )
+    return header + pcm_data
+
+
+class GeminiVoiceProvider:
+    """The Gemini TTS provider matching live session voice selection."""
+
+    provider = "gemini"
+
+    def __init__(self, api_key: str) -> None:
+        self._api_key = api_key
+
+    async def synthesize(self, text: str, *, voice_key: str) -> bytes:
+        if not self._api_key:
+            raise RuntimeError("GEMINI_API_KEY is not configured.")
+        import base64
+        import json
+        import websockets
+
+        voice_name = voice_key if voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"} else (get_settings().gemini_live_voice or "Puck")
+        url = f"wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key={self._api_key}"
+        async with websockets.connect(url, ping_interval=10, ping_timeout=10) as ws:
+            setup_payload = {
+                "setup": {
+                    "model": "models/gemini-3.1-flash-live-preview",
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {
+                            "voiceConfig": {
+                                "prebuiltVoiceConfig": {
+                                    "voiceName": voice_name
+                                }
+                            }
+                        }
+                    },
+                    "systemInstruction": {
+                        "parts": [{
+                            "text": (
+                                f"You are {voice_name}, an expert, supportive music coach and examiner. "
+                                "Deliver a concise, natural, and personalized spoken debrief (2 to 3 sentences) "
+                                "based on the student's performance results. Highlight their score and key strengths, "
+                                "provide an actionable musical tip, and encourage them on their next step. "
+                                "Sound warm, expressive, and conversational without robotic repetition."
+                            )
+                        }]
+                    }
+                }
+            }
+            await ws.send(json.dumps(setup_payload))
+            await ws.recv()
+
+            turn_payload = {
+                "clientContent": {
+                    "turns": [{
+                        "role": "user",
+                        "parts": [{
+                            "text": (
+                                f"Here are the student's performance results: {text}. "
+                                "Deliver your spoken personalized debrief now."
+                            )
+                        }]
+                    }],
+                    "turnComplete": True
+                }
+            }
+            await ws.send(json.dumps(turn_payload))
+
+            pcm_chunks: list[bytes] = []
+            while True:
+                raw = await ws.recv()
+                msg = json.loads(raw)
+                server_content = msg.get("serverContent", {})
+                model_turn = server_content.get("modelTurn", {})
+                for part in model_turn.get("parts", []):
+                    inline = part.get("inlineData", {})
+                    if inline.get("data"):
+                        pcm_chunks.append(base64.b64decode(inline["data"]))
+                if server_content.get("turnComplete"):
+                    break
+
+            full_pcm = b"".join(pcm_chunks)
+            if not full_pcm:
+                raise RuntimeError("No audio returned from Gemini Live session.")
+            return _pcm16_to_wav(full_pcm, sample_rate=24000)
+
+
 def _provider_for(name: str) -> VoiceProvider:
-    if name == "elevenlabs":
-        settings = get_settings()
+    settings = get_settings()
+    if name == "gemini":
+        return GeminiVoiceProvider(settings.gemini_api_key)
+    if name == "elevenlabs" and settings.elevenlabs_api_key:
         return ElevenLabsVoiceProvider(settings.elevenlabs_api_key)
     return FakeVoiceProvider()
 
@@ -130,14 +240,19 @@ async def synthesize_feedback(text: str, *, voice_key: str = "") -> VoiceArtifac
     Never raises: a provider outage must degrade delivery, not the attempt.
     """
     settings = get_settings()
-    provider = _provider_for(settings.voice_provider)
+    if settings.voice_provider == "fake":
+        provider: VoiceProvider = FakeVoiceProvider()
+    elif voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"} and settings.gemini_api_key:
+        provider = GeminiVoiceProvider(settings.gemini_api_key)
+    else:
+        provider = _provider_for(settings.voice_provider)
     cache_key = cache_key_for(text, voice_key)
     try:
         content = await provider.synthesize(text, voice_key=voice_key)
         return VoiceArtifact(
             provider=provider.provider,
             voice_key=voice_key,
-            format="wav" if provider.provider == "fake" else "mp3",
+            format="wav" if provider.provider in ("fake", "gemini") else "mp3",
             content=content,
             cache_key=cache_key,
             spoken_text=text,

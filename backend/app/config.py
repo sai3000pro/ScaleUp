@@ -149,8 +149,11 @@ class Settings(BaseSettings):
     gemini_timeout_seconds: float = 45.0
     gemini_max_retries: int = 1
     # The Live API is a different seam on the same credential: bidirectional audio
-    # over a WebSocket, which the OpenAI-compatible surface does not carry.
-    gemini_live_model: str = "models/gemini-2.0-flash-exp"
+    # over a WebSocket, which the OpenAI-compatible surface does not carry. It
+    # pins its own model rather than following the role registry's, because the
+    # bidirectional surface exposes a different set.
+    gemini_live_model: str = "models/gemini-3.1-flash-live-preview"
+    gemini_live_voice: str = "Puck"
 
     def gemini_key_for(self, lane: str) -> str:
         """The credential serving one workload lane, or the shared one."""

@@ -669,7 +669,7 @@ async def get_attempt(
 
 
 async def speech_for_attempt(
-    session: AsyncSession, attempt: PerformanceAttempt
+    session: AsyncSession, attempt: PerformanceAttempt, voice_key: str = ""
 ) -> VoiceArtifactOut:
     """Speak an attempt's examiner feedback, caching the audio by content.
 
@@ -685,8 +685,8 @@ async def speech_for_attempt(
         raise HTTPException(status.HTTP_409_CONFLICT, "This attempt has no examiner feedback to speak.")
 
     text = f"{attempt.feedback_summary} Next: {attempt.feedback_next_step}"
-    voice_key = "professor-cadenza"
-    cache_key = cache_key_for(text, voice_key)
+    actual_voice = voice_key or "professor-cadenza"
+    cache_key = cache_key_for(text, actual_voice)
     stored = await session.get(StoredVoiceArtifact, cache_key)
     if stored is not None:
         return VoiceArtifactOut(
@@ -700,14 +700,14 @@ async def speech_for_attempt(
             cached=True,
         )
 
-    artifact = await synthesize_feedback(text, voice_key=voice_key)
+    artifact = await synthesize_feedback(text, voice_key=actual_voice)
     if artifact.content:
         session.add(
             StoredVoiceArtifact(
                 cache_key=cache_key,
                 attempt_id=attempt.id,
                 provider=artifact.provider,
-                voice_key=voice_key,
+                voice_key=actual_voice,
                 format=artifact.format,
                 content=artifact.content,
                 spoken_text=artifact.spoken_text,
@@ -733,10 +733,10 @@ async def speech_for_attempt(
 
 
 async def synthesize_attempt_speech(
-    session: AsyncSession, attempt_id: uuid.UUID, user: User
+    session: AsyncSession, attempt_id: uuid.UUID, user: User, voice_key: str = ""
 ) -> VoiceArtifactOut:
     """Learner-facing speech endpoint: ownership check, then shared synthesis."""
     attempt = await session.get(PerformanceAttempt, attempt_id)
     if attempt is None or attempt.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Performance attempt not found.")
-    return await speech_for_attempt(session, attempt)
+    return await speech_for_attempt(session, attempt, voice_key=voice_key)

@@ -63,8 +63,87 @@ function CoachingStudioView() {
   const [currentBeat, setCurrentBeat] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [customBpm, setCustomBpm] = useState<number | null>(null);
+  const [geminiVoice, setGeminiVoice] = useState<string>("Puck");
   const [aiTip, setAiTip] = useState<CoachLiveTipResponse | null>(null);
   const [isFetchingTip, setIsFetchingTip] = useState(false);
+  const [showLogs, setShowLogs] = useState<boolean>(false);
+  const [isSpeakingDebrief, setIsSpeakingDebrief] = useState<boolean>(false);
+  const debriefAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [liveStreamLogs, setLiveStreamLogs] = useState<Array<{ timestamp: string; direction: "in" | "out"; message: string }>>([
+    {
+      timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      direction: "in",
+      message: "Gemini Live Multimodal coach ready. Choose voice & tempo to begin.",
+    },
+  ]);
+
+  const stopDebriefVoice = useCallback(() => {
+    socketRef.current?.stopPlayback();
+    if (debriefAudioRef.current) {
+      debriefAudioRef.current.pause();
+      debriefAudioRef.current.currentTime = 0;
+      debriefAudioRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeakingDebrief(false);
+  }, []);
+
+  const speakDebrief = useCallback(async (attemptData: PerformanceAttempt) => {
+    if (typeof window === "undefined") return;
+    stopDebriefVoice();
+
+    // 1. Fetch high-fidelity synthesized audio in the exact matching Gemini voice (Puck, Charon, Kore, Fenrir, Aoede)
+    try {
+      const artifact = await api.synthesizeAttemptSpeech(attemptData.id, geminiVoice);
+      if (artifact && artifact.audio_base64) {
+        const binary = atob(artifact.audio_base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: artifact.format === "mp3" ? "audio/mpeg" : "audio/wav" });
+        const audio = new Audio(URL.createObjectURL(blob));
+        debriefAudioRef.current = audio;
+        setIsSpeakingDebrief(true);
+        audio.onended = () => setIsSpeakingDebrief(false);
+        audio.onpause = () => setIsSpeakingDebrief(false);
+        audio.onerror = () => setIsSpeakingDebrief(false);
+        await audio.play();
+        return;
+      }
+    } catch {
+      // Fall through to browser speech synthesis
+    }
+
+    // 2. Offline fallback: Web Speech Synthesis
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const scorePercent = Math.round(attemptData.overall_score * 100);
+      const summary = attemptData.feedback?.summary ?? "Take completed.";
+      const strengths = attemptData.feedback?.strengths?.length
+        ? `Key strengths: ${attemptData.feedback.strengths.join(". ")}.`
+        : "";
+      const corrections = attemptData.feedback?.corrections?.length
+        ? `Areas for improvement: ${attemptData.feedback.corrections.join(". ")}.`
+        : "";
+      const fullText = `Take finalized! Overall score is ${scorePercent} percent. ${summary} ${strengths} ${corrections}`;
+
+      const utteranceObj = new SpeechSynthesisUtterance(fullText);
+      utteranceObj.rate = 1.05;
+      utteranceObj.pitch = 1.0;
+      utteranceObj.onstart = () => setIsSpeakingDebrief(true);
+      utteranceObj.onend = () => setIsSpeakingDebrief(false);
+      utteranceObj.onerror = () => setIsSpeakingDebrief(false);
+      window.speechSynthesis.speak(utteranceObj);
+    }
+  }, [geminiVoice, stopDebriefVoice]);
+
+  const addStreamLog = useCallback((direction: "in" | "out", message: string) => {
+    const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    setLiveStreamLogs((prev) => [...prev.slice(-60), { timestamp, direction, message }]);
+  }, []);
 
   const socketRef = useRef<CoachSocket | null>(null);
   const recorderRef = useRef<MicRecorder | null>(null);
@@ -139,6 +218,7 @@ function CoachingStudioView() {
   const fetchLiveAiTip = useCallback(async () => {
     if (!selectedExercise) return;
     setIsFetchingTip(true);
+    addStreamLog("out", `POST /api/courses/${courseId}/practice/coach/tip (tempo=${tempoBpm} BPM, note=${currentActiveNote?.note_name ?? "phrase"})`);
     try {
       const tipRes = await api.getLiveCoachTip(courseId, {
         exercise_title: selectedExercise.title,
@@ -158,15 +238,17 @@ function CoachingStudioView() {
         streak_count: cue?.matched_count ?? 0,
       });
       setAiTip(tipRes);
+      addStreamLog("in", `AI Coach Tip: "${tipRes.tip}" [${tipRes.focus_area}]`);
     } catch {
       // Graceful fallback
     } finally {
       setIsFetchingTip(false);
     }
-  }, [courseId, selectedExercise, course, tempoBpm, currentActiveNote, cue]);
+  }, [courseId, selectedExercise, course, tempoBpm, currentActiveNote, cue, addStreamLog]);
 
   const startTake = useCallback(async () => {
-    if (selectedExerciseId === null) return;
+    if (selectedExerciseId === null || !selectedExercise) return;
+    stopDebriefVoice();
     setError(null);
     setAttempt(null);
     setTranscript([]);
@@ -175,36 +257,62 @@ function CoachingStudioView() {
     notesRef.current = [];
     usePostureStore.getState().begin(null);
 
+    addStreamLog("out", `take.start -> Starting drill "${selectedExercise.title}" at ${tempoBpm} BPM (voice: ${geminiVoice})`);
+
     try {
       const session = await api.createPracticeSession(selectedExerciseId);
-      const socket = new CoachSocket(session.id, {
-        onReady: (exercise) => {
-          setCoachExercise(exercise);
-          setStage("listening");
+      const socket = new CoachSocket(
+        session.id,
+        {
+          onReady: (exercise) => {
+            addStreamLog("in", `session.ready <- Coach connected: ${exercise?.title ?? "Exercise"} (${exercise?.tempo_bpm ?? tempoBpm} BPM)`);
+            setCoachExercise(exercise);
+            setStage("listening");
+          },
+          onCue: (nextCue) => {
+            if (nextCue.cue) {
+              addStreamLog("in", `cue <- "${nextCue.cue}" (matched: ${nextCue.matched_count}, missed: ${nextCue.missed_count})`);
+            }
+            setCue(nextCue);
+          },
+          onUtterance: (next) => {
+            if (next.streaming) {
+              addStreamLog("in", `coach.delta <- "${next.text}"`);
+              if (next.cue === "take_debrief") {
+                setIsSpeakingDebrief(true);
+              }
+            }
+            setUtterance(next);
+            if (!next.streaming) {
+              if (next.cue === "take_debrief") {
+                setIsSpeakingDebrief(false);
+              }
+              if (!next.cancelled && next.text.trim() !== "") {
+                addStreamLog("in", `coach.finalized <- "${next.text}"`);
+                setTranscript((lines) => [...lines, next.text]);
+              }
+            }
+          },
+          onResult: (result) => {
+            addStreamLog("in", `take.result <- Finalized with overall score: ${((result.metrics?.overall_score ?? 0) * 100).toFixed(0)}%`);
+            setAttempt(result);
+            setStage("result");
+          },
+          onError: (err) => {
+            addStreamLog("in", `error <- ${err}`);
+            setError(err);
+          },
         },
-        onCue: (nextCue) => {
-          setCue(nextCue);
-        },
-        onUtterance: (next) => {
-          setUtterance(next);
-          if (!next.streaming && !next.cancelled && next.text.trim() !== "") {
-            setTranscript((lines) => [...lines, next.text]);
-          }
-        },
-        onResult: (result) => {
-          setAttempt(result);
-          setStage("result");
-        },
-        onError: (err) => {
-          setError(err);
-        },
-      });
+        crypto.randomUUID(),
+        geminiVoice,
+      );
       socketRef.current = socket;
       await socket.connect();
 
       const recorder = new MicRecorder(() => {}, {
         onNote: (note) => {
           notesRef.current.push(note);
+          addStreamLog("out", `notes -> ${note.pitch_midi !== null ? `Pitch MIDI ${note.pitch_midi}` : note.drum} @ ${note.onset_seconds.toFixed(2)}s`);
           socket.pushNote(note);
         },
         onLevel: (rmsDb, silenceSeconds) => socket.pushLevel(rmsDb, silenceSeconds),
@@ -213,11 +321,12 @@ function CoachingStudioView() {
       await recorder.start();
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : "Could not start the live coaching session.");
+      addStreamLog("in", `Connection failure: ${caught instanceof Error ? caught.message : "Error"}`);
       setStage("preview");
       socketRef.current?.close();
       socketRef.current = null;
     }
-  }, [selectedExerciseId]);
+  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice]);
 
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -618,6 +727,27 @@ function CoachingStudioView() {
                       </button>
                     </div>
 
+                    {/* Gemini Voice Selection */}
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-950 p-2.5 border border-slate-800">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                        AI Coach Voice:
+                      </label>
+                      <select
+                        value={geminiVoice}
+                        onChange={(e) => {
+                          setGeminiVoice(e.target.value);
+                          addStreamLog("out", `Switched Gemini Live coach voice to: ${e.target.value}`);
+                        }}
+                        className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-medium text-red-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+                      >
+                        <option value="Puck">Puck (Crisp / Energetic)</option>
+                        <option value="Charon">Charon (Warm / Deep)</option>
+                        <option value="Kore">Kore (Calm / Natural)</option>
+                        <option value="Fenrir">Fenrir (Authoritative / Strong)</option>
+                        <option value="Aoede">Aoede (Melodic / Bright)</option>
+                      </select>
+                    </div>
+
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-400">Focus Area:</span>
@@ -668,8 +798,7 @@ function CoachingStudioView() {
                           3
                         </span>
                         <div>
-                          <strong className="text-slate-100">Phrase Rests:</strong> Pause briefly at
-                          measure boundaries (~0.6s) to allow the coach to speak corrections.
+                          <strong className="text-slate-100">Voice Selected:</strong> Speaking with {geminiVoice} voice via Gemini Live.
                         </div>
                       </li>
                     </ul>
@@ -682,6 +811,47 @@ function CoachingStudioView() {
                       <span>Start Coached Take ({tempoBpm} BPM)</span>
                       <span className="text-lg">🎙️</span>
                     </button>
+                  </div>
+
+                  {/* Gemini Live Stream Inspector Logs in Rehearsal */}
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-slate-300">🖥️ Live Stream Logs</span>
+                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                          {liveStreamLogs.length} events
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLogs((prev) => !prev)}
+                        className="text-xs text-red-400 hover:text-red-300 font-semibold transition"
+                      >
+                        {showLogs ? "Hide Terminal" : "Show Inspector"}
+                      </button>
+                    </div>
+
+                    {showLogs && (
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-52 overflow-y-auto space-y-1.5 shadow-inner">
+                        {liveStreamLogs.map((log, idx) => (
+                          <div key={idx} className="flex items-start gap-2 leading-relaxed">
+                            <span className="text-slate-500 shrink-0">{log.timestamp}</span>
+                            <span
+                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                                log.direction === "out"
+                                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              }`}
+                            >
+                              {log.direction === "out" ? "OUT" : "IN"}
+                            </span>
+                            <span className={log.direction === "out" ? "text-cyan-100" : "text-emerald-100"}>
+                              {log.message}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -977,6 +1147,47 @@ function CoachingStudioView() {
                       </div>
                     </div>
                   )}
+
+                  {/* Real-Time Gemini Live Stream Inspector Logs during Active Take */}
+                  <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-slate-300">🖥️ Gemini Live Stream Logs ({geminiVoice})</span>
+                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                          {liveStreamLogs.length} events
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowLogs((prev) => !prev)}
+                        className="text-xs text-red-400 hover:text-red-300 font-semibold transition"
+                      >
+                        {showLogs ? "Hide Terminal" : "Show Stream Inspector"}
+                      </button>
+                    </div>
+
+                    {showLogs && (
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-56 overflow-y-auto space-y-1.5 shadow-inner">
+                        {liveStreamLogs.map((log, idx) => (
+                          <div key={idx} className="flex items-start gap-2 leading-relaxed">
+                            <span className="text-slate-500 shrink-0">{log.timestamp}</span>
+                            <span
+                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                                log.direction === "out"
+                                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              }`}
+                            >
+                              {log.direction === "out" ? "OUT" : "IN"}
+                            </span>
+                            <span className={log.direction === "out" ? "text-cyan-100" : "text-emerald-100"}>
+                              {log.message}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -1016,9 +1227,22 @@ function CoachingStudioView() {
 
                   {/* Examiner Overview */}
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 space-y-4">
-                    <h3 className="font-display text-lg font-bold text-slate-100">
-                      Examiner Assessment
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-display text-lg font-bold text-slate-100">
+                        Examiner Assessment
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={isSpeakingDebrief ? stopDebriefVoice : () => attempt && speakDebrief(attempt)}
+                        className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold transition border ${
+                          isSpeakingDebrief
+                            ? "bg-red-500/20 text-red-300 border-red-500/50 hover:bg-red-500/30 animate-pulse cursor-pointer shadow-lg shadow-red-500/10"
+                            : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 cursor-pointer"
+                        }`}
+                      >
+                        <span>{isSpeakingDebrief ? "⏹️ Interrupt Debrief Voice" : "🔊 Replay Debrief"}</span>
+                      </button>
+                    </div>
                     <p className="text-base text-slate-200 leading-relaxed">
                       {attempt.feedback.summary}
                     </p>
