@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { GRAPH_ACCENTS, GRAPH_GROUND, GRAPH_STRUCTURAL_ACCENT } from "@/lib/graphTheme";
 import { STATE_STYLES } from "@/lib/nodeState";
 import { BUTTON_PRIMARY, MUTED } from "@/lib/ui";
 
@@ -171,5 +172,39 @@ describe("contrast", () => {
     for (const [state, style] of Object.entries(STATE_STYLES)) {
       expect(contrast(style.accent, PAGE()), `node state ${state}`).toBeGreaterThanOrEqual(AA_NON_TEXT);
     }
+  });
+});
+
+describe("graph palette", () => {
+  // @spec UI-GRAPH3D-017
+  it("keeps the graph-state literals in step with their tokens", () => {
+    for (const [state, accent] of Object.entries(GRAPH_ACCENTS)) {
+      expect(accent.toLowerCase(), `graphTheme.${state} has drifted from --color-graph-${state}`).toBe(
+        TOKENS[`graph-${state}`],
+      );
+    }
+    expect(GRAPH_STRUCTURAL_ACCENT.toLowerCase()).toBe(TOKENS["graph-structural"]);
+    expect(GRAPH_GROUND.toLowerCase()).toBe(TOKENS["graph-ground"]);
+  });
+
+  // @spec UI-GRAPH3D-017
+  it("clears the non-text minimum for every actionable graph colour on the graph's own ground", () => {
+    const ground = TOKENS["graph-ground"];
+    // Actionable states only: locked and section are exempt, below.
+    for (const state of ["available", "learning", "decaying", "mastered"] as const) {
+      expect(contrast(GRAPH_ACCENTS[state], ground), `graph state ${state}`).toBeGreaterThanOrEqual(AA_NON_TEXT);
+    }
+  });
+
+  // @spec UI-GRAPH3D-017
+  it("lets locked and section recede below the line on the graph ground, by design", () => {
+    // Locked and section are the "what is still ahead" part of the tree. They
+    // are deliberately dimmer than 3:1 so the frontier reads first; their state
+    // is carried by the projected title, the hover card and the keyboard list,
+    // never by colour alone. Pinned here so a contrast "fix" that flattens the
+    // look cannot land silently.
+    const ground = TOKENS["graph-ground"];
+    expect(contrast(GRAPH_ACCENTS.locked, ground)).toBeLessThan(AA_NON_TEXT);
+    expect(contrast(GRAPH_STRUCTURAL_ACCENT, ground)).toBeLessThan(AA_NON_TEXT);
   });
 });

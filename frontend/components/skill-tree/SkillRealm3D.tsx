@@ -21,10 +21,24 @@
  * take, and the learner would have two answers about one lesson.
  */
 
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
 
-import { CLOSE_FOV, cubicOut, DIVE_DISTANCE, TRANSIT_MS, WIDE_FOV } from "@/components/skill-tree/SkillGraph3D";
+import {
+  CLOSE_FOV,
+  cubicOut,
+  DIVE_DISTANCE,
+  TRANSIT_MS,
+} from "@/components/skill-tree/SkillGraph3D";
+import { GRAPH_ACCENTS, GRAPH_GROUND } from "@/lib/graphTheme";
+import { canTraverseLesson } from "@/lib/lesson";
 import type { Lesson, SkillRealm } from "@/lib/types";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, FOCUS_RING } from "@/lib/ui";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
@@ -46,14 +60,16 @@ interface Props {
   onOpenTest: () => void;
 }
 
-/** From the `@theme` block in app/globals.css. Change one, change both. */
-const PAGE = 0xfdfbfb;
-const CLEARED = 0x2b6f9e;
-const OPEN = 0x1f7a54;
-const CLOSED = 0x96859d;
-const LOCKED_EDGE = 0xcabfc2;
-/** The accent. Reserved here for the one thing that is a reward. */
-const TEST = 0xb8496f;
+// The realm is the same world as the tree, drawn on the same ground with the
+// same palette (lib/graphTheme.ts): slate for the lessons still ahead, blue for
+// the one in hand, purple for the cleared, gold for the test at the end. A
+// single palette is what makes the dive in and out read as one journey.
+const LESSON_CLEARED = GRAPH_ACCENTS.mastered;
+const LESSON_OPEN = GRAPH_ACCENTS.learning;
+const LESSON_CLOSED = GRAPH_ACCENTS.locked;
+const TEST_OPEN = GRAPH_ACCENTS.available;
+const EDGE_LIT = GRAPH_ACCENTS.available;
+const EDGE_LOCKED = GRAPH_ACCENTS.locked;
 
 const LESSON_RADIUS = 9;
 const LESSON_THICKNESS = 1.6;
@@ -62,18 +78,70 @@ const STEP_HEIGHT = 44;
 const TEST_GAP = 30;
 const PICK_THRESHOLD = 20;
 
-interface Marker {
-  key: string;
-  label: string;
-  sub: string;
+// The realm is walked the same way the tree is: the camera stands AT the
+// current lesson -- half a lesson radius back, lens at eye height (one
+// thickness plus two units above the plane), up along +Z so the chain's plane
+// is the ground the learner is standing in -- and looks along the run toward
+// the next lesson, or the test at its end. Clicking a lesson walks the camera
+// to it; right-drag looks around. Same recipe as the tree's traversal, so the
+// two sides of the dive read as one world.
+const POV_STAND_BACK = LESSON_RADIUS * 0.5;
+const POV_LOOK_AHEAD = 40;
+const POV_EYE_OFFSET = LESSON_THICKNESS / 2 + 2;
+const POV_FOV = 75;
+const POV_UP = new THREE.Vector3(0, 0, 1);
+const OVERVIEW_UP = new THREE.Vector3(0, 1, 0);
+
+// Entering the realm is a turn-around, not a slide. The tree's dive ends
+// looking at the skill from one side of it (its direction in the plane is +Y
+// at the dive pose); the realm's walk-in swings the camera one hundred and
+// eighty degrees about the skill (+Z is the plane's up) to stand on the far
+// side looking up the chain, while closing from the dive distance to the
+// standing point. The skill stays in frame for the whole turn because the
+// camera aims at it until the swing is done.
+const ENTRY_START_ANGLE = Math.PI / 2;
+const ENTRY_END_ANGLE = -Math.PI / 2;
+/** The fraction of the turn after which the aim leaves the skill for the chain. */
+const ENTRY_LOOK_BLEND_AT = 0.6;
+/** The fraction of the turn after which the up vector rolls into the plane. */
+const ENTRY_UP_BLEND_AT = 0.3;
+
+/**
+ * One floating neighbour card in the realm, the way the tree's POV walks its
+ * map: the lesson the line connects to the one being stood at -- the one
+ * ahead and the one behind -- carries a card naming it and saying what it
+ * asks for, and clicking it is a camera journey to that lesson.
+ */
+interface RealmCard {
+  id: string;
+  title: string;
+  desc: string;
+  /** The lesson's state, carried by the card: cleared with its best score, ready, or locked. */
+  status: string;
+  progress: string;
+  badge: "previous" | "next" | "test";
+  accent: string;
   x: number;
   y: number;
   visible: boolean;
-  emphasis: boolean;
 }
 
-// @spec PROG-REALM-004
-export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props) {
+// The cards float beside the neighbour's disc, like the tree's POV cards.
+const REALM_CARD_WIDTH = 200;
+
+interface RealmTraversalNotice {
+  targetTitle: string;
+  currentTitle: string | null;
+  message: string;
+}
+
+// @spec PROG-REALM-004, UI-GRAPH3D-013, UI-GRAPH3D-017, UI-GRAPH3D-019, UI-GRAPH3D-023, UI-GRAPH3D-025, UI-GRAPH3D-026, UI-GRAPH3D-027, UI-GRAPH3D-028
+export function SkillRealm3D({
+  realm,
+  onExit,
+  renderLesson,
+  onOpenTest,
+}: Props) {
   /**
    * The lesson the learner clicked, before they have committed to playing it.
    *
@@ -88,7 +156,15 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
   const [playing, setPlaying] = useState<Lesson | null>(null);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
-  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [realmCards, setRealmCards] = useState<RealmCard[]>([]);
+  const [traversalNotice, setTraversalNotice] =
+    useState<RealmTraversalNotice | null>(null);
+  // The imperative handles the cards call into the canvas: a card click walks
+  // to that lesson, and the test card opens the test.
+  const realmActionsRef = useRef<{
+    walkTo: (id: string) => void;
+    openTest: () => void;
+  } | null>(null);
 
   const onOpenTestRef = useRef(onOpenTest);
   const onExitRef = useRef(onExit);
@@ -101,7 +177,11 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
   // four objects — so this keys on the whole shape rather than on an id.
   const shape = useMemo(
     () =>
-      [realm.node_id, realm.test_open, ...realm.lessons.map((l) => `${l.exercise_id}:${l.cleared}:${l.open}`)].join("|"),
+      [
+        realm.node_id,
+        realm.test_open,
+        ...realm.lessons.map((l) => `${l.exercise_id}:${l.cleared}:${l.open}`),
+      ].join("|"),
     [realm],
   );
 
@@ -111,11 +191,22 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     const current = realmRef.current;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(PAGE);
+    scene.background = new THREE.Color(GRAPH_GROUND);
+    // The same rig as the tree, so the world does not visibly change between
+    // the two sides of the dive.
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2);
+    keyLight.position.set(20, 40, 60);
+    scene.add(keyLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     // Opens at the field of view the dive ended on, and closes back down as it
     // pulls out -- so the first frame of the realm matches the last frame of
     // the tree in aim, distance AND lens.
-    const camera = new THREE.PerspectiveCamera(prefersReducedMotion ? WIDE_FOV : CLOSE_FOV, 1, 0.1, 4000);
+    const camera = new THREE.PerspectiveCamera(
+      prefersReducedMotion ? POV_FOV : CLOSE_FOV,
+      1,
+      0.1,
+      4000,
+    );
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -128,15 +219,33 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     mount.appendChild(renderer.domElement);
 
     // ── the chain ─────────────────────────────────────────────────────────
-    const discGeometry = new THREE.CylinderGeometry(LESSON_RADIUS, LESSON_RADIUS, LESSON_THICKNESS, 48);
-    const targets: { id: string; kind: "lesson" | "test"; mesh: THREE.Mesh; label: string; sub: string }[] = [];
+    const discGeometry = new THREE.CylinderGeometry(
+      LESSON_RADIUS,
+      LESSON_RADIUS,
+      LESSON_THICKNESS,
+      48,
+    );
+    const targets: { id: string; kind: "lesson" | "test"; mesh: THREE.Mesh }[] =
+      [];
 
     current.lessons.forEach((lesson, index) => {
       const y = index * STEP_HEIGHT;
-      const colour = lesson.cleared ? CLEARED : lesson.open ? OPEN : CLOSED;
+      const colour = lesson.cleared
+        ? LESSON_CLEARED
+        : lesson.open
+          ? LESSON_OPEN
+          : LESSON_CLOSED;
       const disc = new THREE.Mesh(
         discGeometry,
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(colour), transparent: true, opacity: lesson.open ? 1 : 0.5 }),
+        new THREE.MeshStandardMaterial({
+          color: new THREE.Color(colour),
+          metalness: 0.3,
+          roughness: 0.3,
+          emissive: new THREE.Color(colour),
+          emissiveIntensity: 0.22,
+          transparent: true,
+          opacity: lesson.open ? 1 : 0.5,
+        }),
       );
       disc.position.set(0, y, 0);
       disc.rotation.x = Math.PI / 2;
@@ -145,12 +254,6 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
         id: lesson.exercise_id,
         kind: "lesson",
         mesh: disc,
-        label: lesson.title,
-        sub: lesson.cleared
-          ? `Cleared · best ${Math.round((lesson.best_score ?? 0) * 100)}%`
-          : lesson.open
-            ? "Ready to play"
-            : "Clear the one before it",
       });
 
       if (index > 0) {
@@ -161,9 +264,9 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
             new THREE.Vector3(0, y, 0),
           ]),
           new THREE.LineBasicMaterial({
-            color: new THREE.Color(below.cleared ? OPEN : LOCKED_EDGE),
+            color: new THREE.Color(below.cleared ? EDGE_LIT : EDGE_LOCKED),
             transparent: true,
-            opacity: below.cleared ? 0.9 : 0.6,
+            opacity: below.cleared ? 0.7 : 0.5,
           }),
         );
         scene.add(line);
@@ -179,7 +282,7 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     const ring = new THREE.Mesh(
       ringGeometry,
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(current.test_open ? TEST : CLOSED),
+        color: new THREE.Color(current.test_open ? TEST_OPEN : LESSON_CLOSED),
         transparent: true,
         opacity: current.test_open ? 1 : 0.45,
       }),
@@ -190,8 +293,6 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
       id: "test",
       kind: "test",
       mesh: ring,
-      label: `${current.node_title} — test`,
-      sub: current.test_open ? "Open. Pass it to master this skill." : "Clear every lesson to open",
     });
 
     const tether = new THREE.Line(
@@ -200,7 +301,7 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
         new THREE.Vector3(0, testY - 13, 0),
       ]),
       new THREE.LineBasicMaterial({
-        color: new THREE.Color(current.test_open ? TEST : LOCKED_EDGE),
+        color: new THREE.Color(current.test_open ? EDGE_LIT : EDGE_LOCKED),
         transparent: true,
         opacity: current.test_open ? 0.9 : 0.5,
       }),
@@ -208,35 +309,109 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     scene.add(tether);
 
     // ── camera ────────────────────────────────────────────────────────────
-    // Centred a little below the midpoint, and framed wider than the chain,
-    // because the captions hang under each disc -- framing to the discs alone
-    // crops the first lesson's caption off the bottom, which is the one the
-    // learner is being sent to.
-    const centreY = testY / 2 - LESSON_RADIUS * 2;
-    const span = testY + LESSON_RADIUS * 8;
-    let theta = Math.PI / 2;
-    let phi = 1.45;
-    const settled = Math.max(210, span * 1.45);
-    // Arrive where the dive ended -- close in on the first lesson -- and pull
-    // back from there. The tree and the realm are different scenes, so this
-    // matched pose is the only thing that makes the swap read as travel rather
-    // than as a cut. Reduced motion starts settled: it was a cut for them
-    // anyway, because the dive was skipped.
-    let radius = prefersReducedMotion ? settled : DIVE_DISTANCE;
-    let arriving = prefersReducedMotion ? 1 : 0;
+    // The pose the dive ended on, so the realm opens there and hands the tree
+    // the camera back from the same place when the learner leaves.
+    const divePos = new THREE.Vector3(
+      DIVE_DISTANCE * Math.sin(1.05) * Math.cos(Math.PI / 2),
+      DIVE_DISTANCE * Math.cos(1.05),
+      DIVE_DISTANCE * Math.sin(1.05) * Math.sin(Math.PI / 2),
+    );
+
+    // Which lesson the camera stands at, and the flight that walks it there.
+    let povIndex = 0;
+    const povLook = new THREE.Vector3();
+    let povFlight: {
+      id: number;
+      fromPos: THREE.Vector3;
+      toPos: THREE.Vector3;
+      fromLook: THREE.Vector3;
+      toLook: THREE.Vector3;
+      fromUp: THREE.Vector3;
+      fromFov: number;
+      startedAt: number;
+    } | null = null;
+    // The flight back out to the dive pose when the learner leaves.
+    let povExit: {
+      fromPos: THREE.Vector3;
+      fromLook: THREE.Vector3;
+      fromUp: THREE.Vector3;
+      fromFov: number;
+      startedAt: number;
+    } | null = null;
+    // The turn-around on entry: one flight, one 180-degree swing about the
+    // skill while closing in. Kept apart from povFlight so a walk between
+    // lessons stays the simple pose-to-pose flight it is.
+    let entryFlight: {
+      fromAngle: number;
+      toAngle: number;
+      fromRadius: number;
+      toRadius: number;
+      fromZ: number;
+      toZ: number;
+      at: THREE.Vector3;
+      toLook: THREE.Vector3;
+      fromFov: number;
+      startedAt: number;
+    } | null = null;
+    let povLookDragging = false;
     let dragging = false;
     let dragged = false;
     let lastX = 0;
     let lastY = 0;
-    const target = new THREE.Vector3(0, prefersReducedMotion ? centreY : 0, 0);
 
-    function place() {
-      camera.position.set(
-        radius * Math.sin(phi) * Math.cos(theta),
-        target.y + radius * Math.cos(phi),
-        radius * Math.sin(phi) * Math.sin(theta),
-      );
-      camera.lookAt(target);
+    /** The stance at a lesson: half a radius back, eye height, facing up the chain. */
+    function povPoseFor(index: number) {
+      const y = index * STEP_HEIGHT;
+      return {
+        pos: new THREE.Vector3(0, y - POV_STAND_BACK, POV_EYE_OFFSET),
+        look: new THREE.Vector3(0, y + POV_LOOK_AHEAD, POV_EYE_OFFSET),
+      };
+    }
+
+    /** Snap straight into the stance at a lesson (reduced motion). */
+    function posePov(index: number) {
+      const pose = povPoseFor(index);
+      camera.up.copy(POV_UP);
+      camera.position.copy(pose.pos);
+      povLook.copy(pose.look);
+      camera.lookAt(povLook);
+      camera.fov = POV_FOV;
+      camera.updateProjectionMatrix();
+      povIndex = index;
+    }
+
+    /** Fly the camera to stand at an open lesson. */
+    function flyPovTo(index: number) {
+      if (entryFlight || povFlight || povExit || index === povIndex) return;
+      const lesson = realmRef.current.lessons[index];
+      if (!lesson) return;
+      if (!canTraverseLesson(lesson)) {
+        const currentLesson = realmRef.current.lessons[povIndex];
+        setTraversalNotice({
+          targetTitle: lesson.title,
+          currentTitle: currentLesson?.title ?? null,
+          message: currentLesson
+            ? `You haven't unlocked ${lesson.title} yet. Please complete ${currentLesson.title} first.`
+            : `You haven't unlocked ${lesson.title} yet. Complete the previous lesson first.`,
+        });
+        return;
+      }
+      setTraversalNotice(null);
+      if (prefersReducedMotion) {
+        posePov(index);
+        return;
+      }
+      const pose = povPoseFor(index);
+      povFlight = {
+        id: index,
+        fromPos: camera.position.clone(),
+        toPos: pose.pos,
+        fromLook: povLook.clone(),
+        toLook: pose.look,
+        fromUp: camera.up.clone(),
+        fromFov: camera.fov,
+        startedAt: performance.now(),
+      };
     }
 
     function resize() {
@@ -250,7 +425,37 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     const observer = new ResizeObserver(resize);
     observer.observe(mount);
     resize();
-    place();
+
+    // Open where the tree's dive ended: DIVE_DISTANCE out, upright, lens
+    // still open -- the realm's first frame is the tree's last, which is what
+    // makes the swap read as travel rather than as a cut. Then turn around
+    // into the chain: the camera swings one hundred and eighty degrees about
+    // the skill while closing in to stand at the first lesson. Reduced motion
+    // starts standing: it was a cut for them anyway, because the dive was
+    // skipped.
+    camera.up.copy(OVERVIEW_UP);
+    camera.position.copy(divePos);
+    povLook.set(0, 0, 0);
+    camera.lookAt(povLook);
+    camera.fov = CLOSE_FOV;
+    camera.updateProjectionMatrix();
+    if (prefersReducedMotion) {
+      posePov(0);
+    } else {
+      const first = povPoseFor(0);
+      entryFlight = {
+        fromAngle: ENTRY_START_ANGLE,
+        toAngle: ENTRY_END_ANGLE,
+        fromRadius: Math.hypot(divePos.x, divePos.y),
+        toRadius: Math.hypot(first.pos.x, first.pos.y),
+        fromZ: divePos.z,
+        toZ: first.pos.z,
+        at: new THREE.Vector3(0, 0, 0),
+        toLook: first.look.clone(),
+        fromFov: camera.fov,
+        startedAt: performance.now(),
+      };
+    }
 
     // ── picking ───────────────────────────────────────────────────────────
     const projected = new THREE.Vector3();
@@ -281,92 +486,277 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
       dragged = false;
       lastX = event.clientX;
       lastY = event.clientY;
-      renderer.domElement.setPointerCapture(event.pointerId);
+      // The camera pose belongs to the standing point, so the left button
+      // moves nothing -- but a left-drag must still not be read as a click on
+      // release. The right button looks around from the standing point,
+      // exactly as the tree's POV does.
+      if (event.button === 2 && !povFlight && !povExit && !leavingRef.current) {
+        povLookDragging = true;
+        renderer.domElement.setPointerCapture(event.pointerId);
+      }
     }
 
     function onPointerMove(event: PointerEvent) {
+      // Right-drag in POV looks around: yaw about the world's up (+Z, the
+      // chain's plane is the ground), pitch about the camera's right.
+      if (povLookDragging && !povFlight && !povExit && !leavingRef.current) {
+        const dx = event.clientX - lastX;
+        const dy = event.clientY - lastY;
+        lastX = event.clientX;
+        lastY = event.clientY;
+        const sensitivity = 0.003;
+        const yaw = new THREE.Quaternion().setFromAxisAngle(
+          POV_UP,
+          -dx * sensitivity,
+        );
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(
+          camera.quaternion,
+        );
+        const pitch = new THREE.Quaternion().setFromAxisAngle(
+          right,
+          -dy * sensitivity,
+        );
+        camera.quaternion.premultiply(yaw);
+        camera.quaternion.multiply(pitch);
+        // Keep the leave departure where the learner is actually looking.
+        povLook
+          .copy(camera.position)
+          .add(camera.getWorldDirection(new THREE.Vector3()));
+        dragged = true;
+        return;
+      }
       if (!dragging) {
-        renderer.domElement.style.cursor = pick(event.clientX, event.clientY) ? "pointer" : "grab";
+        renderer.domElement.style.cursor = pick(event.clientX, event.clientY)
+          ? "pointer"
+          : "grab";
         return;
       }
       const dx = event.clientX - lastX;
       const dy = event.clientY - lastY;
+      // A left-drag in the realm moves nothing -- the camera belongs to the
+      // standing point -- but it is still a drag, not a click.
       if (Math.abs(dx) + Math.abs(dy) > 3) dragged = true;
-      // Taking hold of the camera ends the arrival: nothing should move the
-      // view while the learner is moving it themselves.
-      arriving = 1;
       lastX = event.clientX;
       lastY = event.clientY;
-      theta -= dx * 0.005;
-      phi = Math.min(Math.PI - 0.25, Math.max(0.25, phi - dy * 0.005));
-      place();
     }
 
     function onPointerUp(event: PointerEvent) {
+      if (!dragging) return;
       dragging = false;
-      renderer.domElement.releasePointerCapture(event.pointerId);
+      povLookDragging = false;
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
       // A drag that ends over something is a drag, not a click.
       if (dragged) return;
       const hit = pick(event.clientX, event.clientY);
       if (!hit) return;
-      const live = realmRef.current;
-      if (hit.kind === "test") {
-        // A closed test is not a thing to nudge. The learner is told why by the
-        // caption under it, so a click that silently did nothing would be worse.
-        if (live.test_open) onOpenTestRef.current();
-      } else {
-        const lesson = live.lessons.find((entry) => entry.exercise_id === hit.id);
-        if (lesson?.open) setPending(lesson);
-      }
+      // One click opens a lesson's card, two clicks walk to it. Two clicks are
+      // two pointer-ups, so the first one waits a beat to see whether the
+      // second is coming -- a delayed card is a card a double-click can cancel.
+      if (detailTimer !== null) window.clearTimeout(detailTimer);
+      detailTimer = window.setTimeout(() => {
+        detailTimer = null;
+        const live = realmRef.current;
+        if (hit.kind === "test") {
+          if (live.test_open) {
+            onOpenTestRef.current();
+          } else {
+            const currentLesson = live.lessons[live.lessons.length - 1];
+            setTraversalNotice({
+              targetTitle: `${live.node_title} test`,
+              currentTitle: currentLesson?.title ?? null,
+              message: currentLesson
+                ? `You haven't unlocked the test yet. Please complete ${currentLesson.title} first.`
+                : "You haven't unlocked the test yet. Complete the lessons first.",
+            });
+          }
+        } else {
+          const index = live.lessons.findIndex(
+            (entry) => entry.exercise_id === hit.id,
+          );
+          const lesson = index >= 0 ? live.lessons[index] : undefined;
+          if (lesson && canTraverseLesson(lesson)) {
+            setPending(lesson);
+          } else if (lesson) {
+            const currentLesson = live.lessons[povIndex];
+            setTraversalNotice({
+              targetTitle: lesson.title,
+              currentTitle: currentLesson?.title ?? null,
+              message: currentLesson
+                ? `You haven't unlocked ${lesson.title} yet. Please complete ${currentLesson.title} first.`
+                : `You haven't unlocked ${lesson.title} yet. Complete the previous lesson first.`,
+            });
+          }
+        }
+      }, 220);
     }
 
-    function onWheel(event: WheelEvent) {
-      event.preventDefault();
-      radius = Math.min(span * 2.5, Math.max(90, radius + event.deltaY * 0.3));
-      place();
+    function onDoubleClick(event: MouseEvent) {
+      // The two-click gesture asks to stand beside the lesson, not to read its
+      // card -- cancel the card the first click scheduled.
+      if (detailTimer !== null) {
+        window.clearTimeout(detailTimer);
+        detailTimer = null;
+      }
+      const hit = pick(event.clientX, event.clientY);
+      if (!hit) return;
+      const live = realmRef.current;
+      if (hit.kind === "test") {
+        if (live.test_open) {
+          onOpenTestRef.current();
+        } else {
+          const currentLesson = live.lessons[povIndex];
+          setTraversalNotice({
+            targetTitle: `${live.node_title} test`,
+            currentTitle: currentLesson?.title ?? null,
+            message: currentLesson
+              ? `You haven't unlocked the test yet. Please complete ${currentLesson.title} first.`
+              : "You haven't unlocked the test yet. Complete the lessons first.",
+          });
+        }
+        return;
+      }
+      const index = live.lessons.findIndex(
+        (entry) => entry.exercise_id === hit.id,
+      );
+      if (index >= 0) flyPovTo(index);
     }
+
+    realmActionsRef.current = {
+      walkTo: (id: string) => {
+        const index = realmRef.current.lessons.findIndex(
+          (entry) => entry.exercise_id === id,
+        );
+        if (index >= 0) flyPovTo(index);
+      },
+      openTest: () => {
+        if (realmRef.current.test_open) onOpenTestRef.current();
+      },
+    };
 
     const canvas = renderer.domElement;
     canvas.style.cursor = "grab";
+    // The right button is the POV look-around, not the browser menu.
+    canvas.addEventListener("contextmenu", (event) => event.preventDefault());
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("wheel", onWheel, { passive: false });
+    canvas.addEventListener("dblclick", onDoubleClick);
 
     // ── the loop ──────────────────────────────────────────────────────────
     let frame = 0;
     const started = performance.now();
-    let sinceMarkers = 0;
-    let leftAt = 0;
+    // The door timer. A single click opens a lesson's card; a double-click
+    // walks to it. Two clicks are two pointer-ups, so the first one waits a
+    // beat to see whether the second is coming.
+    let detailTimer: number | null = null;
 
     function render() {
       const elapsed = (performance.now() - started) / 1000;
 
-      // Pull back to frame the chain. Eased out, so it decelerates into place
-      // and the learner's eye has somewhere to rest at the end of the movement.
-      if (leavingRef.current) {
-        // Back down to exactly where the tree's dive ended, so the tree can pick
-        // the camera up from the same pose.
-        if (leftAt === 0) leftAt = performance.now();
-        const progress = Math.min(1, (performance.now() - leftAt) / TRANSIT_MS);
-        const eased = 1 - cubicOut(progress);
-        radius = DIVE_DISTANCE + (settled - DIVE_DISTANCE) * eased;
-        target.y = centreY * eased;
-        camera.fov = CLOSE_FOV + (WIDE_FOV - CLOSE_FOV) * eased;
+      // The turn-around on entry: one swing of one hundred and eighty degrees
+      // about the skill while the camera closes in. Aimed at the skill for
+      // the turn so it stays framed; once the swing is done the aim leaves
+      // the skill for the chain and the up vector rolls into the plane,
+      // landing in the standing pose.
+      if (entryFlight) {
+        const progress = Math.min(
+          1,
+          (performance.now() - entryFlight.startedAt) / TRANSIT_MS,
+        );
+        const eased = cubicOut(progress);
+        const angle =
+          entryFlight.fromAngle +
+          (entryFlight.toAngle - entryFlight.fromAngle) * eased;
+        const radius =
+          entryFlight.fromRadius +
+          (entryFlight.toRadius - entryFlight.fromRadius) * eased;
+        const z =
+          entryFlight.fromZ + (entryFlight.toZ - entryFlight.fromZ) * eased;
+        camera.position.set(
+          radius * Math.cos(angle),
+          radius * Math.sin(angle),
+          z,
+        );
+        const lookBlend = Math.max(
+          0,
+          (eased - ENTRY_LOOK_BLEND_AT) / (1 - ENTRY_LOOK_BLEND_AT),
+        );
+        povLook.lerpVectors(entryFlight.at, entryFlight.toLook, lookBlend);
+        const upBlend = Math.max(
+          0,
+          (eased - ENTRY_UP_BLEND_AT) / (1 - ENTRY_UP_BLEND_AT),
+        );
+        camera.up.lerpVectors(OVERVIEW_UP, POV_UP, upBlend);
+        camera.lookAt(povLook);
+        camera.fov =
+          entryFlight.fromFov + (POV_FOV - entryFlight.fromFov) * eased;
         camera.updateProjectionMatrix();
-        place();
+        if (progress >= 1) {
+          povIndex = 0;
+          entryFlight = null;
+        }
+      }
+
+      // Walk to a lesson: position, aim and lens move together, landing with
+      // the chain ahead. Same flight language as the tree's traversal.
+      if (povFlight) {
+        const progress = Math.min(
+          1,
+          (performance.now() - povFlight.startedAt) / TRANSIT_MS,
+        );
+        const eased = cubicOut(progress);
+        camera.position.lerpVectors(povFlight.fromPos, povFlight.toPos, eased);
+        povLook.lerpVectors(povFlight.fromLook, povFlight.toLook, eased);
+        camera.up.lerpVectors(povFlight.fromUp, POV_UP, eased);
+        camera.lookAt(povLook);
+        camera.fov = povFlight.fromFov + (POV_FOV - povFlight.fromFov) * eased;
+        camera.updateProjectionMatrix();
+        if (progress >= 1) {
+          povIndex = povFlight.id;
+          povFlight = null;
+        }
+      }
+
+      // The flight back out to the tree. Started by the back button (which
+      // sets leavingRef); the exit ends exactly where the tree's dive ended,
+      // so the tree can pick the camera up from the same pose.
+      if (leavingRef.current && !povExit) {
+        // A walk or the entry turn in progress is abandoned: the exit takes
+        // the camera from wherever it is, and two flights over one camera
+        // would fight.
+        povFlight = null;
+        entryFlight = null;
+        povExit = {
+          fromPos: camera.position.clone(),
+          fromLook: povLook.clone(),
+          fromUp: camera.up.clone(),
+          fromFov: camera.fov,
+          startedAt: performance.now(),
+        };
+      }
+      if (povExit) {
+        const progress = Math.min(
+          1,
+          (performance.now() - povExit.startedAt) / TRANSIT_MS,
+        );
+        const eased = cubicOut(progress);
+        camera.position.lerpVectors(povExit.fromPos, divePos, eased);
+        povLook.lerpVectors(
+          povExit.fromLook,
+          new THREE.Vector3(0, 0, 0),
+          eased,
+        );
+        camera.up.lerpVectors(povExit.fromUp, OVERVIEW_UP, eased);
+        camera.lookAt(povLook);
+        camera.fov = povExit.fromFov + (CLOSE_FOV - povExit.fromFov) * eased;
+        camera.updateProjectionMatrix();
         if (progress >= 1) {
           leavingRef.current = false;
+          povExit = null;
           onExitRef.current();
         }
-      } else if (arriving < 1) {
-        arriving = Math.min(1, (performance.now() - started) / TRANSIT_MS);
-        const eased = cubicOut(arriving);
-        radius = DIVE_DISTANCE + (settled - DIVE_DISTANCE) * eased;
-        target.y = centreY * eased;
-        camera.fov = CLOSE_FOV + (WIDE_FOV - CLOSE_FOV) * eased;
-        camera.updateProjectionMatrix();
-        place();
       }
       // An open test is the only thing that moves. It is the reward, and the
       // realm has nothing else competing for attention.
@@ -377,27 +767,91 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
 
       renderer.render(scene, camera);
 
-      sinceMarkers += 1;
-      if (sinceMarkers >= 3) {
-        sinceMarkers = 0;
-        const rect = renderer.domElement.getBoundingClientRect();
-        setMarkers(
-          targets.map((entry) => {
-            projected
-              .copy(entry.mesh.position)
-              .setY(entry.mesh.position.y - LESSON_RADIUS * 2.2)
-              .project(camera);
-            return {
-              key: entry.id,
-              label: entry.label,
-              sub: entry.sub,
-              x: ((projected.x + 1) / 2) * rect.width,
-              y: ((1 - projected.y) / 2) * rect.height,
-              visible: projected.z <= 1,
-              emphasis: entry.kind === "test",
-            };
-          }),
-        );
+      // POV neighbour cards, the way the tree walks its map: standing at a
+      // lesson, the lesson the line connects it to -- the one ahead and the
+      // one behind -- carries a floating card naming it, saying what it asks
+      // for, and carrying its state. Projected and clamped to the panel so a
+      // card at the edge is readable rather than half off it.
+      const rect = renderer.domElement.getBoundingClientRect();
+      if (povIndex >= 0 && povIndex < current.lessons.length) {
+        const cards: RealmCard[] = [];
+        const pushCard = (index: number, badge: RealmCard["badge"]) => {
+          const entry = targets[index];
+          if (!entry) return;
+          projected
+            .copy(entry.mesh.position)
+            .setZ(entry.mesh.position.z + LESSON_THICKNESS + 6)
+            .project(camera);
+          if (projected.z > 1) return;
+          const live = realmRef.current;
+          const isTest = badge === "test";
+          const lesson = isTest ? null : (live.lessons[index] ?? null);
+          const accent = isTest
+            ? live.test_open
+              ? TEST_OPEN
+              : LESSON_CLOSED
+            : lesson
+              ? lesson.cleared
+                ? LESSON_CLEARED
+                : lesson.open
+                  ? LESSON_OPEN
+                  : LESSON_CLOSED
+              : LESSON_CLOSED;
+          const x = Math.min(
+            Math.max(
+              ((projected.x + 1) / 2) * rect.width,
+              REALM_CARD_WIDTH / 2 + 4,
+            ),
+            rect.width - REALM_CARD_WIDTH / 2 - 4,
+          );
+          const y = Math.min(
+            Math.max(((1 - projected.y) / 2) * rect.height - 8, 64),
+            rect.height - 84,
+          );
+          cards.push({
+            id: entry.id,
+            title: isTest
+              ? `${current.node_title} — test`
+              : (lesson?.title ?? ""),
+            desc: isTest
+              ? live.test_open
+                ? "Open. Pass it to master this skill."
+                : "Clear every lesson to open"
+              : (lesson?.instructions ?? ""),
+            status: isTest
+              ? live.test_open
+                ? "Ready to pass"
+                : "Locked"
+              : lesson
+                ? lesson.cleared
+                  ? `Cleared · best ${Math.round((lesson.best_score ?? 0) * 100)}%`
+                  : lesson.open
+                    ? "Ready to play"
+                    : "Locked"
+                : "",
+            progress: isTest
+              ? `${live.lessons.filter((entry) => entry.cleared).length}/${live.lessons.length} lessons cleared`
+              : lesson
+                ? `Step ${lesson.step}/${live.lessons.length} · ${lesson.attempts} attempt${lesson.attempts === 1 ? "" : "s"}`
+                : "",
+            badge,
+            accent,
+            x,
+            y,
+            visible: true,
+          });
+        };
+        // The line connects a lesson to the ones it touches: behind and
+        // ahead, and the test above the last lesson.
+        if (povIndex > 0) pushCard(povIndex - 1, "previous");
+        if (povIndex < current.lessons.length - 1) {
+          pushCard(povIndex + 1, "next");
+        } else {
+          pushCard(current.lessons.length, "test");
+        }
+        setRealmCards(cards);
+      } else {
+        setRealmCards((previous) => (previous.length > 0 ? [] : previous));
       }
       frame = requestAnimationFrame(render);
     }
@@ -409,10 +863,13 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("dblclick", onDoubleClick);
+      if (detailTimer !== null) window.clearTimeout(detailTimer);
+      realmActionsRef.current = null;
       discGeometry.dispose();
       ringGeometry.dispose();
-      for (const entry of targets) (entry.mesh.material as THREE.Material).dispose();
+      for (const entry of targets)
+        (entry.mesh.material as THREE.Material).dispose();
       renderer.dispose();
       if (canvas.parentNode === mount) mount.removeChild(canvas);
     };
@@ -428,36 +885,96 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     [],
   );
 
-  // Fills the frame the page draws rather than drawing a second one: the
-  // container owns the chrome and the size, and this fills it.
-  //
-  // @spec UI-PAGE-006
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="relative h-full overflow-hidden bg-graph-ground">
       <div ref={mountRef} className="absolute inset-0" aria-hidden="true" />
 
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        {markers.map((marker) => (
-          <span
-            key={marker.key}
-            className="absolute -translate-x-1/2 whitespace-nowrap text-center"
-            style={{ left: marker.x, top: marker.y, opacity: marker.visible ? 1 : 0 }}
+      {traversalNotice && (
+        <div
+          className="absolute inset-x-3 top-20 z-30 mx-auto max-w-md rounded-lg border border-graph-available/60 bg-graph-surface/95 p-3 shadow-lg"
+          role="alert"
+        >
+          <p className="font-display text-sm font-semibold text-graph-ink">
+            Not unlocked yet
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-graph-ink-quiet">
+            {traversalNotice.message}
+          </p>
+          {traversalNotice.currentTitle && (
+            <p className="mt-1 text-[10px] text-graph-learning">
+              Current lesson: {traversalNotice.currentTitle}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setTraversalNotice(null)}
+            className={`mt-2 rounded-md border border-graph-line bg-graph-raised px-2.5 py-1 text-[11px] font-semibold text-graph-ink ${FOCUS_RING}`}
           >
-            <span
-              className={`block font-display font-semibold tracking-tight ${
-                marker.emphasis ? "text-[13px] text-slate-50" : "text-[12px] text-slate-100"
-              }`}
-            >
-              {marker.label}
-            </span>
-            <span className="mt-0.5 block text-[10px] text-slate-400">{marker.sub}</span>
-          </span>
-        ))}
-      </div>
+            Close
+          </button>
+        </div>
+      )}
 
-      <div className="absolute left-3 top-3 max-w-xs rounded-lg border border-slate-700 bg-slate-900/95 p-3 shadow-sm">
-        <p className="font-display text-sm font-semibold text-slate-100">{realm.node_title}</p>
-        <p className="mt-1 text-[11px] leading-snug text-slate-400">
+      {/* The chain's POV cards: standing at a lesson, the lesson the line
+          connects it to -- the one ahead and the one behind -- floats beside
+          its disc with its name, what it asks for, and current progress.
+          Clicking an open card walks to it; a closed card leaves the camera
+          in place and explains the prerequisite. */}
+      {realmCards.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {realmCards.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => {
+                if (card.badge === "test") {
+                  realmActionsRef.current?.openTest();
+                } else {
+                  realmActionsRef.current?.walkTo(card.id);
+                }
+              }}
+              className={`pointer-events-auto absolute -translate-x-1/2 -translate-y-full rounded-lg border bg-graph-surface/95 p-2.5 text-left shadow-lg backdrop-blur-sm transition hover:bg-graph-raised ${FOCUS_RING}`}
+              style={{
+                left: card.x,
+                top: card.y,
+                width: REALM_CARD_WIDTH,
+                borderColor: card.accent,
+                opacity: card.visible ? 1 : 0,
+              }}
+              aria-label={`${card.badge === "previous" ? "Previous lesson" : card.badge === "next" ? "Next lesson" : "Test"} ${card.title}. ${card.desc} ${card.status}. ${card.progress}`}
+            >
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-graph-ink-quiet">
+                {card.badge === "previous"
+                  ? "▲ Previous"
+                  : card.badge === "next"
+                    ? "▼ Next"
+                    : "◆ Test"}
+              </span>
+              <span className="mt-0.5 block truncate font-display text-xs font-semibold text-graph-ink">
+                {card.title}
+              </span>{" "}
+              <span className="mt-1 block line-clamp-2 text-[10px] leading-snug text-graph-ink-quiet">
+                {card.desc}
+              </span>
+              <span
+                className="mt-1.5 block text-[10px] font-semibold"
+                style={{ color: card.accent }}
+              >
+                {card.status}
+              </span>
+              <span className="mt-1 block text-[10px] leading-snug text-graph-ink-quiet">
+                {card.progress}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="absolute left-3 top-3 max-w-xs rounded-lg border border-graph-line bg-graph-surface p-3 shadow-lg">
+        <p className="font-display text-sm font-semibold text-graph-ink">
+          {realm.node_title}
+        </p>
+        <p className="mt-1 text-[11px] leading-snug text-graph-ink-quiet">
           {realm.test_open
             ? "Every lesson cleared. Pass the test to master this skill."
             : `Lesson ${realm.open_step ?? 1} of ${realm.lessons.length}. Clear them all to open the test.`}
@@ -477,37 +994,52 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
         </button>
       </div>
 
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-slate-400">
-        Drag to orbit · click a lesson to play it
+      <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-graph-ink-quiet">
+        Right-drag to look around · click a lesson to open it · double-click to
+        walk to it
       </p>
 
       {/* What the lesson asks for, before committing to it. A click on a coin is
           one gesture away from an orbit, so playing takes a second press. */}
       {pending && !playing && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/70 p-4">
+        <div className="absolute inset-0 flex items-center justify-center bg-graph-ground/70 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="lesson-confirm-title"
-            className="w-full max-w-sm rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-lg"
+            className="w-full max-w-sm rounded-xl border border-graph-line bg-graph-surface p-5 shadow-lg"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-sky-400">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-graph-learning">
               Lesson {pending.step} of {realm.lessons.length}
             </p>
-            <h3 id="lesson-confirm-title" className="mt-1 font-display text-base font-semibold text-slate-50">
+            <h3
+              id="lesson-confirm-title"
+              className="mt-1 font-display text-base font-semibold text-graph-ink"
+            >
               {pending.title}
             </h3>
-            <p className="mt-2 text-xs leading-relaxed text-slate-400">{pending.instructions}</p>
+            <p className="mt-2 text-xs leading-relaxed text-graph-ink-quiet">
+              {pending.instructions}
+            </p>
             {pending.cleared && (
-              <p className="mt-2 text-[11px] text-slate-400">
-                Already cleared at {Math.round((pending.best_score ?? 0) * 100)}%. Playing it again can only help.
+              <p className="mt-2 text-[11px] text-graph-ink-quiet">
+                Already cleared at {Math.round((pending.best_score ?? 0) * 100)}
+                %. Playing it again can only help.
               </p>
             )}
             <div className="mt-5 flex gap-2">
-              <button type="button" onClick={() => setPending(null)} className={`${BUTTON_SECONDARY} flex-1`}>
+              <button
+                type="button"
+                onClick={() => setPending(null)}
+                className={`${BUTTON_SECONDARY} flex-1`}
+              >
                 Cancel
               </button>
-              <button type="button" onClick={() => setPlaying(pending)} className={`${BUTTON_PRIMARY} flex-1`}>
+              <button
+                type="button"
+                onClick={() => setPlaying(pending)}
+                className={`${BUTTON_PRIMARY} flex-1`}
+              >
                 Play this lesson
               </button>
             </div>
@@ -517,10 +1049,12 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
 
       {/* The lesson itself, in the realm rather than in a panel beside the tree. */}
       {playing && (
-        <div className="absolute inset-0 overflow-y-auto bg-slate-950/85 p-4">
+        <div className="absolute inset-0 overflow-y-auto bg-graph-ground/85 p-4">
           <div className="mx-auto w-full max-w-md">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="font-display text-sm font-semibold text-slate-100">{playing.title}</p>
+              <p className="font-display text-sm font-semibold text-graph-ink">
+                {playing.title}
+              </p>
               <button
                 type="button"
                 onClick={() => {
@@ -547,9 +1081,15 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
             key={lesson.exercise_id}
             tabIndex={0}
             aria-disabled={!lesson.open}
-            aria-label={`${lesson.title}. ${lesson.cleared ? "Cleared." : lesson.open ? "Ready to play." : "Locked until the previous lesson is cleared."}`}
+            aria-label={`${lesson.title}. ${lesson.cleared ? "Cleared." : canTraverseLesson(lesson) ? "Ready to play." : "Locked until the previous lesson is cleared."}`}
             className={FOCUS_RING}
-            onKeyDown={(event) => onKeyDown(event, () => setPending(lesson), lesson.open)}
+            onKeyDown={(event) =>
+              onKeyDown(
+                event,
+                () => setPending(lesson),
+                canTraverseLesson(lesson),
+              )
+            }
           >
             {lesson.title}
           </li>

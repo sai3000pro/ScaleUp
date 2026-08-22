@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { canOpenLesson } from "@/lib/lesson";
+import { canOpenLesson, canTraverseLesson } from "@/lib/lesson";
 import type { GraphNode, NodeState } from "@/lib/types";
 
-function node(state: NodeState, assessable = true): Pick<GraphNode, "assessable" | "progress"> {
+function node(
+  state: NodeState,
+  assessable = true,
+): Pick<GraphNode, "assessable" | "progress"> {
   return {
     assessable,
     progress: {
@@ -46,5 +49,15 @@ describe("opening a lesson", () => {
   it("refuses nothing at all rather than throwing", () => {
     expect(canOpenLesson(null)).toBe(false);
     expect(canOpenLesson(undefined)).toBe(false);
+  });
+});
+
+describe("walking a lesson realm", () => {
+  // @spec UI-GRAPH3D-023, UI-GRAPH3D-025
+  it("allows an open lesson and blocks a closed lesson", () => {
+    expect(canTraverseLesson({ open: true })).toBe(true);
+    expect(canTraverseLesson({ open: false })).toBe(false);
+    expect(canTraverseLesson(null)).toBe(false);
+    expect(canTraverseLesson(undefined)).toBe(false);
   });
 });

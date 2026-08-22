@@ -19,7 +19,7 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `docs/intent/interface/interface-design.md`
 
 ### EARS
-- `docs/intent/interface/interface-specs.md` (77 specs)
+- `docs/intent/interface/interface-specs.md` (84 specs)
 
 ### Tests
 - `frontend/lib/layout3d.test.ts` — depth ordering, ring spacing, stability, framing
@@ -35,6 +35,7 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `frontend/app/globals.css` — the `@theme` token block, shell styles, ambient decoration
 - `frontend/lib/ui.ts` — `FOCUS_RING`, `BUTTON_PRIMARY`, `BUTTON_SECONDARY`, `INPUT`, `CARD`, `NAV_LINK`, `MUTED`
 - `frontend/lib/nodeState.ts` — node-state literals mirroring the theme block
+- `frontend/lib/graphTheme.ts` — the graph's own dark ground and palette, mapped from the node states, mirroring the `--color-graph-*` tokens
 - `frontend/app/layout.tsx` — font binding, skip link, document language
 - `frontend/components/ExpBar.tsx` — the HUD composition
 - `frontend/lib/layout3d.ts` — where each skill sits in space
@@ -60,6 +61,8 @@ checkable claims.
 5. The shell — HUD, wordmark, navigation, and an explicit narrow-breakpoint reflow order.
 6. The mascot — an art sheet cut into a registered frame library by a committed script, and
    one component that draws it at any size from a character height.
+7. `lib/graphTheme.ts` — the graph's own dark ground and palette, the second declared mirror
+   after `nodeState.ts`, carrying the one surface where the light page goes dark.
 
 ## Spec Coverage
 
@@ -69,12 +72,12 @@ checkable claims.
 | Shared classes | `UI-SYS-001` – `005` | 3 | 0 | 2 |
 | Typography | `UI-TYPE-001` – `004` | 3 | 0 | 1 |
 | Accessibility | `UI-A11Y-001` – `009` | 9 | 0 | 0 |
-| Skill graph | `UI-GRAPH3D-001` – `016` | 14 | 0 | 2 |
+| Skill graph | `UI-GRAPH3D-001` – `028` | 26 | 0 | 2 |
 | Sprite pipeline | `UI-SPRITE-001` – `016` | 16 | 0 | 0 |
 | Mascot | `UI-MASCOT-001` – `012` | 11 | 1 | 0 |
 | Shell | `UI-SHELL-001` – `007` | 6 | 0 | 1 |
 
-**Summary:** 69 of 77 implemented; 2 deliberate non-wants; 6 active gaps.
+**Summary:** 79 of 87 implemented; 2 deliberate non-wants; 6 active gaps.
 
 ## Key Findings
 

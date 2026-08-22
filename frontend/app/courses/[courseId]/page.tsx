@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ProgressPanel } from "@/components/course/ProgressPanel";
 import { CourseDrawer } from "@/components/course/CourseDrawer";
@@ -14,7 +21,13 @@ import { SkillGraph3D } from "@/components/skill-tree/SkillGraph3D";
 import { SkillRealm3D } from "@/components/skill-tree/SkillRealm3D";
 import { SkillTreeOutline } from "@/components/skill-tree/SkillTreeOutline";
 import { api } from "@/lib/api";
-import { STATE_STYLES, STRUCTURAL_STYLE, difficultyLabel, stateStyle, type StateStyle } from "@/lib/nodeState";
+import {
+  STATE_STYLES,
+  STRUCTURAL_STYLE,
+  difficultyLabel,
+  stateStyle,
+  type StateStyle,
+} from "@/lib/nodeState";
 import { dueLabel } from "@/lib/time";
 import type {
   CourseDetail,
@@ -25,10 +38,19 @@ import type {
 } from "@/lib/types";
 import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
 import { canOpenLesson } from "@/lib/lesson";
+import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 const LEGEND: { key: string; style: StateStyle }[] = [
-  ...(["available", "learning", "decaying", "mastered", "locked"] as KnownNodeState[]).map((state) => ({
+  ...(
+    [
+      "available",
+      "learning",
+      "decaying",
+      "mastered",
+      "locked",
+    ] as KnownNodeState[]
+  ).map((state) => ({
     key: state,
     style: STATE_STYLES[state],
   })),
@@ -45,16 +67,25 @@ const LEGEND: { key: string; style: StateStyle }[] = [
  * together from the shared catalogue, and a learner is entitled to know which.
  */
 const PROVENANCE_LABEL: Record<string, string> = {
-  "catalogue-assembly-v1": "Built from a reviewed curriculum for this instrument.",
-  "catalogue-plan-v1": "Assembled from the shared skill catalogue for your goal — not yet reviewed by a person.",
-  "curriculum-compiler-v1": "Compiled from your sources, with a quote behind every prerequisite.",
+  "catalogue-assembly-v1":
+    "Built from a reviewed curriculum for this instrument.",
+  "catalogue-plan-v1":
+    "Assembled from the shared skill catalogue for your goal — not yet reviewed by a person.",
+  "curriculum-compiler-v1":
+    "Compiled from your sources, with a quote behind every prerequisite.",
 };
 
 export default function CoursePage() {
   // `useSearchParams` opts the subtree into client-side bailout, so Next 15
   // requires it to sit under a Suspense boundary.
   return (
-    <Suspense fallback={<main className="mx-auto max-w-[1400px] px-4 py-6 text-sm text-slate-400">Loading…</main>}>
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-[1400px] px-4 py-6 text-sm text-slate-400">
+          Loading…
+        </main>
+      }
+    >
       <CourseView />
     </Suspense>
   );
@@ -67,19 +98,37 @@ function CourseView() {
   const requestedNodeId = searchParams.get("node");
   const campaignGoal = searchParams.get("goal") ?? "";
 
-  const { snapshot, positions, status, error, selectedNodeId, lessonFor, load, select, openLesson, focusNode } =
-    useGraphStore();
+  const {
+    snapshot,
+    positions,
+    status,
+    error,
+    selectedNodeId,
+    lessonFor,
+    load,
+    select,
+    openLesson,
+    focusNode,
+  } = useGraphStore();
   const [course, setCourse] = useState<CourseDetail | null>(null);
   // `null` means no search is running, which is different from a search that
   // matched nothing -- the second dims the whole tree on purpose.
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [matchedNodeIds, setMatchedNodeIds] = useState<Set<string> | null>(null);
+  const [matchedNodeIds, setMatchedNodeIds] = useState<Set<string> | null>(
+    null,
+  );
   // The guided path's cursor is a function of mastery, so it has to be refetched
   // after a grade. Bumped rather than refetched inline so the panel owns its own
   // request and a failure there cannot blank the tree.
   const [pathVersion, setPathVersion] = useState(0);
   const [campaignPath, setCampaignPath] = useState<CoursePath | null>(null);
-  const [campaignProgress, setCampaignProgress] = useState<ProgressAnalytics | null>(null);
+  const [campaignProgress, setCampaignProgress] =
+    useState<ProgressAnalytics | null>(null);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [realmFade, setRealmFade] = useState<
+    "idle" | "to-black" | "from-black"
+  >("idle");
+  const realmFadeTimer = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     setPathVersion((version) => version + 1);
@@ -112,7 +161,12 @@ function CourseView() {
   // yank the selection back after the user clicked elsewhere.
   const appliedNodeParam = useRef<string | null>(null);
   useEffect(() => {
-    if (!requestedNodeId || status !== "ready" || appliedNodeParam.current === requestedNodeId) return;
+    if (
+      !requestedNodeId ||
+      status !== "ready" ||
+      appliedNodeParam.current === requestedNodeId
+    )
+      return;
     if (snapshot?.nodes.some((node) => node.id === requestedNodeId)) {
       appliedNodeParam.current = requestedNodeId;
       focusNode(requestedNodeId);
@@ -126,6 +180,19 @@ function CourseView() {
 
   const inspectorRef = useRef<HTMLDivElement | null>(null);
 
+  /** The realm the learner is standing in, and the runs behind every skill. */
+  const [realmNodeId, setRealmNodeId] = useState<string | null>(null);
+  const [leftRealmAt, setLeftRealmAt] = useState<string | null>(null);
+  const [realmsVersion, setRealmsVersion] = useState(0);
+  const [realms, setRealms] = useState<SkillRealm[]>([]);
+
+  useEffect(() => {
+    return () => {
+      if (realmFadeTimer.current !== null)
+        window.clearTimeout(realmFadeTimer.current);
+    };
+  }, []);
+
   /**
    * Bring the lesson into view when it opens from the tree.
    *
@@ -138,7 +205,9 @@ function CourseView() {
   useEffect(() => {
     if (lessonFor === null) return;
     inspectorRef.current?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
       block: "center",
     });
   }, [lessonFor]);
@@ -162,28 +231,34 @@ function CourseView() {
         // examined on it, and skipping them is what the run exists to prevent.
         select(nodeId);
         setLeftRealmAt(null);
-        setRealmNodeId(nodeId);
+        if (prefersReducedMotion) {
+          setRealmNodeId(nodeId);
+        } else {
+          setRealmFade("to-black");
+          if (realmFadeTimer.current !== null)
+            window.clearTimeout(realmFadeTimer.current);
+          realmFadeTimer.current = window.setTimeout(() => {
+            setRealmNodeId(nodeId);
+            setRealmFade("from-black");
+            realmFadeTimer.current = window.setTimeout(() => {
+              setRealmFade("idle");
+              realmFadeTimer.current = null;
+            }, 420);
+          }, 420);
+        }
       } else {
         select(nodeId);
       }
     },
-    [snapshot, select],
+    [prefersReducedMotion, select, snapshot],
   );
 
   /**
-   * The realm the learner is standing in, and the runs behind every skill.
-   *
    * Runs are fetched once for the whole course rather than per realm: opening
    * one is a double-click, which is not a moment to start a round trip.
    *
    * @spec PROG-REALM-001, PROG-REALM-004
    */
-  const [realmNodeId, setRealmNodeId] = useState<string | null>(null);
-  const [leftRealmAt, setLeftRealmAt] = useState<string | null>(null);
-  // Bumped when a take lands, so the realm's chain reflects it.
-  const [realmsVersion, setRealmsVersion] = useState(0);
-  const [realms, setRealms] = useState<SkillRealm[]>([]);
-
   useEffect(() => {
     let cancelled = false;
     api
@@ -225,19 +300,24 @@ function CourseView() {
     return {
       skills: skills.length,
       sections: nodes.length - skills.length,
-      ready: skills.filter((node) => node.progress.state === "available").length,
-      fading: skills.filter((node) => node.progress.state === "decaying").length,
-      mastered: skills.filter((node) => node.progress.state === "mastered").length,
+      ready: skills.filter((node) => node.progress.state === "available")
+        .length,
+      fading: skills.filter((node) => node.progress.state === "decaying")
+        .length,
+      mastered: skills.filter((node) => node.progress.state === "mastered")
+        .length,
     };
   }, [snapshot]);
 
   const selectedDue = selected ? dueLabel(selected.progress.due_at) : null;
   const selectedPrerequisiteEdges = useMemo(
-    () => snapshot?.edges.filter((edge) => edge.target === selectedNodeId) ?? [],
+    () =>
+      snapshot?.edges.filter((edge) => edge.target === selectedNodeId) ?? [],
     [snapshot, selectedNodeId],
   );
   const sourceName = (documentId: string) =>
-    course?.documents.find((document) => document.id === documentId)?.filename ?? "Source document";
+    course?.documents.find((document) => document.id === documentId)
+      ?.filename ?? "Source document";
 
   // On a wide screen the page is exactly one viewport: the header takes what it
   // needs and the grid takes the rest, so neither column can make the document
@@ -253,21 +333,27 @@ function CourseView() {
     >
       <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
-          <Link href="/courses" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
+          <Link
+            href="/courses"
+            className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+          >
             ← All courses
           </Link>
-          <h1 className="mt-1 font-display text-xl font-semibold tracking-tight">{course?.title ?? "Course"}</h1>
+          <h1 className="mt-1 font-display text-xl font-semibold tracking-tight">
+            {course?.title ?? "Course"}
+          </h1>
           {/* @spec CURR-GOAL-013 -- everything here is playable; the label is
               what stops a proposed tree claiming an authority it does not have. */}
           {course?.curriculum_provenance && (
             <p className="mt-1 text-[11px] text-slate-400">
-              {PROVENANCE_LABEL[course.curriculum_provenance] ?? "Built from your goal."}
+              {PROVENANCE_LABEL[course.curriculum_provenance] ??
+                "Built from your goal."}
             </p>
           )}
           {snapshot && (
             <p className="mt-1 text-xs text-slate-400">
-              {counts.skills} skills · {counts.ready} ready · {counts.fading} fading ·{" "}
-              {counts.mastered} mastered
+              {counts.skills} skills · {counts.ready} ready · {counts.fading}{" "}
+              fading · {counts.mastered} mastered
               {counts.sections > 0 && ` · ${counts.sections} sections`}
             </p>
           )}
@@ -277,8 +363,13 @@ function CourseView() {
               after EVERY grade fail silently: you answer correctly, see the EXP,
               and the tree just does not change. */}
           {error && status === "ready" && (
-            <p role="alert" className="mt-1 flex items-center gap-2 text-xs text-node-decaying">
-              <span>Showing the last loaded tree — refresh failed: {error}</span>
+            <p
+              role="alert"
+              className="mt-1 flex items-center gap-2 text-xs text-node-decaying"
+            >
+              <span>
+                Showing the last loaded tree — refresh failed: {error}
+              </span>
               <button
                 type="button"
                 onClick={() => void refresh()}
@@ -297,31 +388,36 @@ function CourseView() {
             A <details> is reachable by keyboard, works on touch, and can hold
             the full sentence rather than a truncated tooltip. */}
         <div className="flex shrink-0 items-start gap-3">
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className={`${BUTTON_SECONDARY} whitespace-nowrap text-xs`}
-        >
-          Course ▸
-        </button>
-        <details className="max-w-xs">
-          <summary className={`cursor-pointer text-[11px] text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
-            What the orbs mean
-          </summary>
-          <dl className="mt-2 space-y-1.5">
-            {LEGEND.map(({ key, style }) => (
-              <div key={key} className="flex items-baseline gap-1.5 text-[11px]">
-                <span
-                  aria-hidden
-                  className="mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: style.accent }}
-                />
-                <dt className="shrink-0 text-slate-300">{style.label}</dt>
-                <dd className="text-slate-400">— {style.hint}</dd>
-              </div>
-            ))}
-          </dl>
-        </details>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className={`${BUTTON_SECONDARY} whitespace-nowrap text-xs`}
+          >
+            Course ▸
+          </button>
+          <details className="max-w-xs">
+            <summary
+              className={`cursor-pointer text-[11px] text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+            >
+              What the orbs mean
+            </summary>
+            <dl className="mt-2 space-y-1.5">
+              {LEGEND.map(({ key, style }) => (
+                <div
+                  key={key}
+                  className="flex items-baseline gap-1.5 text-[11px]"
+                >
+                  <span
+                    aria-hidden
+                    className="mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: style.accent }}
+                  />
+                  <dt className="shrink-0 text-slate-300">{style.label}</dt>
+                  <dd className="text-slate-400">— {style.hint}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
         </div>
       </div>
 
@@ -334,27 +430,40 @@ function CourseView() {
           {/* Not inside a realm: there are three lessons in there, and a search
               box over them would be an empty gesture sitting on top of the one
               card that explains where the learner is. */}
-          {status === "ready" && snapshot && snapshot.nodes.length > 0 && realm === null && (
-            <div className="absolute left-3 top-3 z-10">
-              <SearchBox courseId={courseId} documents={course?.documents ?? []} onMatches={setMatchedNodeIds} />
-            </div>
-          )}
+          {status === "ready" &&
+            snapshot &&
+            snapshot.nodes.length > 0 &&
+            realm === null && (
+              <div className="absolute left-3 top-3 z-10">
+                <SearchBox
+                  courseId={courseId}
+                  documents={course?.documents ?? []}
+                  onMatches={setMatchedNodeIds}
+                />
+              </div>
+            )}
           {status === "loading" && (
             <div className="flex h-full items-center justify-center text-sm text-slate-400">
               Loading the tree…
             </div>
           )}
           {status === "error" && (
-            <div className="flex h-full items-center justify-center text-sm text-rose-400">{error}</div>
+            <div className="flex h-full items-center justify-center text-sm text-rose-400">
+              {error}
+            </div>
           )}
           {status === "ready" && snapshot && snapshot.nodes.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
               <p className="text-sm text-slate-400">No skills yet.</p>
-              <p className="text-xs text-slate-400">Upload a PDF and the tree will build itself.</p>
+              <p className="text-xs text-slate-400">
+                Upload a PDF and the tree will build itself.
+              </p>
             </div>
           )}
-          {status === "ready" && snapshot && snapshot.nodes.length > 0 && (
-            realm ? (
+          {status === "ready" &&
+            snapshot &&
+            snapshot.nodes.length > 0 &&
+            (realm ? (
               <SkillRealm3D
                 realm={realm}
                 onExit={() => {
@@ -393,21 +502,37 @@ function CourseView() {
                 matchedNodeIds={matchedNodeIds}
                 arriveFrom={leftRealmAt}
               />
-            )
-          )}
+            ))}
         </div>
 
         <div className="md:hidden">
-          {status === "loading" && <p className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">Loading the skill outline…</p>}
-          {status === "error" && <p role="alert" className="rounded-xl border border-rose-900/60 bg-slate-950 p-4 text-sm text-rose-400">{error}</p>}
+          {status === "loading" && (
+            <p className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+              Loading the skill outline…
+            </p>
+          )}
+          {status === "error" && (
+            <p
+              role="alert"
+              className="rounded-xl border border-rose-900/60 bg-slate-950 p-4 text-sm text-rose-400"
+            >
+              {error}
+            </p>
+          )}
           {status === "ready" && snapshot && snapshot.nodes.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950 p-6 text-center">
               <p className="text-sm text-slate-400">No skills yet.</p>
-              <p className="mt-1 text-xs text-slate-400">Upload a PDF and the tree will build itself.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Upload a PDF and the tree will build itself.
+              </p>
             </div>
           )}
           {status === "ready" && snapshot && snapshot.nodes.length > 0 && (
-            <SkillTreeOutline snapshot={snapshot} selectedNodeId={selectedNodeId} onSelect={select} />
+            <SkillTreeOutline
+              snapshot={snapshot}
+              selectedNodeId={selectedNodeId}
+              onSelect={select}
+            />
           )}
         </div>
 
@@ -421,7 +546,9 @@ function CourseView() {
           <div className={CARD} ref={inspectorRef}>
             {selected ? (
               <>
-                <h2 className="font-display text-sm font-semibold">{selected.title}</h2>
+                <h2 className="font-display text-sm font-semibold">
+                  {selected.title}
+                </h2>
                 {/* `depth` used to be printed beside `difficulty`, but
                     `difficulty_from_depth` computes 1 + round(depth / max(max_depth, 4) * 4),
                     so for any graph four levels deep or less difficulty IS
@@ -432,25 +559,35 @@ function CourseView() {
                     ? `${stateStyle(selected.progress.state).label} · ${difficultyLabel(selected.difficulty)}`
                     : STRUCTURAL_STYLE.label}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-slate-400">{selected.summary}</p>
+                <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                  {selected.summary}
+                </p>
 
                 {selected.assessable && (
                   <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                     <div>
                       <dt className="text-slate-400">Level</dt>
-                      <dd className="text-slate-300">{selected.progress.level} / 5</dd>
+                      <dd className="text-slate-300">
+                        {selected.progress.level} / 5
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-slate-400">EXP</dt>
-                      <dd className="text-slate-300">{selected.progress.exp}</dd>
+                      <dd className="text-slate-300">
+                        {selected.progress.exp}
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-slate-400">Mastery</dt>
-                      <dd className="text-slate-300">{Math.round(selected.progress.mastery * 100)}%</dd>
+                      <dd className="text-slate-300">
+                        {Math.round(selected.progress.mastery * 100)}%
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-slate-400">Proficiency now</dt>
-                      <dd className="text-slate-300">{Math.round(selected.progress.proficiency * 100)}%</dd>
+                      <dd className="text-slate-300">
+                        {Math.round(selected.progress.proficiency * 100)}%
+                      </dd>
                     </div>
                     <div className="col-span-2">
                       <dt className="text-slate-400">Next review</dt>
@@ -460,10 +597,13 @@ function CourseView() {
                           already decayed. */}
                       <dd
                         className={
-                          selected.progress.overdue_days > 0 ? "text-node-decaying" : "text-slate-300"
+                          selected.progress.overdue_days > 0
+                            ? "text-node-decaying"
+                            : "text-slate-300"
                         }
                       >
-                        {selectedDue ?? "Not scheduled yet — drill it once to start the clock"}
+                        {selectedDue ??
+                          "Not scheduled yet — drill it once to start the clock"}
                       </dd>
                     </div>
                   </dl>
@@ -471,21 +611,35 @@ function CourseView() {
 
                 {selected.blocked_by.length > 0 && (
                   <p className="mt-3 text-[11px] text-slate-400">
-                    Blocked by {selected.blocked_by.map((b) => b.title).join(", ")}
+                    Blocked by{" "}
+                    {selected.blocked_by.map((b) => b.title).join(", ")}
                   </p>
                 )}
 
                 {selected.sources.length > 0 && (
-                  <div className="mt-3 rounded-lg border border-emerald-900/50 bg-emerald-950/10 p-2.5" aria-label="Skill source evidence">
-                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Skill source evidence</h3>
+                  <div
+                    className="mt-3 rounded-lg border border-emerald-900/50 bg-emerald-950/10 p-2.5"
+                    aria-label="Skill source evidence"
+                  >
+                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                      Skill source evidence
+                    </h3>
                     <ul className="mt-2 space-y-2">
                       {selected.sources.map((source) => (
-                        <li key={source.chunk_id} className="text-[10px] text-slate-400">
+                        <li
+                          key={source.chunk_id}
+                          className="text-[10px] text-slate-400"
+                        >
                           <p className="text-slate-300">
-                            {sourceName(source.document_id)} · page {source.page_start + 1}
-                            {source.section_path ? ` · ${source.section_path}` : ""}
+                            {sourceName(source.document_id)} · page{" "}
+                            {source.page_start + 1}
+                            {source.section_path
+                              ? ` · ${source.section_path}`
+                              : ""}
                           </p>
-                          <p className="mt-0.5 leading-relaxed text-slate-500">“{source.excerpt}”</p>
+                          <p className="mt-0.5 leading-relaxed text-slate-500">
+                            “{source.excerpt}”
+                          </p>
                         </li>
                       ))}
                     </ul>
@@ -493,20 +647,41 @@ function CourseView() {
                 )}
 
                 {selectedPrerequisiteEdges.length > 0 && (
-                  <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/10 p-2.5" aria-label="Prerequisite edge evidence">
-                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Prerequisite evidence</h3>
+                  <div
+                    className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/10 p-2.5"
+                    aria-label="Prerequisite edge evidence"
+                  >
+                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                      Prerequisite evidence
+                    </h3>
                     <ul className="mt-2 space-y-2">
                       {selectedPrerequisiteEdges.map((edge) => {
-                        const prerequisite = snapshot?.nodes.find((node) => node.id === edge.source);
+                        const prerequisite = snapshot?.nodes.find(
+                          (node) => node.id === edge.source,
+                        );
                         return (
-                          <li key={edge.id} className="text-[10px] text-slate-400">
+                          <li
+                            key={edge.id}
+                            className="text-[10px] text-slate-400"
+                          >
                             <p className="text-slate-300">
-                              {prerequisite?.title ?? "Prerequisite"} · {Math.round(edge.confidence * 100)}% confidence · {edge.support} supporting pass{edge.support === 1 ? "" : "es"}
+                              {prerequisite?.title ?? "Prerequisite"} ·{" "}
+                              {Math.round(edge.confidence * 100)}% confidence ·{" "}
+                              {edge.support} supporting pass
+                              {edge.support === 1 ? "" : "es"}
                             </p>
-                            {edge.rationale && <p className="mt-0.5 text-slate-500">{edge.rationale}</p>}
+                            {edge.rationale && (
+                              <p className="mt-0.5 text-slate-500">
+                                {edge.rationale}
+                              </p>
+                            )}
                             {edge.sources.slice(0, 1).map((source) => (
-                              <p key={source.chunk_id} className="mt-0.5 leading-relaxed text-slate-500">
-                                {sourceName(source.document_id)} · page {source.page_start + 1}: “{source.excerpt}”
+                              <p
+                                key={source.chunk_id}
+                                className="mt-0.5 leading-relaxed text-slate-500"
+                              >
+                                {sourceName(source.document_id)} · page{" "}
+                                {source.page_start + 1}: “{source.excerpt}”
                               </p>
                             ))}
                           </li>
@@ -547,6 +722,13 @@ function CourseView() {
           />
         </aside>
       </div>
+
+      <div
+        className={`pointer-events-none fixed inset-0 z-50 bg-black transition-opacity duration-[420ms] ${
+          realmFade === "to-black" ? "opacity-100" : "opacity-0"
+        }`}
+        aria-hidden="true"
+      />
 
       <CourseDrawer
         open={drawerOpen}

@@ -86,6 +86,144 @@ There is no declared type scale. Sizes are chosen per component, largely as frac
 values in the shell stylesheet, which is why the HUD carries eight distinct font sizes
 between 0.48rem and 0.95rem (`UI-TYPE-004`).
 
+## The skill graph
+
+The tree is drawn in three dimensions on a ground of its own — near-black space
+(`#0b0e14`), the one place the light page deliberately goes dark. The graph is a
+window into the curriculum rather than page chrome, and a dark window is what
+makes a lit orb glow: gold, slate, blue, purple and orange against space read the
+way the reference this design follows intended, while the page around the card
+stays warm and light. The canvas is where the learner stands in the curriculum;
+chrome stays on the page.
+
+**The palette is the reference scheme, mapped onto the app's states.** Gold for
+what is ready, slate for what is locked, blue for what is in hand, purple for
+what is done — and the one state the reference does not have, fading, takes
+orange, the reference's own urgency hue from its branch palette. The mapping is
+declared once and one-to-one:
+
+| State | Graph colour | Meaning |
+|---|---|---|
+| Locked | `#334155` slate | ahead of you, recedes |
+| Ready | `#facc15` gold | the way on |
+| Learning | `#38bdf8` blue | in hand |
+| Fading | `#f97316` orange | rescue now |
+| Mastered | `#a78bfa` purple | done |
+| Section | `#475569` slate-blue, hollow | scaffolding |
+
+**The palette exists twice, and that is structural.** Every actionable graph
+colour clears 3:1 against the graph's dark ground, exactly as the app's
+node-state colours clear 3:1 against the light page — and no single colour can
+clear 3:1 against both grounds (the reference's own gold against the warm page
+measures about 1.6:1). So the graph declares its own palette, mirrored as
+`--color-graph-*` tokens, mapped from the same five states by one function:
+meaning never forks even though colour does. Locked and section sit below the
+3:1 line by design — they are the "what is still ahead" part of the tree, and
+their state is carried by the projected title, the hover card and the keyboard
+list rather than by colour alone (`UI-GRAPH3D-017`).
+
+**Lighting, not shading.** Discs are lit like the reference — a key light and an
+ambient, with metalness and roughness — so they read as objects in space rather
+than stickers, and the state hue is kept bright enough that five states stay five
+colours under the rig (`UI-GRAPH3D-019`).
+
+**Edges carry the route, in the same scheme.** Into a ready skill: gold, the way
+on. Into what is in hand or done: gold, dimmed. Into a fading skill: orange.
+Into the locked future: slate. One palette for nodes and routes, so a lit path
+and its destination agree.
+
+**The realm is the same world.** The chain inside a skill is drawn on the same
+ground with the same palette — slate for the lessons still ahead, blue for the
+one in hand, purple for the cleared, gold for the test at the end — so diving
+into a skill and coming back out reads as one journey through one world rather
+than two canvases that happen to sit near each other. It is walked the same
+way the tree is: the camera stands at the current lesson — half a lesson
+radius back, lens at eye height (one thickness plus two units above the
+plane), up along +Z so the chain's plane is the ground the learner is standing
+in — and looks along the run toward the next lesson, or the test at its end.
+Clicking an open lesson walks the camera to it, right-drag looks around, and a
+closed lesson remains worth viewing because its progress card explains the
+blocker; clicking it does not move the camera.
+
+Entering the realm is a turn-around, not a slide. The tree's dive ends looking
+at the skill from one side of it; the realm's walk-in swings the camera one
+hundred and eighty degrees around the skill — the route the tree drew behind
+the learner becomes the chain ahead — while closing from the dive distance to
+the standing point. The skill stays in frame for the whole turn, the lens
+widens on the way, and the flight lands in the standing pose described above.
+A learner who has asked for less motion is handed the standing pose directly.
+
+A lesson's state is carried by its card, not painted under its disc. The
+lesson the learner stands beside — and the one ahead — carries a floating card
+naming it and saying what it asks for; the same card carries the state (ready,
+cleared, or locked, with a best score where one exists) and the test card
+carries the test's state. Nothing floats beneath the discs: the chain is read
+by walking it, one standing point at a time.
+
+## Traversal: walking the tree in place
+
+The tree is walked the way the reference this design follows walks its maps:
+not by zooming the whole graph, but by standing at a skill and looking at its
+neighbours. Double-clicking a skill flies the camera down to stand beside it —
+field of view opens, the orbit controls let go — and the skills it touches
+appear as floating cards in the world: a parent card above it, a child card for
+each thing it unlocks. Each card carries the neighbour's name and state, and
+clicking one is a camera journey to that skill, which becomes the new centre and
+spawns its own cards. The learner walks the tree node to node instead of
+zooming a diagram.
+
+A card is the neighbour's route, and the route is gated by the learner's
+current progress. A locked neighbour's card remains visible — its name is
+dimmed, its state line says what stands in the way, and its progress remains
+readable — but clicking it does not move the camera. Instead a notice says,
+"You haven't unlocked [skill] yet. Please complete [current skill] first."
+The learner may inspect the locked future without walking into it. The skill
+the learner is standing on is the current completed point in the route, and the
+cards ahead show the next skill's level, mastery and current proficiency. A
+structural heading is visible but is never a traversable skill.
+
+The same rule applies inside a realm. A closed lesson remains on the chain and
+its card shows its current progress, but single-click and double-click both
+refuse to walk there and explain that the current lesson must be completed
+first. Traversal is navigation; only the next unlocked point can become the
+standing point.
+
+The camera stands AT the skill, the way the reference's own camera does: half
+a node radius back from its centre, its lens at eye height — one disc thickness
+plus two units above the plane — and its up vector along +Z, so the tree's
+plane is the ground the learner is standing in and the route the skill opens
+(its children) runs away up the screen at eye level. The skill itself is at the
+learner's feet, filling the bottom of the frame; the path ahead is the view.
+Right-drag looks around from the standing point, exactly as the reference's POV
+does: yaw about the world's up, pitch about the camera's right.
+
+From a skill's own card the learner enters its world — the realm dive this
+design already had — and one deliberate action (a back button, or Escape)
+returns to the overview. Realm entry first fades the graph to black, swaps the
+world beneath that black frame, and then fades the realm back in; reduced-motion
+viewers receive the swap without the decorative fade. Every camera journey is
+over a fixed duration with the pose and lens on each side matching, and a
+viewer who has asked for less motion is handed the destination instead of the
+travel.
+
+**The click and the double-click say different things.** In the overview, one
+click on a skill opens a door — a modal naming the skill, describing it, and
+offering to enter its world — and two clicks ask to stand beside it. The two
+are disambiguated by a short delay, so a double-click never flashes the modal
+it was never meant to summon. Inside a realm the same two gestures mean the
+same two things: one click on a lesson opens its card, two clicks walk the
+camera to stand at it.
+
+**A realm is walked the same way the tree is.** Standing at a lesson, the
+lesson the line connects it to — the one ahead, and the one behind — carries a
+floating card naming it, saying what it asks for, and carrying its state, so a
+cleared lesson's best score, an open lesson's readiness, and a locked lesson's
+blocker all live in the hovering text rather than under the discs. Clicking a
+card is a camera journey to that lesson, which becomes the new standing point
+and spawns its own cards; the test hangs above the last lesson as its own
+card. The realm is not a ladder to be climbed by dragging — it is a chain to
+be walked, neighbour to neighbour, the same traversal the tree uses.
+
 ## The mascot
 
 Quartz is a quarter note with a microphone, and the segment holds it for the same reason it
@@ -195,6 +333,13 @@ invisible until someone looks at that one component.
 | Shell styling | Stylesheet rules rather than shared classes | Inline utility classes like the rest of the app | The HUD is one composition used once, not a pattern used many times. A shared constant for a single use site is indirection without reuse. |
 | Focus indication | `focus-visible`, one shared constant | `focus`; per-component styles | `focus` rings on mouse clicks, which reads as a bug and gets deleted by the next person. One constant is what makes "every control has a focus style" checkable at all. |
 | Ambient decoration | CSS gradients | An image asset | No request, no cache concern, and no asset to keep in sync with the palette — it repaints when the tokens do. |
+| Graph ground | Dark space, one declared ground | Keep the light canvas | A lit orb needs a dark ground to glow, and the reference this design follows is a space scene; the page around the card stays light. |
+| Graph palette | The reference scheme, declared once, mapped from node states | Reuse the app's node-state palette on the graph | The app palette is tuned against the light page and cannot clear 3:1 on dark; the reference gold/slate/blue/purple (plus orange for fading) is the look the learner asked for. |
+| Orb lighting | Lit discs (key + ambient, metalness and roughness) | Unlit flat discs | The reference look is lit and dimensional; the state hues are kept identifiable under the rig. |
+| Fading colour | Orange, the reference's own urgency hue | A gold or slate variant | The reference has no decay state; orange keeps "rescue now" unmistakable and comes from the reference's own branch palette. |
+| Traversal | POV walking: fly to a skill, floating neighbour cards, enter the realm from there | Zoom the whole graph; keep double-click diving straight into the realm | The reference walks maps node to node, and this design follows it; the dive still exists, it is just reached from the skill rather than from the canvas. |
+| Locked neighbours in POV | Visible, progress shown, traversal blocked with a completion notice | Visible and traversable behind a locked-traversal toggle | The learner can inspect the future without skipping the prerequisite route; a toggle is unnecessary when the curriculum already owns the gate. |
+| Realm entry transition | Fade fully to black before swapping the world, then fade the realm in | Swap immediately; fade only the canvas | The black hold hides the component handoff and makes entering the lesson world read as one deliberate transition; reduced motion skips it. |
 
 ## Open Questions & Future Decisions
 

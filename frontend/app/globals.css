@@ -81,6 +81,25 @@
   --color-node-learning: #6547b8;
   --color-node-decaying: #8a6206;
   --color-node-mastered: #2b6f9e;
+
+  /* Graph palette, drawn on the graph's own dark ground -- the one place the
+     light page goes dark. Mirrored as literal hex in lib/graphTheme.ts, which
+     maps the five node states onto the reference scheme (gold ready, slate
+     locked, blue in hand, purple done, orange fading). Change one, change
+     both -- lib/theme.test.ts fails if they diverge.
+     @spec UI-GRAPH3D-013, UI-GRAPH3D-017 */
+  --color-graph-ground: #0b0e14;
+  --color-graph-surface: #0f172a;
+  --color-graph-raised: #1e293b;
+  --color-graph-line: #334155;
+  --color-graph-ink: #f1f5f9;
+  --color-graph-ink-quiet: #94a3b8;
+  --color-graph-locked: #334155;
+  --color-graph-available: #facc15;
+  --color-graph-learning: #38bdf8;
+  --color-graph-decaying: #f97316;
+  --color-graph-mastered: #a78bfa;
+  --color-graph-structural: #475569;
 }
 
 :root {

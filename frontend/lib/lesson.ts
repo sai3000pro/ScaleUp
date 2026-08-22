@@ -14,11 +14,21 @@
  * Both refusals still select. Refusing to begin is not refusing to explain.
  */
 
-import type { GraphNode } from "@/lib/types";
+import type { GraphNode, Lesson } from "@/lib/types";
 
 // @spec PROG-DRILL-003, PROG-DRILL-004
-export function canOpenLesson(node: Pick<GraphNode, "assessable" | "progress"> | null | undefined): boolean {
+export function canOpenLesson(
+  node: Pick<GraphNode, "assessable" | "progress"> | null | undefined,
+): boolean {
   if (!node) return false;
   if (!node.assessable) return false;
   return node.progress.state !== "locked";
+}
+
+/** A lesson can be a POV destination only when the server has opened it. */
+// @spec UI-GRAPH3D-023, UI-GRAPH3D-025
+export function canTraverseLesson(
+  lesson: Pick<Lesson, "open"> | null | undefined,
+): boolean {
+  return lesson?.open === true;
 }
