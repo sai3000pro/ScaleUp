@@ -117,6 +117,49 @@ body::before {
 h1, h2 { font-weight: 300; letter-spacing: -0.03em; }
 h3 { font-weight: 400; letter-spacing: -0.02em; }
 
+/* The mascot ------------------------------------------------------------- */
+/* `--quartz-w` / `--quartz-h` are the CELL, derived from the character height
+   the caller asked for. Only 3% of the cell sits below the character's feet, so
+   a bottom-aligned box puts it on the line without further arithmetic.
+   @spec UI-MASCOT-001, UI-MASCOT-003, UI-MASCOT-006 */
+.quartz {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--quartz-w);
+  height: var(--quartz-h);
+  line-height: 0;
+  user-select: none;
+}
+.quartz__sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* The artwork is drawn with a soft edge; a shadow under it is what puts the
+     character on the page rather than floating over it. */
+  filter: drop-shadow(0 2px 3px rgb(90 60 100 / 0.18));
+}
+.quartz[role="button"] {
+  cursor: pointer;
+  border-radius: 0.5rem;
+}
+.quartz[role="button"]:focus-visible {
+  outline: 2px solid var(--color-sky-400);
+  outline-offset: 3px;
+}
+/* A resting mascot breathes. Suppressed while a clip is in flight, because the
+   drawn motion is the real motion and a bob under it reads as a wobble. */
+@media (prefers-reduced-motion: no-preference) {
+  .quartz:not([data-playing]) .quartz__sprite {
+    animation: quartz-breathe 4.2s ease-in-out infinite;
+  }
+}
+@keyframes quartz-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2.5%) scale(1.012); }
+}
+
 /* Persistent game HUD ---------------------------------------------------- */
 .hud-header {
   border-bottom: 1px solid rgb(214 205 208 / 0.75);
@@ -127,7 +170,7 @@ h3 { font-weight: 400; letter-spacing: -0.02em; }
 .hud-wordmark { display: inline-flex; min-width: max-content; align-items: center; gap: 0.5rem; color: #241f21; font-family: var(--font-sora), system-ui, sans-serif; font-size: 0.78rem; font-weight: 500; letter-spacing: -0.04em; }
 .hud-wordmark strong { font-weight: 700; }
 .hud-wordmark em { color: #c2557a; font-style: normal; font-weight: 800; }
-.hud-wordmark-mark { display: flex; height: 1.55rem; width: 1.55rem; align-items: center; justify-content: center; border: 1px solid rgb(200 110 140 / 0.35); border-radius: 0.5rem; background: linear-gradient(145deg, rgb(200 110 140 / 0.22), rgb(150 110 190 / 0.18)); color: #c96b8c; font-size: 0.7rem; box-shadow: 0 0 16px rgb(200 110 140 / 0.14); }
+.hud-wordmark-mark { display: flex; align-items: flex-end; justify-content: center; }
 .hud-level-pill { display: flex; min-width: 4.3rem; align-items: center; gap: 0.42rem; border: 1px solid rgb(200 110 140 / 0.2); border-radius: 0.7rem; background: rgb(200 110 140 / 0.08); padding: 0.32rem 0.5rem; }
 .hud-level-icon { display: flex; height: 1.35rem; width: 1.35rem; align-items: center; justify-content: center; border-radius: 0.4rem; background: rgb(200 110 140 / 0.15); color: #c96b8c; font-size: 0.78rem; font-weight: 800; }
 .hud-level-pill small, .hud-level-pill strong, .hud-streak small, .hud-streak strong { display: block; line-height: 1; }
@@ -295,4 +338,337 @@ h3 { font-weight: 400; letter-spacing: -0.02em; }
 
 .react-flow__attribution {
   display: none;
+}
+
+/* The landing page -------------------------------------------------------- */
+/* A public document, so it is set as one: a single measured column, a type
+   scale it stays on, and exactly one dark movement -- the evidence -- because
+   that is the part the page is built to land.
+
+   The palette is the application's own sakura light theme plus the mascot's
+   purple, which is already in the token layer as the violet ramp. The dark band
+   is an aubergine mixed from that purple rather than a neutral black, so it
+   reads as the same world with the lights down.
+
+   @spec LAND-STORY-001, LAND-MOTION-001, LAND-MOTION-003, UI-THEME-001 */
+.landing {
+  --land-ink: #241f21;
+  --land-quiet: #655c60;
+  --land-rule: rgb(160 140 146 / 0.22);
+  --land-sakura: #c2557a;
+  --land-plum: #5b3fa8;
+  --land-dark: #241b2e;
+  --land-dark-2: #2f2340;
+  --land-on-dark: #f3ecf5;
+  --land-on-dark-quiet: #bfb0c8;
+  --land-measure: 63ch;
+
+  color: var(--land-ink);
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+}
+
+.landing-shell {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 72rem;
+  padding: 0 1.5rem;
+}
+.landing-narrow { max-width: 52rem; }
+
+/* Type scale -------------------------------------------------------------- */
+.landing-h1 {
+  margin: 0.6rem 0 0;
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-size: clamp(2.5rem, 6.2vw, 4.4rem);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+.landing-h2 {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 3.5vw, 2.7rem);
+  font-weight: 300;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+.landing-h2--invert { color: var(--land-on-dark); max-width: 26ch; }
+.landing-h3 {
+  margin: 0;
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-size: 1.16rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.landing-h3--invert { color: var(--land-on-dark); }
+
+.landing-eyebrow {
+  margin: 0;
+  color: var(--land-sakura);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+.landing-eyebrow--invert { color: #e7a3bd; }
+
+.landing-lede {
+  margin: 1.4rem 0 0;
+  max-width: 44ch;
+  color: #4b4346;
+  font-size: clamp(1.02rem, 1.5vw, 1.16rem);
+  line-height: 1.62;
+}
+.landing-body {
+  margin: 1.15rem 0 0;
+  max-width: var(--land-measure);
+  color: #453e41;
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+.landing-body--invert { color: var(--land-on-dark-quiet); }
+.landing-body--turn { color: var(--land-ink); font-weight: 500; }
+.landing-footnote {
+  margin: 1.5rem 0 0;
+  color: var(--land-quiet);
+  font-size: 0.83rem;
+}
+
+/* Where a claim came from. Always rendered, never a tooltip: a source a reader
+   has to hunt for is not a source. @spec LAND-CLAIM-004 */
+.landing-source {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--land-quiet);
+  font-size: 0.71rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.landing-source code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95em;
+}
+.landing-source--invert { color: #9d8caa; }
+
+/* Actions ----------------------------------------------------------------- */
+.landing-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+.landing-actions--center { justify-content: center; margin-top: 2.2rem; }
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.7rem;
+  background: var(--land-ink);
+  padding: 0.8rem 1.5rem;
+  color: #fdfbfb;
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+.landing-cta:hover { background: var(--land-plum); transform: translateY(-1px); }
+.landing-cta:focus-visible {
+  outline: 2px solid var(--land-sakura);
+  outline-offset: 3px;
+}
+.landing-cta--quiet {
+  border: 1px solid var(--land-rule);
+  background: transparent;
+  color: var(--land-ink);
+}
+.landing-cta--quiet:hover { background: rgb(91 63 168 / 0.07); color: var(--land-plum); }
+
+/* I. Hero ----------------------------------------------------------------- */
+.landing-hero { padding: clamp(3rem, 8vw, 6.5rem) 0 clamp(3rem, 7vw, 5.5rem); }
+.landing-hero__grid {
+  display: grid;
+  gap: clamp(2rem, 5vw, 4rem);
+  align-items: center;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 62rem) {
+  .landing-hero__grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); }
+}
+.landing-hero__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 15rem;
+}
+.landing-stage-glow {
+  position: absolute;
+  inset: auto 0 12% 0;
+  height: 12rem;
+  background: radial-gradient(ellipse at 50% 60%, rgb(91 63 168 / 0.17), transparent 68%);
+  pointer-events: none;
+}
+.landing-hero__quartz { position: relative; z-index: 1; }
+.landing-stage-caption {
+  margin: 1.1rem 0 0;
+  color: var(--land-quiet);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Bands ------------------------------------------------------------------- */
+.landing-band { padding: clamp(3rem, 7vw, 5.5rem) 0; border-top: 1px solid var(--land-rule); }
+.landing-band--tint { background: rgb(91 63 168 / 0.035); }
+
+.landing-pair {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2.4rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 48rem) { .landing-pair { grid-template-columns: 1fr 1fr; } }
+.landing-card {
+  border: 1px solid var(--land-rule);
+  border-radius: 1rem;
+  background: #fffdfd;
+  padding: 1.6rem;
+}
+.landing-card p {
+  margin: 0.8rem 0 0;
+  color: #453e41;
+  font-size: 0.97rem;
+  line-height: 1.72;
+}
+
+/* IV. The evidence -------------------------------------------------------- */
+.landing-evidence {
+  padding: clamp(3.5rem, 8vw, 6.5rem) 0;
+  background: linear-gradient(168deg, var(--land-dark) 0%, var(--land-dark-2) 100%);
+  color: var(--land-on-dark);
+}
+.landing-evidence__list {
+  display: grid;
+  gap: 1.15rem;
+  margin: 2.8rem 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 60rem) { .landing-evidence__list { grid-template-columns: repeat(3, 1fr); } }
+.landing-evidence__item {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(243 236 245 / 0.13);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.045);
+  padding: 1.5rem;
+}
+.landing-evidence__premise {
+  margin: 0.9rem 0 0;
+  color: var(--land-on-dark-quiet);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.6;
+}
+.landing-evidence__finding {
+  margin: 1.05rem 0 0;
+  color: var(--land-on-dark);
+  font-size: 0.95rem;
+  line-height: 1.68;
+}
+.landing-evidence__missing {
+  margin: 1.05rem 0 0;
+  border-left: 2px solid #e0879f;
+  padding-left: 0.9rem;
+  color: var(--land-on-dark-quiet);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+.landing-evidence__missing-label {
+  display: block;
+  margin-bottom: 0.32rem;
+  color: #e7a3bd;
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.landing-evidence__item .landing-source { margin-top: auto; padding-top: 1.05rem; }
+.landing-evidence__coda { margin-top: 2.6rem; max-width: 60ch; }
+
+/* V. The figures ---------------------------------------------------------- */
+.landing-figures {
+  display: grid;
+  gap: 1.1rem;
+  margin: 2.6rem 0 0;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 40rem) { .landing-figures { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 64rem) { .landing-figures { grid-template-columns: repeat(3, 1fr); } }
+.landing-figure {
+  border-top: 2px solid var(--land-plum);
+  padding-top: 1rem;
+}
+.landing-figure dd { margin: 0; }
+.landing-figure__value {
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-size: clamp(1.9rem, 3.4vw, 2.5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--land-plum);
+}
+.landing-figure__label {
+  display: block;
+  margin-top: 0.55rem;
+  color: #453e41;
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+/* VI. The aside ----------------------------------------------------------- */
+.landing-mascot-note {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin-top: 2.6rem;
+  border: 1px dashed var(--land-rule);
+  border-radius: 1rem;
+  padding: 1.35rem 1.5rem;
+}
+.landing-mascot-note p {
+  margin: 0;
+  color: var(--land-quiet);
+  font-size: 0.93rem;
+  line-height: 1.65;
+}
+
+/* VII. Close -------------------------------------------------------------- */
+.landing-close {
+  border-top: 1px solid var(--land-rule);
+  padding: clamp(3.5rem, 8vw, 6rem) 0 0;
+}
+.landing-close__inner { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.landing-close .landing-h2 { max-width: 18ch; }
+.landing-footer {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+  border-top: 1px solid var(--land-rule);
+  padding: 1.6rem 1.5rem;
+  text-align: center;
+}
+.landing-footer p { margin: 0; color: var(--land-quiet); font-size: 0.8rem; }
+
+/* Reveals ----------------------------------------------------------------- */
+/* The markup's default is the FINAL state; `data-hidden` is applied by script
+   only after it has confirmed motion is allowed. So no-JS and reduced-motion
+   readers never see the displaced state at all. @spec LAND-MOTION-002 */
+.reveal { transition: opacity 620ms ease, transform 620ms cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal[data-hidden] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal[data-hidden] { opacity: 1; transform: none; transition: none; }
 }

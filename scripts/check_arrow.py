@@ -57,6 +57,10 @@ SEARCH_ROOTS = (
     ROOT / "frontend" / "components",
     ROOT / "frontend" / "lib",
     ROOT / "frontend" / "stores",
+    # Committed build scripts whose output ships. `frontend/scripts` holds the
+    # sprite pipeline, which is real implementation of real specs -- leaving it
+    # out made sixteen implemented specs read as uncited.
+    ROOT / "frontend" / "scripts",
     ROOT / "scripts",
 )
 SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".css", ".js", ".yml", ".yaml"}

@@ -86,6 +86,70 @@ There is no declared type scale. Sizes are chosen per component, largely as frac
 values in the shell stylesheet, which is why the HUD carries eight distinct font sizes
 between 0.48rem and 0.95rem (`UI-TYPE-004`).
 
+## The mascot
+
+Quartz is a quarter note with a microphone, and the segment holds it for the same reason it
+holds the palette: it appears on every surface, so it is something every surface *draws with*
+rather than something any one surface owns. It carries no state of its own and reports no
+progress — a mark that reacted to a learner's EXP would be progression's, drawn here.
+
+**The character is a registered sprite library, not an image.** `design/sprite_sheet.jpg` is
+one 2048x2048 sheet of twenty labelled poses on flat grey, and
+`frontend/scripts/build-sprites.ts` cuts it into `frontend/public/sprites/quartz/` plus a
+generated manifest at `frontend/lib/quartzSprites.ts`. The script is not part of the framework
+build graph: nothing under `app/` or `lib/` imports `scripts/`, every output is committed, and
+the imaging dependency stays a devDependency. A contributor who never touches the artwork
+never runs it.
+
+Three properties of the cut are what make the library usable rather than merely present, and
+each is a decision the pipeline had to make rather than a detail of it.
+
+**Frames are found by projecting ink onto each axis, not by dividing the sheet into
+twentieths.** The grid looks regular and is not — poses differ in width, and the two singing
+poses throw quaver glyphs clear of the body with a gap between. Projection finds the true
+bands; merging column runs closer than any real inter-frame gap re-attaches those quavers.
+Both counts are gated, so an art revision that breaks the assumption fails at build rather
+than shipping a sheared drawing. The captions lettered under each pose are dropped by height:
+the drawing bands measure 305-318px and the caption bands 49-55, a factor of six.
+
+**The ground is flood-filled inward from the cell border rather than thresholded in place.**
+The gloves and shoes are painted a near-white about twenty levels off the grey ground — close
+enough that any threshold loose enough to absorb the sheet's JPEG noise also punches holes
+through both. Filling inward keeps an enclosed region *because* it is enclosed, whatever
+colour it is, and absorbs the ground's corner-to-corner drift in the same pass. The
+character's colour is then grown a few pixels past the cut before the alpha is feathered,
+because a feathered edge over a colourless pixel blends the silhouette toward black and rims
+the character.
+
+**Every frame is registered onto one ground line and one horizontal anchor**, so swapping one
+for another moves nothing the artist did not draw as moving. The anchor is the centroid of the
+frame's own purple, which is what makes the run cycle work: the two gait frames sit within a
+pixel of each other by centroid where their bounding-box centres differ by nine. The ground
+line is measured per row of drawings as the lowest ink in it, so a pose drawn in the air keeps
+its lift — it survives into the cell as transparent padding, and nothing offsets it at
+runtime.
+
+**No frame is ever mirrored.** The sheet draws its own left- and right-facing variants, so a
+flop would be a worse copy of a drawing that already exists, and the microphone and the
+quavers read as reversed when flipped.
+
+The manifest is the contract: draw a cell at its declared aspect, put `footY` of its height on
+the ground, size it so `bodyH` of its height is the character. Every frame agrees about all
+three. `QUARTZ_CLIPS` names sequences, and its `fps`, `loop` and `rest` are *declared* rather
+than measured — frame timing is not in the artwork, and pretending otherwise would give a
+generated file the authority of a measurement.
+
+**The mascot is interactive, and its interactivity is decoration.** It reacts to the pointer
+and to being clicked; nothing it does changes anything. That is deliberate: a character that
+gated a real action would make charm load-bearing, and a reader with reduced motion would lose
+function rather than delight. Under `prefers-reduced-motion` the mascot holds a pose — which
+pose it holds is information and stays; the motion between poses is animation and goes.
+
+The sheet's resolution is the ceiling on where it can be used. The character is drawn about
+265px tall, so it ships at 240 and goes soft much above that. That is a property of the
+artwork, not of the pipeline, and it is why the wordmark beside it stays text (`UI-SHELL-004`)
+rather than becoming part of the image.
+
 ## The shell
 
 The persistent HUD — wordmark, level pill, experience track, streak, navigation — is a game

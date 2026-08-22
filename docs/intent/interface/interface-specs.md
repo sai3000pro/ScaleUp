@@ -2,7 +2,9 @@
 
 Prefix: `UI`. Facets: `THEME` (the token layer and palette), `SYS` (shared class
 constants), `TYPE` (typography), `A11Y` (contrast, focus, motion, landmarks),
-`SHELL` (the persistent chrome — HUD, brand, navigation, responsive behaviour).
+`SHELL` (the persistent chrome — HUD, brand, navigation, responsive behaviour), `SPRITE`
+(the mascot's art pipeline and the registration contract it emits), `MASCOT` (the character's
+presence and behaviour across the application).
 
 Status: `[x]` observed working in current code · `[ ]` specified but broken or partial ·
 `[D]` deliberate non-want.
@@ -71,6 +73,40 @@ system itself.
 - [x] **UI-GRAPH3D-014**: Every skill shall be titled on the canvas without the learner having to point at it.
 - [x] **UI-GRAPH3D-015**: Entering and leaving a skill's realm shall be a camera journey rather than a cut, with the pose and field of view on each side of the change matching.
 - [x] **UI-GRAPH3D-016**: Where the viewer has asked for less motion, the journey shall be skipped rather than shortened.
+
+## The mascot's sprite library
+
+- [x] **UI-SPRITE-001**: The mascot's frames shall be produced from the art sheet by a committed script, and both the frames and the manifest it emits shall be committed rather than generated at build time.
+- [x] **UI-SPRITE-002**: The sprite script shall sit outside the framework build graph, and its imaging dependency shall not be required to build or run the application.
+- [x] **UI-SPRITE-003**: Frames shall be located by projecting ink onto each axis rather than by dividing the sheet into equal cells.
+- [x] **UI-SPRITE-004**: Parts of one pose separated by a gap shall be re-attached to that pose rather than cut as separate frames.
+- [x] **UI-SPRITE-005**: The script shall fail rather than emit output where the sheet yields a different number of rows or frames per row than declared.
+- [x] **UI-SPRITE-006**: Lettering on the sheet shall be excluded from every frame, and no frame shall contain any part of a caption.
+- [x] **UI-SPRITE-007**: The background shall be removed by filling inward from each cell's border, so a region enclosed by the artwork is kept whatever its colour.
+- [x] **UI-SPRITE-008**: The character's colour shall be grown past the cut before the alpha is feathered, so no frame ships with a dark rim.
+- [x] **UI-SPRITE-009**: Every frame shall be registered onto one ground line and one horizontal anchor, so substituting one frame for another moves nothing.
+- [x] **UI-SPRITE-010**: A pose the artist drew off the ground shall keep its lift in the shipped frame, without the consumer offsetting it.
+- [x] **UI-SPRITE-011**: The scale shall be taken once for the sheet rather than per frame, so a pose drawn deliberately squashed is not stretched back out.
+- [x] **UI-SPRITE-012**: No frame shall be mirrored; each facing the sheet draws shall ship as its own frame, and the manifest shall record which way each looks.
+- [x] **UI-SPRITE-013**: The manifest shall declare the cell geometry every frame shares — aspect, ground line and character height — as the contract for drawing one.
+- [x] **UI-SPRITE-014**: Frame timing in the manifest shall be marked as declared rather than measured, since it is not present in the artwork.
+- [x] **UI-SPRITE-015**: The script shall verify that each encoded frame carries transparency and the intended dimensions before writing it.
+- [x] **UI-SPRITE-016**: A clip naming a frame the sheet does not contain shall fail the build.
+
+## The mascot
+
+- [x] **UI-MASCOT-001**: The mascot shall appear beside the wordmark on every view that renders the persistent shell.
+- [x] **UI-MASCOT-002**: The mascot shall face the wordmark it sits beside.
+- [x] **UI-MASCOT-003**: The mascot shall respond to the pointer and to being activated, and nothing it does shall change application state.
+- [x] **UI-MASCOT-004**: The mascot shall be reachable and activatable by keyboard wherever it is interactive.
+- [x] **UI-MASCOT-005**: The mascot shall carry no accessible name where it sits beside a wordmark that already names the product, so a screen reader hears the destination once.
+- [x] **UI-MASCOT-006**: Where the reader has asked for reduced motion, the mascot shall hold a pose rather than animate between poses.
+- [x] **UI-MASCOT-007**: The pose the mascot holds shall be chosen for what it conveys and shall not depend on whether motion is allowed.
+- [x] **UI-MASCOT-008**: The first frame the mascot renders shall be the frame the server rendered, so no substitution occurs at hydration.
+- [x] **UI-MASCOT-009**: A clip that does not loop shall settle on a resting pose rather than holding its final frame indefinitely.
+- [x] **UI-MASCOT-010**: The mascot shall preload the frames a reaction needs before that reaction can be triggered, so a first interaction does not show a gap.
+- [x] **UI-MASCOT-011**: The mascot shall derive no learner state, and shall report no progress, score or streak.
+- [D] **UI-MASCOT-012**: The mascot shall not speak, and shall not present copy in a bubble attached to itself.
 
 ## The shell
 
