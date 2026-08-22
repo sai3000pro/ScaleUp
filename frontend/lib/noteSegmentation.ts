@@ -62,18 +62,52 @@ export interface SegmenterConfig {
  * genuinely are guesses — they are the first things to calibrate once there are
  * recordings to calibrate against.
  */
-export const DEFAULT_SEGMENTER_CONFIG: SegmenterConfig = {
-  minNoteDurationSeconds: 0.12,
-  pitchChangeFrames: 6,
-  confidenceOn: 0.45,
-  confidenceOff: 0.32,
-  pitchMedianWindow: 5,
-  noteOnRmsDb: -42,
-  noteOffRmsDb: -50,
-  noteOffFrames: 4,
-  reattackRiseDb: 9,
-  reattackWindowFrames: 4,
-};
+export function getSegmenterConfigForInstrument(instrument?: string): SegmenterConfig {
+  const inst = (instrument ?? "").toLowerCase();
+  if (inst.includes("guitar") || inst.includes("bass") || inst.includes("ukulele")) {
+    return {
+      minNoteDurationSeconds: 0.22,
+      pitchChangeFrames: 8,
+      confidenceOn: 0.48,
+      confidenceOff: 0.35,
+      pitchMedianWindow: 7,
+      noteOnRmsDb: -36,
+      noteOffRmsDb: -46,
+      noteOffFrames: 6,
+      reattackRiseDb: 13,
+      reattackWindowFrames: 5,
+    };
+  }
+  if (inst.includes("violin") || inst.includes("cello") || inst.includes("flute")) {
+    return {
+      minNoteDurationSeconds: 0.18,
+      pitchChangeFrames: 7,
+      confidenceOn: 0.45,
+      confidenceOff: 0.32,
+      pitchMedianWindow: 7,
+      noteOnRmsDb: -38,
+      noteOffRmsDb: -48,
+      noteOffFrames: 5,
+      reattackRiseDb: 10,
+      reattackWindowFrames: 4,
+    };
+  }
+  // Default (Piano, keyboard, percussive tonal)
+  return {
+    minNoteDurationSeconds: 0.12,
+    pitchChangeFrames: 6,
+    confidenceOn: 0.45,
+    confidenceOff: 0.32,
+    pitchMedianWindow: 5,
+    noteOnRmsDb: -42,
+    noteOffRmsDb: -50,
+    noteOffFrames: 4,
+    reattackRiseDb: 9,
+    reattackWindowFrames: 4,
+  };
+}
+
+export const DEFAULT_SEGMENTER_CONFIG: SegmenterConfig = getSegmenterConfigForInstrument("piano");
 
 export const RMS_FLOOR_DB = -100;
 
@@ -173,9 +207,12 @@ export function pushFrame(
   } else {
     const semitone = Math.round(smoothed);
     const priorDb = recentDb.length > 1 ? Math.min(...recentDb.slice(0, -1)) : frame.rmsDb;
-    const reattack = open !== null && frame.rmsDb - priorDb >= config.reattackRiseDb;
+    const reattack =
+      open !== null &&
+      frame.rmsDb - priorDb >= config.reattackRiseDb &&
+      frame.timeSeconds - open.onsetSeconds >= config.minNoteDurationSeconds;
     const currentMedian = open !== null ? median(open.midiValues) : smoothed;
-    const isPitchChanged = open !== null && Math.abs(smoothed - currentMedian) >= 0.75;
+    const isPitchChanged = open !== null && Math.abs(smoothed - currentMedian) >= 0.85;
 
     if (open === null) {
       nextOpen = openNote(semitone, smoothed, frame);

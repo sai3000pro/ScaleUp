@@ -97,6 +97,8 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
     };
   }, []);
 
+  const selectedExercise = exercises.find((ex) => ex.id === selectedExerciseId) ?? null;
+
   async function submitNotes(notes: PerformedNote[], label: string, recordingId: string | null = null) {
     if (selectedExerciseId === null) return;
     setLoading(true);
@@ -187,7 +189,18 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
     }
     setError(null);
     try {
-      const recorder = new MicRecorder(setRecordStatus);
+      const instrument =
+        courseId.toLowerCase().includes("guitar") || (selectedExercise?.title ?? "").toLowerCase().includes("guitar")
+          ? "guitar"
+          : courseId.toLowerCase().includes("violin") || (selectedExercise?.title ?? "").toLowerCase().includes("violin")
+          ? "violin"
+          : courseId.toLowerCase().includes("trumpet") || (selectedExercise?.title ?? "").toLowerCase().includes("trumpet")
+          ? "trumpet"
+          : "piano";
+
+      const recorder = new MicRecorder(setRecordStatus, {
+        instrument,
+      });
       recorderRef.current = recorder;
       await recorder.start();
     } catch (caught: unknown) {

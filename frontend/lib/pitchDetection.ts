@@ -118,6 +118,7 @@ const SILENCE_LEVEL_DB = -48;
 import {
   DEFAULT_SEGMENTER_CONFIG,
   finalizeSegments,
+  getSegmenterConfigForInstrument,
   initialSegmenterState,
   pushFrame,
   type PitchFrame,
@@ -161,18 +162,7 @@ export class MicRecorder {
   private quietSince: number | null = null;
 
   private segmenterState: SegmenterState = initialSegmenterState();
-  private segmenterConfig: SegmenterConfig = {
-    ...DEFAULT_SEGMENTER_CONFIG,
-    confidenceOn: 0.42,
-    confidenceOff: 0.28,
-    noteOnRmsDb: -38,
-    noteOffRmsDb: -48,
-    pitchChangeFrames: 6,
-    minNoteDurationSeconds: 0.16,
-    pitchMedianWindow: 5,
-    reattackRiseDb: 10,
-    noteOffFrames: 5,
-  };
+  private segmenterConfig: SegmenterConfig = DEFAULT_SEGMENTER_CONFIG;
 
   /**
    * `options` is how the live coach observes a take as it happens. Both
@@ -185,11 +175,17 @@ export class MicRecorder {
     options: {
       onNote?: (note: NoteSegment) => void;
       onLevel?: (rmsDb: number, silenceSeconds: number) => void;
+      instrument?: string;
+      config?: Partial<SegmenterConfig>;
     } = {},
   ) {
     this.onStatus = onStatus;
     if (options.onNote !== undefined) this.onNote = options.onNote;
     if (options.onLevel !== undefined) this.onLevel = options.onLevel;
+    this.segmenterConfig = {
+      ...getSegmenterConfigForInstrument(options.instrument),
+      ...(options.config ?? {}),
+    };
   }
 
   private setStatus(status: RecordingStatus): void {

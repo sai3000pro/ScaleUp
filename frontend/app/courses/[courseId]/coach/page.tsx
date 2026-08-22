@@ -360,7 +360,16 @@ function CoachingStudioView() {
       socketRef.current = socket;
       await socket.connect();
 
+      const currentInstrument = course?.title?.toLowerCase().includes("guitar")
+        ? "guitar"
+        : course?.title?.toLowerCase().includes("violin")
+        ? "violin"
+        : course?.title?.toLowerCase().includes("trumpet")
+        ? "trumpet"
+        : "piano";
+
       const recorder = new MicRecorder(() => {}, {
+        instrument: currentInstrument,
         onNote: (note) => {
           notesRef.current.push(note);
           addStreamLog("out", `notes -> ${note.pitch_midi !== null ? `Pitch MIDI ${note.pitch_midi}` : note.drum} @ ${note.onset_seconds.toFixed(2)}s`);

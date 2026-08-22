@@ -303,15 +303,19 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
     remaining = max(Decimal("0"), settings.course_llm_budget_usd - Decimal(str(spent or 0)))
 
     raw_voice = str(frame.get("voice", "")).strip()
-    voice_name = raw_voice or None
-    gemini_session = GeminiLiveCoachSession(
-        instrument=instrument,
-        exercise_title=exercise.title,
-        tempo_bpm=score.tempo_bpm,
-        instructions=exercise.instructions or "",
-        voice_name=voice_name,
-    )
-    if settings.gemini_api_key:
+    is_gemini_voice = raw_voice.lower() in {"puck", "charon", "kore", "fenrir", "aoede", "leda", "orpheus", "zephyr"}
+    is_elevenlabs = not is_gemini_voice and (settings.voice_provider == "elevenlabs" or bool(settings.elevenlabs_api_key))
+
+    gemini_session = None
+    if is_gemini_voice and settings.gemini_api_key:
+        voice_name = raw_voice or None
+        gemini_session = GeminiLiveCoachSession(
+            instrument=instrument,
+            exercise_title=exercise.title,
+            tempo_bpm=score.tempo_bpm,
+            instructions=exercise.instructions or "",
+            voice_name=voice_name,
+        )
         asyncio.create_task(gemini_session.connect())
 
     await transport.send_json(
@@ -331,7 +335,7 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
             ).model_dump(mode="json"),
             "coach_enabled": True,
             "audio_enabled": True,
-            "audio_format": streaming_audio_format(settings.voice_provider),
+            "audio_format": "mp3" if is_elevenlabs else streaming_audio_format(settings.voice_provider),
         }
     )
     return TakeState(

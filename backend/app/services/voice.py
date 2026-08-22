@@ -241,10 +241,13 @@ async def synthesize_feedback(text: str, *, voice_key: str = "") -> VoiceArtifac
     Never raises: a provider outage must degrade delivery, not the attempt.
     """
     settings = get_settings()
+    is_gemini_voice = voice_key.strip().lower() in {"puck", "charon", "kore", "fenrir", "aoede", "leda", "orpheus", "zephyr"}
     if settings.voice_provider == "fake":
         provider: VoiceProvider = FakeVoiceProvider()
-    elif voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"} and settings.gemini_api_key:
+    elif is_gemini_voice and settings.gemini_api_key:
         provider = GeminiVoiceProvider(settings.gemini_api_key)
+    elif settings.elevenlabs_api_key:
+        provider = ElevenLabsVoiceProvider(settings.elevenlabs_api_key)
     else:
         provider = _provider_for(settings.voice_provider)
     cache_key = cache_key_for(text, voice_key)
@@ -260,13 +263,13 @@ async def synthesize_feedback(text: str, *, voice_key: str = "") -> VoiceArtifac
         )
     except Exception as exc:  # noqa: BLE001 - see module docstring
         logger.warning("primary voice synthesis failed (%s); trying fallback", exc)
-        if provider.provider != "gemini" and settings.gemini_api_key:
+        if is_gemini_voice and provider.provider != "gemini" and settings.gemini_api_key:
             try:
                 gemini_fallback = GeminiVoiceProvider(settings.gemini_api_key)
-                content = await gemini_fallback.synthesize(text, voice_key="Puck")
+                content = await gemini_fallback.synthesize(text, voice_key=voice_key or "Puck")
                 return VoiceArtifact(
                     provider="gemini",
-                    voice_key="Puck",
+                    voice_key=voice_key or "Puck",
                     format="wav",
                     content=content,
                     cache_key=cache_key,
