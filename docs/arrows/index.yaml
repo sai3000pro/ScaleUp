@@ -1,17 +1,16 @@
 schema_version: 2
 last_updated: 2026-08-22
 
-# audited_sha values are meaningful again: dc77249 is the repository's root commit
-# after the 2026-08-22 history reset, and every sha recorded below resolves. This
-# was the first audit able to compute a real incremental window, and it used one --
+# Every audited_sha recorded below now resolves, so this was the first audit able
+# to compute a real incremental window, and it used one --
 # only interface, landing and operations had source changes and only those three
 # were re-audited. The remaining eight keep dc77249, which is still accurate: none
 # of their files has changed since it.
 #
 # `landing-page` merged fast-forward, so 6346ba8 is permanent and the caveat that
-# stood here is discharged. capture and observation now carry source cherry-picked
-# from the abandoned remote that has never been audited here -- their audited_sha
-# deliberately stays behind it so the next pass treats them as stale.
+# stood here is discharged. capture and observation now carry selected-video source
+# that has never been audited here -- their audited_sha deliberately stays behind
+# it so the next pass treats them as stale.
 
 # Segments follow the signal path: sensor data becomes observations, observations
 # become metrics, metrics become language, outcomes become progression. Curriculum
@@ -49,7 +48,7 @@ arrows:
     blockedBy: [operations]
     detail: capture.md
     next: "Disable browser audio processing (CAP-MIC-007); declare the MediaPipe CDN hosts (CAP-CAM-007)."
-    drift: "Selected-video analysis arrived by cherry-pick from the abandoned remote and has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. Audio is measured through automatic gain control and reimplements note segmentation inline. Browser model hosts are documented but absent from the backend integration register. Live and selected-video hand/body producers now share one adapter."
+    drift: "Selected-video analysis has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. Audio is measured through automatic gain control and reimplements note segmentation inline. Browser model hosts are documented but absent from the backend integration register. Live and selected-video hand/body producers now share one adapter."
 
   observation:
     status: UPDATED
@@ -61,7 +60,7 @@ arrows:
     blockedBy: [capture]
     detail: observation.md
     next: "Calibrate the skill-profile thresholds against teacher-labelled takes, then persist threshold_version (OBS-RED-008)."
-    drift: "Selected-video analysis arrived by cherry-pick from the abandoned remote and has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. The tested note segmenter still has no production caller. Visual profiles and full-window aggregation are implemented, but their pedagogical thresholds remain uncalibrated against real instrument takes."
+    drift: "Selected-video analysis has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. The tested note segmenter still has no production caller. Visual profiles and full-window aggregation are implemented, but their pedagogical thresholds remain uncalibrated against real instrument takes."
 
   evaluation:
     status: AUDITED
