@@ -178,7 +178,7 @@ def interpret(window: LiveMetricWindow) -> tuple[str, ...]:
     if window.extra_count >= EXTRA_RUN_COUNT:
         phrases.append(f"{window.extra_count} notes added that are not written")
     if window.dynamics_rms_variation is not None and window.dynamics_rms_variation < FLAT_DYNAMICS_VARIATION:
-        phrases.append("playing at one unvarying volume")
+        phrases.append("flat dynamics throughout")
     if window.progress_ratio >= 0.99:
         phrases.append("at the end of the exercise")
     return tuple(phrases)

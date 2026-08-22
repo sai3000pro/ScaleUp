@@ -681,11 +681,21 @@ async def speech_for_attempt(
     provider is configured, so the frontend can read the feedback aloud with
     browser TTS either way.
     """
-    if attempt.feedback_summary is None or attempt.feedback_next_step is None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "This attempt has no examiner feedback to speak.")
-
-    text = f"{attempt.feedback_summary} Next: {attempt.feedback_next_step}"
-    actual_voice = voice_key or "professor-cadenza"
+    score_pct = round((attempt.overall_score or 0) * 100)
+    intros = [
+        f"Brilliant take! You finished with {score_pct} percent accuracy.",
+        f"Solid execution on this drill, landing at {score_pct} percent.",
+        f"Great session! Your overall performance scored {score_pct} percent.",
+        f"Take finalized! You achieved a score of {score_pct} percent.",
+    ]
+    tier_intro = intros[score_pct % len(intros)] if score_pct >= 80 else (
+        f"Good effort on this drill! You landed at {score_pct} percent." if score_pct >= 50 else
+        f"Good practice pass at {score_pct} percent. Let's build up momentum and try it again."
+    )
+    summary = attempt.feedback_summary or tier_intro
+    next_step = attempt.feedback_next_step or "Run through the drill once more to lock in the groove."
+    text = f"{summary} Next step: {next_step}"
+    actual_voice = voice_key or "21m00Tcm4TlvDq8ikWAM"
     cache_key = cache_key_for(text, actual_voice)
     stored = await session.get(StoredVoiceArtifact, cache_key)
     if stored is not None:

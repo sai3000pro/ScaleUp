@@ -48,7 +48,13 @@ class GeminiLiveCoachSession:
         self.exercise_title = exercise_title
         self.tempo_bpm = tempo_bpm
         self.instructions = instructions
-        self.voice_name = voice_name or settings.gemini_live_voice or "Puck"
+        valid_gemini_voices = {"Puck", "Charon", "Kore", "Fenrir", "Aoede"}
+        if voice_name in valid_gemini_voices:
+            self.voice_name = voice_name
+        elif settings.gemini_live_voice in valid_gemini_voices:
+            self.voice_name = settings.gemini_live_voice
+        else:
+            self.voice_name = "Puck"
         self._ws: websockets.ClientConnection | None = None
         self._is_ready = False
 
@@ -89,13 +95,15 @@ class GeminiLiveCoachSession:
 
             # Construct setup configuration optimized for real-time latency
             system_prompt = (
-                f"You are an ultra-responsive real-time music coach for the {self.instrument} "
+                f"You are an ultra-responsive, expressive real-time music coach for the {self.instrument} "
                 f"practicing '{self.exercise_title}' at {self.tempo_bpm} BPM. "
                 "Speed and low latency are critical. When you receive a cue or note event, immediately speak a 3 to 6 word "
-                "actionable vocal cue (e.g. 'Steady the tempo', 'Right on the beat', 'Careful with timing', 'Clean tone'). "
-                "Never speak long paragraphs or give conversational intros. Maximum 6 words per utterance."
+                "actionable, dynamic vocal cue (e.g. 'Steady the tempo', 'Right on the beat', 'Crisp articulation', 'Breathe and reset', 'Super clean groove'). "
+                "Never speak long paragraphs or give conversational intros. Maximum 6 words per utterance. "
+                "Vary your phrasing each time so feedback feels dynamic, lively, and never repetitive."
             )
 
+            gemini_voice = self.voice_name if self.voice_name in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"} else "Puck"
             setup_payload = {
                 "setup": {
                     "model": model_name,
@@ -104,7 +112,7 @@ class GeminiLiveCoachSession:
                         "speechConfig": {
                             "voiceConfig": {
                                 "prebuiltVoiceConfig": {
-                                    "voiceName": self.voice_name
+                                    "voiceName": gemini_voice
                                 }
                             }
                         },
@@ -115,7 +123,7 @@ class GeminiLiveCoachSession:
                 }
             }
 
-            logger.info("📤 [GEMINI LIVE OUT] Sending setup frame with voice='%s' and model='%s'", self.voice_name, model_name)
+            logger.info("📤 [GEMINI LIVE OUT] Sending setup frame with voice='%s' and model='%s'", gemini_voice, model_name)
             await self._ws.send(json.dumps(setup_payload))
 
             # Wait for setup acknowledgment

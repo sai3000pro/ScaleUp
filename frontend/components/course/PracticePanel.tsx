@@ -127,13 +127,28 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
     await submitNotes(take, "fixture");
   }
 
+  const activeAudioRef = useRef<HTMLAudioElement | null>(null);
+
   async function speakFeedback() {
     if (result === null) return;
     setError(null);
+    if (activeAudioRef.current) {
+      try {
+        activeAudioRef.current.pause();
+        activeAudioRef.current.currentTime = 0;
+      } catch {}
+      activeAudioRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     try {
       const artifact = await api.speakAttemptFeedback(result.id);
       if (artifact.audio_base64 !== null) {
         const audio = new Audio(`data:audio/${artifact.format};base64,${artifact.audio_base64}`);
+        activeAudioRef.current = audio;
+        audio.onended = () => { if (activeAudioRef.current === audio) activeAudioRef.current = null; };
+        audio.onerror = () => { if (activeAudioRef.current === audio) activeAudioRef.current = null; };
         void audio.play();
       } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(artifact.spoken_text);

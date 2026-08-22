@@ -92,14 +92,15 @@ class ElevenLabsVoiceProvider:
         if not self._api_key:
             raise RuntimeError("ELEVENLABS_API_KEY is not configured.")
         voice_id = voice_key or get_settings().elevenlabs_voice_id or DEFAULT_ELEVENLABS_VOICE_ID
-        async with httpx.AsyncClient(timeout=30) as client:
+        model_id = get_settings().elevenlabs_model_id or "eleven_flash_v2_5"
+        async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post(
-                f"{self._base_url}/text-to-speech/{voice_id}",
+                f"{self._base_url}/text-to-speech/{voice_id}?optimize_streaming_latency=4&output_format=mp3_44100_64",
                 headers={"xi-api-key": self._api_key, "Accept": "audio/mpeg"},
                 json={
                     "text": text,
-                    "model_id": get_settings().elevenlabs_model_id,
-                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+                    "model_id": model_id,
+                    "voice_settings": {"stability": 0.4, "similarity_boost": 0.75},
                 },
             )
             response.raise_for_status()
@@ -258,7 +259,21 @@ async def synthesize_feedback(text: str, *, voice_key: str = "") -> VoiceArtifac
             spoken_text=text,
         )
     except Exception as exc:  # noqa: BLE001 - see module docstring
-        logger.warning("voice synthesis failed (%s); returning text-only feedback", exc)
+        logger.warning("primary voice synthesis failed (%s); trying fallback", exc)
+        if provider.provider != "gemini" and settings.gemini_api_key:
+            try:
+                gemini_fallback = GeminiVoiceProvider(settings.gemini_api_key)
+                content = await gemini_fallback.synthesize(text, voice_key="Puck")
+                return VoiceArtifact(
+                    provider="gemini",
+                    voice_key="Puck",
+                    format="wav",
+                    content=content,
+                    cache_key=cache_key,
+                    spoken_text=text,
+                )
+            except Exception as fallback_exc:
+                logger.warning("fallback voice synthesis failed (%s)", fallback_exc)
         return VoiceArtifact(
             provider="unavailable",
             voice_key=voice_key,
@@ -327,17 +342,22 @@ class ElevenLabsStreamingVoiceProvider:
         if not self._api_key:
             raise RuntimeError("ELEVENLABS_API_KEY is not configured.")
         settings = get_settings()
-        voice_id = voice_key or settings.elevenlabs_voice_id or DEFAULT_ELEVENLABS_VOICE_ID
-        async with httpx.AsyncClient(timeout=20) as client:
+        gemini_voices = {"Puck", "Charon", "Kore", "Fenrir", "Aoede"}
+        if not voice_key or voice_key in gemini_voices:
+            voice_id = settings.elevenlabs_voice_id or DEFAULT_ELEVENLABS_VOICE_ID
+        else:
+            voice_id = voice_key
+        model_id = settings.elevenlabs_streaming_model_id or "eleven_flash_v2_5"
+        async with httpx.AsyncClient(timeout=15) as client:
             async for sentence in sentences:
                 async with client.stream(
                     "POST",
-                    f"{self._base_url}/text-to-speech/{voice_id}/stream",
+                    f"{self._base_url}/text-to-speech/{voice_id}/stream?optimize_streaming_latency=4&output_format=mp3_44100_64",
                     headers={"xi-api-key": self._api_key, "Accept": "audio/mpeg"},
                     json={
                         "text": sentence,
-                        "model_id": settings.elevenlabs_streaming_model_id,
-                        "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+                        "model_id": model_id,
+                        "voice_settings": {"stability": 0.4, "similarity_boost": 0.75},
                     },
                 ) as response:
                     response.raise_for_status()

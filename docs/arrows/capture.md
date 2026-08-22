@@ -9,9 +9,9 @@ the persistence of a take's audio — turned into the frame streams that `observ
 brownfield bootstrap. The audio path is live; the camera path emits hand landmarks only and
 is fed to the interface from a fixture.
 
-Since that audit the selected-video path landed and has not been audited here. The audio
-path is unchanged. A shared visual adapter now emits hand and body-pose observations from
-both the live camera and a locally decoded MP4; the fixture path remains available.
+Since that audit, the selected-video path landed. The audio path is unchanged. A shared visual adapter
+now emits hand and body-pose observations from both the live camera and a locally decoded MP4;
+the fixture path remains available.
 
 ## References
 
