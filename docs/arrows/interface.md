@@ -5,7 +5,7 @@ contrast, and the persistent shell.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). Created to close a hole the
+**AUDITED** — last audited 2026-08-22 (git SHA `6346ba8`). Created to close a hole the
 signal-path mapping itself left: the lens dissolved the frontend across the behavioural
 segments, which is right for behaviour and leaves visual design with no owner. The theme
 layer, the shared class system and the shell were governed by no spec in any segment.
@@ -19,13 +19,17 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `docs/intent/interface/interface-design.md`
 
 ### EARS
-- `docs/intent/interface/interface-specs.md` (49 specs)
+- `docs/intent/interface/interface-specs.md` (77 specs)
 
 ### Tests
 - `frontend/lib/layout3d.test.ts` — depth ordering, ring spacing, stability, framing
 - `frontend/lib/theme.test.ts` — computes contrast ratios and ramp order from the shipped
   token block, checks the `nodeState.ts` mirror, and rejects colours from a superseded
   palette
+- `frontend/lib/quartzSprites.test.ts` — reads the committed WebP headers and asserts the
+  manifest against the files it describes: one cell size, alpha present, both facings shipped
+- `frontend/lib/quartzClip.test.ts` — clip playback, including that a non-looping clip
+  settles rather than freezing on its last frame
 
 ### Code
 - `frontend/app/globals.css` — the `@theme` token block, shell styles, ambient decoration
@@ -36,6 +40,10 @@ layer, the shared class system and the shell were governed by no spec in any seg
 - `frontend/lib/layout3d.ts` — where each skill sits in space
 - `frontend/components/skill-tree/SkillGraph3D.tsx` — the WebGL canvas and its interactions
 - `frontend/lib/usePrefersReducedMotion.ts` — the shared motion preference
+- `frontend/scripts/build-sprites.ts` — cuts the art sheet into the registered frame library
+- `frontend/lib/quartzSprites.ts` — generated manifest: cell geometry, frames, clips
+- `frontend/lib/quartzClip.ts` — which frame a clip shows at a given elapsed time
+- `frontend/components/mascot/Quartz.tsx` — the mascot, at every size it appears
 
 ## Architecture
 
@@ -50,6 +58,8 @@ checkable claims.
 3. `lib/nodeState.ts` — the one declared exception, for colours the canvas takes as values.
 4. `lib/theme.test.ts` — the ratios, the ramp order and the mirror, asserted from source.
 5. The shell — HUD, wordmark, navigation, and an explicit narrow-breakpoint reflow order.
+6. The mascot — an art sheet cut into a registered frame library by a committed script, and
+   one component that draws it at any size from a character height.
 
 ## Spec Coverage
 
@@ -60,9 +70,11 @@ checkable claims.
 | Typography | `UI-TYPE-001` – `004` | 3 | 0 | 1 |
 | Accessibility | `UI-A11Y-001` – `009` | 9 | 0 | 0 |
 | Skill graph | `UI-GRAPH3D-001` – `016` | 14 | 0 | 2 |
+| Sprite pipeline | `UI-SPRITE-001` – `016` | 16 | 0 | 0 |
+| Mascot | `UI-MASCOT-001` – `012` | 11 | 1 | 0 |
 | Shell | `UI-SHELL-001` – `007` | 6 | 0 | 1 |
 
-**Summary:** 42 of 49 implemented; 1 deliberate non-want; 6 active gaps.
+**Summary:** 69 of 77 implemented; 2 deliberate non-wants; 6 active gaps.
 
 ## Key Findings
 
@@ -98,6 +110,19 @@ checkable claims.
 6. **The declared duplicate held.** Both the theme block and `nodeState.ts` name each other,
    and their five node-state values agree. A declared duplicate that stays in sync is a
    different thing from an undeclared one — and it is now asserted rather than trusted.
+
+7. **The mascot arrived as two facets and the coverage table did not move.** `UI-SPRITE` and
+   `UI-MASCOT` added 28 specs — a 57% increase in the segment — while the table still read
+   *42 of 49*. This is the third audit running in which a coverage table disagreed with its
+   own spec file, and every instance has been in the same direction: the file grew and the
+   derived view did not. The table is regenerated from source in this pass rather than
+   incremented by hand.
+
+8. **The sprite library is the segment's first build-time artifact, and it verifies itself.**
+   `build-sprites.ts` gates its own assumptions — five rows of four, a frame that encodes with
+   transparency at the intended size — so a sheet revision that breaks the cut fails the run
+   instead of shipping a sheared drawing. That matters here because the failure mode is
+   visual: an opaque frame at the wrong size looks like a file until it is on a page.
 
 ## Work Required
 

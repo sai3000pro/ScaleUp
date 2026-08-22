@@ -5,7 +5,7 @@ this system does about it. It owns no behaviour and renders no learner state.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-22 (git SHA `93ce731`). Created with the segment: the
+**AUDITED** — last audited 2026-08-22 (git SHA `6346ba8`). Created with the segment: the
 application had no public surface at all, and the root redirected straight to `/courses`.
 
 The segment exists because *what the page may claim* is a design constraint with teeth, and
@@ -22,7 +22,7 @@ where a wrong number is paid for entirely by a reader who cannot check it.
 - `docs/intent/landing/landing-design.md`
 
 ### EARS
-- `docs/intent/landing/landing-specs.md` (26 specs)
+- `docs/intent/landing/landing-specs.md` (27 specs)
 
 ### Tests
 - `frontend/lib/landingEvidence.test.ts` — every figure carries a non-empty source; a claim
@@ -62,7 +62,7 @@ claim the product cannot support.
 | Motion | `LAND-MOTION-001` – `005` | 4 | 1 | 0 |
 | Route | `LAND-ROUTE-001` – `005` | 4 | 0 | 1 |
 
-**Summary:** 22 of 26 implemented; 3 deliberate non-wants; 2 active gaps.
+**Summary:** 22 of 27 implemented; 3 deliberate non-wants; 2 active gaps.
 
 ## Key Findings
 

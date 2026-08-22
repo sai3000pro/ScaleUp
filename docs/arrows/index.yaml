@@ -1,10 +1,16 @@
 schema_version: 2
 last_updated: 2026-08-22
 
-# Every audited_sha below is the repository's root commit. The project moved to a
-# new repository with a squashed history on 2026-08-22, so the shas recorded by
-# earlier audits no longer resolve and no incremental window can be computed from
-# them. The next audit is the first that can diff against a real predecessor.
+# audited_sha values are meaningful again: dc77249 is the repository's root commit
+# after the 2026-08-22 history reset, and every sha recorded below resolves. This
+# was the first audit able to compute a real incremental window, and it used one --
+# only interface, landing and operations had source changes and only those three
+# were re-audited. The remaining eight keep dc77249, which is still accurate: none
+# of their files has changed since it.
+#
+# CAVEAT: 6346ba8 is on the unmerged branch `landing-page`. If that branch is
+# squash-merged the sha stops resolving and those three segments need re-stamping
+# to the merge commit -- the same failure the reset above caused.
 
 # Segments follow the signal path: sensor data becomes observations, observations
 # become metrics, metrics become language, outcomes become progression. Curriculum
@@ -133,7 +139,7 @@ arrows:
     parent: null
     sampled: 2026-08-22
     audited: 2026-08-22
-    audited_sha: dc77249
+    audited_sha: 6346ba8
     blocks: [capture, curriculum]
     blockedBy: []
     detail: operations.md
@@ -145,11 +151,11 @@ arrows:
     parent: null
     sampled: 2026-08-22
     audited: 2026-08-22
-    audited_sha: dc77249
+    audited_sha: 6346ba8
     blocks: [landing]
     blockedBy: []
     detail: interface.md
-    next: "Delete the replaced 2D canvas and drop @xyflow/react, or explain why it is kept. Then adopt MUTED at its 58 raw sites (UI-SYS-004)."
+    next: "Delete the replaced 2D canvas and drop @xyflow/react, or explain why it is kept. Then adopt MUTED at its 58 raw sites (UI-SYS-004). UI-SPRITE and UI-MASCOT are implemented; 6 of 28 carry a test citation."
     drift: "The 2D canvas the 3D one replaced is still on disk -- SkillTree.tsx, SkillNodeCard.tsx and useFocusNode.ts, 555 lines nothing imports -- and it still carries @spec annotations, so citation coverage counts behaviour that no longer runs. It is also the only remaining consumer of @xyflow/react."
 
   landing:
@@ -157,7 +163,7 @@ arrows:
     parent: null
     sampled: 2026-08-22
     audited: 2026-08-22
-    audited_sha: 93ce731
+    audited_sha: 6346ba8
     blocks: []
     blockedBy: [interface, access]
     detail: landing.md
