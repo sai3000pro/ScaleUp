@@ -13,9 +13,14 @@
  * would put the camera below the fold of an overlay that is already scrolling,
  * and would suggest an order that does not exist.
  *
- * Practice is the default because it is the one that works with nothing but a
- * microphone, and the deterministic path is the floor everywhere else in this
- * system too.
+ * Live coaching leads, and opens by default. Being heard while you play is the
+ * thing this product does that a recorder does not, so it is what a learner
+ * arriving at a lesson should find already open rather than have to go looking
+ * for. Recording a take is the fallback for when nobody wants to be talked to.
+ *
+ * Defaulting to it costs nothing held open: mounting the live panel lists the
+ * lesson's exercises over HTTP and no more. The socket and the microphone are
+ * claimed when a take starts, which is what keeps the rule below honest.
  *
  * @spec PROG-REALM-006, UI-PAGE-003
  */
@@ -27,8 +32,8 @@ import { TechniquePanel } from "@/components/course/TechniquePanel";
 import { FOCUS_RING } from "@/lib/ui";
 
 const VIEWS = [
-  { key: "practice", label: "Practice", hint: "Record a take and be graded on it" },
   { key: "live", label: "Live coach", hint: "Be coached while you play" },
+  { key: "practice", label: "Practice", hint: "Record a take and be graded on it" },
   { key: "technique", label: "Camera", hint: "Watch your hands and posture" },
 ] as const;
 
@@ -43,7 +48,7 @@ export interface LessonWorkspaceProps {
 }
 
 export function LessonWorkspace({ courseId, exerciseId, refreshKey, onCompleted }: LessonWorkspaceProps) {
-  const [view, setView] = useState<View>("practice");
+  const [view, setView] = useState<View>("live");
 
   return (
     <div className="space-y-3">
