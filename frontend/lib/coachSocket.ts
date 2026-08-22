@@ -284,13 +284,19 @@ export class CoachSocket {
           this.currentAudio.pause();
           this.currentAudio.currentTime = 0;
           this.currentAudio.src = "";
-        } catch {}
+        } catch {
+          // Already detached, or nothing was ever loaded. There is no teardown
+          // left to do and nothing to report.
+        }
         this.currentAudio = null;
       }
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         try {
           window.speechSynthesis.cancel();
-        } catch {}
+        } catch {
+          // Some browsers throw when no utterance is queued. Cancelling nothing
+          // is the outcome we wanted anyway.
+        }
       }
 
       const audioBuffer = ctx.createBuffer(1, sampleCount, sampleRate);
@@ -384,7 +390,9 @@ export class CoachSocket {
         this.currentAudio.pause();
         this.currentAudio.currentTime = 0;
         this.currentAudio.src = "";
-      } catch {}
+      } catch {
+        // Already detached, or nothing was ever loaded.
+      }
       this.currentAudio = null;
     }
 
@@ -393,7 +401,10 @@ export class CoachSocket {
       try {
         node.stop();
         node.disconnect();
-      } catch {}
+      } catch {
+        // A source that already stopped throws InvalidStateError. Barge-in races
+        // the natural end of playback, so this is the expected path, not a fault.
+      }
     }
     this.activeSourceNodes = [];
 
@@ -408,7 +419,9 @@ export class CoachSocket {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       try {
         window.speechSynthesis.cancel();
-      } catch {}
+      } catch {
+        // Nothing queued to cancel.
+      }
     }
   }
 

@@ -449,7 +449,7 @@ function CoachingStudioView() {
       }
     }
     recorderRef.current = null;
-  }, [selectedExerciseId]);
+  }, [selectedExerciseId, stopDebriefVoice]);
 
   stopTakeRef.current = stopTake;
 

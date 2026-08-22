@@ -136,7 +136,10 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
       try {
         activeAudioRef.current.pause();
         activeAudioRef.current.currentTime = 0;
-      } catch {}
+      } catch {
+        // The element may already be detached. Stopping audio that is not
+        // playing is a no-op, not an error worth surfacing to the learner.
+      }
       activeAudioRef.current = null;
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
