@@ -1,0 +1,83 @@
+{
+  "name": "Learn-Any-Instrument - attempt completed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "learn-any-instrument",
+        "options": { "rawBody": true }
+      },
+      "id": "receive-event",
+      "name": "Receive event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-200, 0],
+      "webhookId": "learn-any-instrument"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify the signature over the EXACT bytes received. The app signs the\n// serialized body it sends, so re-serializing here before hashing would\n// produce a different digest and every event would look forged.\nconst crypto = require('crypto');\n\nconst SECRET = 'set-me-to-WEBHOOK_SECRET';\n\nconst raw = $input.first().binary\n  ? Buffer.from($input.first().binary.data.data, 'base64').toString('utf8')\n  : JSON.stringify($input.first().json.body);\n\nconst provided = $input.first().json.headers['x-webhook-signature'] || '';\nconst expected = 'sha256=' + crypto.createHmac('sha256', SECRET).update(raw).digest('hex');\n\n// timingSafeEqual throws on a length mismatch, which is itself a failed check.\nlet verified = false;\ntry {\n  verified = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));\n} catch (error) {\n  verified = false;\n}\n\nconst event = JSON.parse(raw);\nreturn [{ json: { verified, ...event } }];"
+      },
+      "id": "verify-signature",
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [20, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "version": 2 },
+          "conditions": [
+            {
+              "id": "is-verified",
+              "leftValue": "={{ $json.verified }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "only-verified",
+      "name": "Only verified",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Whatever you want to happen when a learner finishes a take: a Slack\n// message, a row in a sheet, a nudge if the score dropped. The event carries\n// everything needed to decide without calling back into the app.\nconst { payload, event_type, correlation_id } = $input.first().json;\n\nreturn [{\n  json: {\n    event_type,\n    correlation_id,\n    attempt_id: payload.attempt_id,\n    score_percent: Math.round((payload.overall_score ?? 0) * 100),\n    exp_awarded: payload.exp_awarded,\n    needs_review: payload.status === 'needs_review',\n  },\n}];"
+      },
+      "id": "handle-attempt",
+      "name": "Handle attempt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, -100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// A signature that does not verify is either a misconfigured secret or\n// something you want to know about. Never silently drop it.\nreturn [{ json: { rejected: true, reason: 'signature did not verify' } }];"
+      },
+      "id": "reject",
+      "name": "Reject",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 100]
+    }
+  ],
+  "connections": {
+    "Receive event": { "main": [[{ "node": "Verify signature", "type": "main", "index": 0 }]] },
+    "Verify signature": { "main": [[{ "node": "Only verified", "type": "main", "index": 0 }]] },
+    "Only verified": {
+      "main": [
+        [{ "node": "Handle attempt", "type": "main", "index": 0 }],
+        [{ "node": "Reject", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "versionId": "1"
+}

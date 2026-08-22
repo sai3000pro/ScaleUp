@@ -1,0 +1,108 @@
+{
+  "instrument": "banjo",
+  "slug": "banjo",
+  "version": 1,
+  "title": "Banjo",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "banjo-orientation",
+      "title": "Banjo Orientation",
+      "summary": "Identify the head, bridge, neck, and the short fifth string, and settle into a stable seated position.",
+      "key_terms": [
+        "head",
+        "bridge",
+        "fifth string"
+      ]
+    },
+    {
+      "slug": "open-g-tuning",
+      "title": "Open G Tuning",
+      "summary": "Tune the five strings to open G and check the fifth string against the fretted fifth.",
+      "difficulty": 1,
+      "key_terms": [
+        "open G",
+        "tuning",
+        "fifth string"
+      ]
+    },
+    {
+      "from": "steady-pulse",
+      "slug": "banjo-pulse"
+    },
+    {
+      "from": "strumming",
+      "slug": "banjo-strumming"
+    },
+    {
+      "slug": "forward-roll",
+      "title": "Forward Roll",
+      "summary": "Play a repeating thumb-index-middle roll evenly across three strings.",
+      "difficulty": 3,
+      "key_terms": [
+        "roll",
+        "thumb",
+        "fingerpicking"
+      ]
+    },
+    {
+      "from": "tempo-control",
+      "slug": "banjo-tempo-control"
+    },
+    {
+      "from": "first-melody",
+      "slug": "simple-banjo-tune",
+      "summary": "Perform a short tune by combining a roll pattern, fretted notes, and a steady pulse."
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "banjo-orientation",
+      "target": "open-g-tuning",
+      "confidence": 0.98,
+      "rationale": "String identity depends on knowing the instrument layout."
+    },
+    {
+      "prereq": "banjo-orientation",
+      "target": "banjo-pulse",
+      "confidence": 0.9,
+      "rationale": "A stable position precedes keeping time on the instrument."
+    },
+    {
+      "prereq": "open-g-tuning",
+      "target": "banjo-strumming",
+      "confidence": 0.95,
+      "rationale": "Strumming an open chord requires the open tuning to be correct."
+    },
+    {
+      "prereq": "banjo-pulse",
+      "target": "banjo-strumming",
+      "confidence": 0.92,
+      "rationale": "A strum pattern is a pulse expressed by the strumming arm."
+    },
+    {
+      "prereq": "banjo-strumming",
+      "target": "forward-roll",
+      "confidence": 0.9,
+      "rationale": "Rolls replace the strum once the picking hand is reliable."
+    },
+    {
+      "prereq": "banjo-pulse",
+      "target": "banjo-tempo-control",
+      "confidence": 0.9,
+      "rationale": "Holding a chosen tempo presupposes holding a pulse at all."
+    },
+    {
+      "prereq": "forward-roll",
+      "target": "simple-banjo-tune",
+      "confidence": 0.95,
+      "rationale": "The tune is played with the roll pattern."
+    },
+    {
+      "prereq": "banjo-tempo-control",
+      "target": "simple-banjo-tune",
+      "confidence": 0.9,
+      "rationale": "A performed tune has to hold its tempo."
+    }
+  ]
+}

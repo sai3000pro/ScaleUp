@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["question_type", "question", "options", "correct_option_id", "rubric", "difficulty"],
+  "properties": {
+    "question_type": {
+      "type": "string",
+      "enum": ["short_answer", "mcq"]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 15,
+      "maxLength": 600,
+      "description": "A question the learner can answer from the source material."
+    },
+    "options": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^option-[a-z]$" },
+          "text": { "type": "string", "minLength": 1, "maxLength": 300 }
+        }
+      }
+    },
+    "correct_option_id": {
+      "type": ["string", "null"],
+      "pattern": "^option-[a-z]$"
+    },
+    "rubric": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "point", "weight"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^kp[0-9]+$" },
+          "point": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 300,
+            "description": "One idea a correct answer must convey."
+          },
+          "weight": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "difficulty": { "type": "integer", "minimum": 1, "maximum": 5 }
+  }
+}

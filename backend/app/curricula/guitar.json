@@ -1,0 +1,190 @@
+{
+  "instrument": "guitar",
+  "slug": "guitar-foundations",
+  "version": 1,
+  "title": "Guitar Foundations",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "guitar-orientation",
+      "title": "Guitar Orientation",
+      "summary": "Identify the body, neck, bridge, strings, frets, and safe playing position.",
+      "key_terms": [
+        "neck",
+        "bridge",
+        "frets"
+      ]
+    },
+    {
+      "slug": "standard-tuning",
+      "title": "Standard Tuning",
+      "summary": "Recognize the six open strings in standard E-A-D-G-B-E tuning.",
+      "difficulty": 1,
+      "key_terms": [
+        "standard tuning",
+        "open string"
+      ]
+    },
+    {
+      "slug": "fretting-hand-shape",
+      "title": "Fretting-Hand Shape",
+      "summary": "Place the fretting hand with relaxed thumb support and curved fingers.",
+      "difficulty": 2,
+      "key_terms": [
+        "fretting hand",
+        "thumb",
+        "curved fingers"
+      ]
+    },
+    {
+      "slug": "pick-or-finger-attack",
+      "title": "Pick or Finger Attack",
+      "summary": "Produce a controlled single-string attack with a pick or fingertip.",
+      "difficulty": 2,
+      "key_terms": [
+        "pick",
+        "fingerstyle",
+        "attack"
+      ]
+    },
+    {
+      "slug": "single-note-fretting",
+      "title": "Single-Note Fretting",
+      "summary": "Play clean notes while coordinating string selection and fret placement.",
+      "difficulty": 2,
+      "key_terms": [
+        "single note",
+        "fret placement",
+        "clean tone"
+      ]
+    },
+    {
+      "slug": "alternate-picking",
+      "title": "Alternate Picking",
+      "summary": "Alternate pick direction while keeping repeated notes rhythmically even.",
+      "difficulty": 3,
+      "key_terms": [
+        "alternate picking",
+        "downstroke",
+        "upstroke"
+      ]
+    },
+    {
+      "slug": "open-chords",
+      "title": "Open Chords",
+      "summary": "Form a small set of common open-position major and minor chords.",
+      "difficulty": 3,
+      "key_terms": [
+        "open chord",
+        "major",
+        "minor"
+      ]
+    },
+    {
+      "from": "strumming",
+      "slug": "basic-strumming",
+      "title": "Basic Strumming",
+      "summary": "Strum a chord pattern with a steady pulse and consistent attack.",
+      "key_terms": [
+        "strumming",
+        "pulse",
+        "downstroke"
+      ]
+    },
+    {
+      "slug": "chord-changes",
+      "title": "Chord Changes",
+      "summary": "Move between familiar open chords without losing the beat.",
+      "difficulty": 4,
+      "key_terms": [
+        "chord changes",
+        "transition"
+      ]
+    },
+    {
+      "from": "first-melody",
+      "slug": "simple-guitar-riff",
+      "title": "Simple Guitar Riff",
+      "summary": "Perform a short riff by combining single notes, timing, and controlled attack.",
+      "key_terms": [
+        "riff",
+        "timing",
+        "articulation"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "guitar-orientation",
+      "target": "standard-tuning",
+      "confidence": 0.98,
+      "rationale": "String identity depends on knowing the instrument layout."
+    },
+    {
+      "prereq": "guitar-orientation",
+      "target": "fretting-hand-shape",
+      "confidence": 0.95,
+      "rationale": "Safe posture precedes hand placement."
+    },
+    {
+      "prereq": "standard-tuning",
+      "target": "single-note-fretting",
+      "confidence": 0.96,
+      "rationale": "The learner must identify the sounding string."
+    },
+    {
+      "prereq": "fretting-hand-shape",
+      "target": "single-note-fretting",
+      "confidence": 0.98,
+      "rationale": "Clean fretted notes require a stable hand shape."
+    },
+    {
+      "prereq": "pick-or-finger-attack",
+      "target": "single-note-fretting",
+      "confidence": 0.94,
+      "rationale": "A note needs a controlled plucking action."
+    },
+    {
+      "prereq": "single-note-fretting",
+      "target": "alternate-picking",
+      "confidence": 0.92,
+      "rationale": "Alternate picking extends controlled single-note attack."
+    },
+    {
+      "prereq": "fretting-hand-shape",
+      "target": "open-chords",
+      "confidence": 0.9,
+      "rationale": "Open chords require relaxed curved fretting fingers."
+    },
+    {
+      "prereq": "pick-or-finger-attack",
+      "target": "basic-strumming",
+      "confidence": 0.93,
+      "rationale": "Strumming is a repeated controlled attack."
+    },
+    {
+      "prereq": "open-chords",
+      "target": "chord-changes",
+      "confidence": 0.98,
+      "rationale": "Transitions require the chord shapes to be known."
+    },
+    {
+      "prereq": "basic-strumming",
+      "target": "chord-changes",
+      "confidence": 0.9,
+      "rationale": "The learner must keep the strumming pulse during a change."
+    },
+    {
+      "prereq": "alternate-picking",
+      "target": "simple-guitar-riff",
+      "confidence": 0.95,
+      "rationale": "The riff uses repeated single-note attacks."
+    },
+    {
+      "prereq": "chord-changes",
+      "target": "simple-guitar-riff",
+      "confidence": 0.72,
+      "rationale": "The final exercise combines the instrument's foundational coordination."
+    }
+  ]
+}

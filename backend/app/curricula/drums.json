@@ -1,0 +1,169 @@
+{
+  "instrument": "drums",
+  "slug": "drums-foundations",
+  "version": 1,
+  "title": "Drum Kit Foundations",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "drum-kit-orientation",
+      "title": "Drum Kit Orientation",
+      "summary": "Identify the kick, snare, hi-hat, and toms, and sit with balanced posture.",
+      "key_terms": [
+        "kick",
+        "snare",
+        "hi-hat",
+        "posture"
+      ]
+    },
+    {
+      "slug": "stick-grip",
+      "title": "Stick Grip",
+      "summary": "Hold the sticks with a relaxed fulcrum and loose fingers.",
+      "difficulty": 1,
+      "key_terms": [
+        "grip",
+        "fulcrum",
+        "loose fingers"
+      ]
+    },
+    {
+      "slug": "basic-strokes",
+      "title": "Basic Strokes",
+      "summary": "Produce even wrist strokes with a controlled rebound.",
+      "difficulty": 2,
+      "key_terms": [
+        "stroke",
+        "wrist",
+        "rebound"
+      ]
+    },
+    {
+      "slug": "kick-and-snare-independence",
+      "title": "Kick and Snare Independence",
+      "summary": "Coordinate the kick and snare feet and hands in simple patterns.",
+      "difficulty": 2,
+      "key_terms": [
+        "independence",
+        "kick",
+        "snare"
+      ]
+    },
+    {
+      "from": "steady-pulse",
+      "slug": "quarter-note-pulse",
+      "title": "Quarter-Note Pulse",
+      "summary": "Keep a steady quarter-note pulse with the hi-hat.",
+      "key_terms": [
+        "pulse",
+        "quarter note",
+        "steadiness"
+      ]
+    },
+    {
+      "slug": "eighth-note-groove",
+      "title": "Eighth-Note Groove",
+      "summary": "Play a basic rock groove: hi-hat eighths with kick and snare accents.",
+      "difficulty": 3,
+      "key_terms": [
+        "groove",
+        "eighth note",
+        "backbeat"
+      ]
+    },
+    {
+      "slug": "basic-fills",
+      "title": "Basic Fills",
+      "summary": "Move around the kit with a short fill that returns to the groove.",
+      "difficulty": 3,
+      "key_terms": [
+        "fill",
+        "tom",
+        "transition"
+      ]
+    },
+    {
+      "from": "tempo-control",
+      "slug": "tempo-control",
+      "summary": "Hold a groove at different tempos without speeding up or dragging.",
+      "key_terms": [
+        "tempo",
+        "metronome",
+        "control"
+      ]
+    },
+    {
+      "from": "first-melody",
+      "slug": "simple-drum-song",
+      "title": "Simple Drum Song",
+      "summary": "Perform a short pattern of groove and fill with a steady tempo.",
+      "key_terms": [
+        "pattern",
+        "groove",
+        "tempo"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "drum-kit-orientation",
+      "target": "stick-grip",
+      "confidence": 0.97,
+      "rationale": "The learner must know the kit before holding the sticks."
+    },
+    {
+      "prereq": "drum-kit-orientation",
+      "target": "kick-and-snare-independence",
+      "confidence": 0.94,
+      "rationale": "Foot independence requires knowing which drum is which."
+    },
+    {
+      "prereq": "stick-grip",
+      "target": "basic-strokes",
+      "confidence": 0.98,
+      "rationale": "Even strokes need a stable grip."
+    },
+    {
+      "prereq": "basic-strokes",
+      "target": "quarter-note-pulse",
+      "confidence": 0.96,
+      "rationale": "A steady pulse is even strokes in time."
+    },
+    {
+      "prereq": "kick-and-snare-independence",
+      "target": "eighth-note-groove",
+      "confidence": 0.95,
+      "rationale": "The groove coordinates kick and snare with the hi-hat."
+    },
+    {
+      "prereq": "quarter-note-pulse",
+      "target": "eighth-note-groove",
+      "confidence": 0.97,
+      "rationale": "Eighths extend a quarter-note pulse."
+    },
+    {
+      "prereq": "eighth-note-groove",
+      "target": "basic-fills",
+      "confidence": 0.92,
+      "rationale": "A fill interrupts and returns to the groove."
+    },
+    {
+      "prereq": "eighth-note-groove",
+      "target": "tempo-control",
+      "confidence": 0.9,
+      "rationale": "Tempo control is the groove at different speeds."
+    },
+    {
+      "prereq": "basic-fills",
+      "target": "simple-drum-song",
+      "confidence": 0.98,
+      "rationale": "The final pattern combines groove and fill."
+    },
+    {
+      "prereq": "tempo-control",
+      "target": "simple-drum-song",
+      "confidence": 0.93,
+      "rationale": "The final performance must hold one tempo."
+    }
+  ]
+}

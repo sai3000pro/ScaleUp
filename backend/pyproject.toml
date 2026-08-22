@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "learn-anything-api"
+version = "0.1.0"
+description = "Learn-Any-Instrument backend: curriculum graphs, performance evaluation, coaching, and spaced repetition."
+requires-python = ">=3.12"
+dependencies = [
+    # web
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.12",
+
+    # data
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "psycopg[binary]>=3.2",           # sync driver for Alembic and the Celery worker
+    "alembic>=1.14",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "email-validator>=2.2",
+
+    # auth
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.10",
+
+    # queue
+    "celery[redis]>=5.4",
+    "redis>=5.2",
+
+    # derived stores
+    "neo4j>=5.26",
+    # NOT `chromadb`. The full package depends on chroma-hnswlib, which has no
+    # Windows wheel and needs MSVC Build Tools to compile. `chromadb-client` is
+    # the thin HTTP client -- pure Python, and the right dependency regardless,
+    # because Chroma runs as a server container here rather than embedded.
+    # Keep this pinned to the same minor as the image in docker-compose.yml.
+    "chromadb-client==0.5.23",
+
+    # ingestion
+    "pymupdf>=1.24",
+    "beautifulsoup4>=4.12",
+    "tiktoken>=0.8",
+
+    # llm providers
+    "anthropic>=0.40",
+    "openai>=1.55",
+    "jsonschema>=4.23",
+    "httpx>=0.27",
+    "google-cloud-storage>=2.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "hypothesis>=6.115",
+    "ruff>=0.8",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["prompts/**/*.md", "llm/json_schemas/*.json", "curricula/*.json"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+# Alembic writes these; reformatting generated migrations to satisfy a linter
+# creates diff noise and risks touching applied DDL. `env.py` is Alembic's own
+# template. Hand-written code in app/ and tests/ is still fully linted.
+extend-exclude = ["alembic/versions", "alembic/env.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# One event loop for the whole session. The async engine is cached at module
+# level, so a per-test loop leaves asyncpg connections bound to a loop that has
+# already closed -- which surfaces as "Event loop is closed" from inside the
+# driver rather than anywhere near the test that caused it.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = [
+    "live: hits a real LLM provider; opt in with `pytest -m live`",
+]

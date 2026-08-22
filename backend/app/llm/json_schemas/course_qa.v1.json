@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answer", "citations"],
+  "properties": {
+    "answer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000,
+      "description": "Two to five sentences, grounded entirely in the passages. Say plainly when they do not cover the question."
+    },
+    "citations": {
+      "type": "array",
+      "maxItems": 12,
+      "description": "One per passage the answer leans on. Empty is correct when the passages do not answer the question.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "chunk_id", "quote"],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Copied exactly from the passage header. Anything else is discarded."
+          },
+          "chunk_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Copied exactly from the passage header. Anything else is discarded."
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 400,
+            "description": "A substring of that passage. Not a paraphrase and not a sentence you wrote."
+          }
+        }
+      }
+    }
+  }
+}

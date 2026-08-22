@@ -1,0 +1,152 @@
+{
+  "instrument": "trumpet",
+  "slug": "trumpet-foundations",
+  "version": 1,
+  "title": "Trumpet Foundations",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "trumpet-orientation",
+      "title": "Trumpet Orientation",
+      "summary": "Identify the mouthpiece, valves, leadpipe, and a relaxed playing posture.",
+      "key_terms": [
+        "mouthpiece",
+        "valves",
+        "posture"
+      ]
+    },
+    {
+      "slug": "embouchure-basics",
+      "title": "Embouchure Basics",
+      "summary": "Shape the lips around the mouthpiece for a steady buzz.",
+      "difficulty": 1,
+      "key_terms": [
+        "embouchure",
+        "buzz",
+        "lip corners"
+      ]
+    },
+    {
+      "slug": "breath-support",
+      "title": "Breath Support",
+      "summary": "Breathe from the diaphragm and keep a steady column of air.",
+      "difficulty": 2,
+      "key_terms": [
+        "breath",
+        "diaphragm",
+        "air"
+      ]
+    },
+    {
+      "slug": "valve-fingering",
+      "title": "Valve Fingering",
+      "summary": "Press the three valves in the combinations that produce each pitch.",
+      "difficulty": 2,
+      "key_terms": [
+        "valve",
+        "fingering",
+        "combination"
+      ]
+    },
+    {
+      "from": "sustained-tone",
+      "slug": "long-tones",
+      "title": "Long Tones",
+      "summary": "Sustain a steady tone with even air and a centred pitch.",
+      "key_terms": [
+        "long tone",
+        "steady air",
+        "centred pitch"
+      ]
+    },
+    {
+      "slug": "simple-articulation",
+      "title": "Simple Articulation",
+      "summary": "Start notes cleanly with a light \"ta\" tongue.",
+      "difficulty": 3,
+      "key_terms": [
+        "articulation",
+        "tongue",
+        "attack"
+      ]
+    },
+    {
+      "slug": "major-arpeggios",
+      "title": "Major Arpeggios",
+      "summary": "Play a C major arpeggio by combining valves, air, and articulation.",
+      "difficulty": 4,
+      "key_terms": [
+        "arpeggio",
+        "major",
+        "slur"
+      ]
+    },
+    {
+      "from": "first-melody",
+      "slug": "simple-trumpet-melody",
+      "title": "Simple Trumpet Melody",
+      "summary": "Perform a short melody with accurate pitches and a steady pulse.",
+      "key_terms": [
+        "melody",
+        "pulse",
+        "accuracy"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "trumpet-orientation",
+      "target": "embouchure-basics",
+      "confidence": 0.98,
+      "rationale": "A stable instrument position precedes lip placement."
+    },
+    {
+      "prereq": "trumpet-orientation",
+      "target": "valve-fingering",
+      "confidence": 0.93,
+      "rationale": "The learner must know the valves before pressing them."
+    },
+    {
+      "prereq": "embouchure-basics",
+      "target": "long-tones",
+      "confidence": 0.96,
+      "rationale": "A sustained tone needs a formed embouchure."
+    },
+    {
+      "prereq": "breath-support",
+      "target": "long-tones",
+      "confidence": 0.97,
+      "rationale": "Steady air is what makes the note last."
+    },
+    {
+      "prereq": "valve-fingering",
+      "target": "long-tones",
+      "confidence": 0.94,
+      "rationale": "Long tones practise valve combinations under air."
+    },
+    {
+      "prereq": "long-tones",
+      "target": "simple-articulation",
+      "confidence": 0.92,
+      "rationale": "Clean attacks build on a stable sustained sound."
+    },
+    {
+      "prereq": "long-tones",
+      "target": "major-arpeggios",
+      "confidence": 0.9,
+      "rationale": "Arpeggios are sustained pitches in sequence."
+    },
+    {
+      "prereq": "simple-articulation",
+      "target": "major-arpeggios",
+      "confidence": 0.95,
+      "rationale": "Each arpeggio note needs a clean start."
+    },
+    {
+      "prereq": "major-arpeggios",
+      "target": "simple-trumpet-melody",
+      "confidence": 0.98,
+      "rationale": "A melody combines the arpeggio's pitch accuracy with a pulse."
+    }
+  ]
+}

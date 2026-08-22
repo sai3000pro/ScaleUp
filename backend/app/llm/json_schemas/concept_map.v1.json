@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["concepts", "prerequisites"],
+  "properties": {
+    "concepts": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "title", "summary", "difficulty", "assessable"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64,
+            "description": "Canonical kebab-case name of the concept. This is the merge key across windows."
+          },
+          "title": { "type": "string", "minLength": 3, "maxLength": 80 },
+          "summary": { "type": "string", "minLength": 20, "maxLength": 400 },
+          "difficulty": { "type": "integer", "minimum": 1, "maximum": 5 },
+          "assessable": {
+            "type": "boolean",
+            "description": "False for structural concepts too thin to write a short-answer question about."
+          },
+          "key_terms": {
+            "type": "array",
+            "maxItems": 8,
+            "items": { "type": "string", "maxLength": 40 }
+          },
+          "evidence_ordinals": {
+            "type": "array",
+            "maxItems": 12,
+            "items": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "prerequisites": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["prereq_slug", "target_slug", "confidence", "rationale"],
+        "properties": {
+          "prereq_slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+          "target_slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rationale": { "type": "string", "maxLength": 200 }
+        }
+      }
+    }
+  }
+}

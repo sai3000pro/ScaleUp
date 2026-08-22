@@ -1,0 +1,146 @@
+{
+  "instrument": "violin",
+  "slug": "violin-foundations",
+  "version": 1,
+  "title": "Violin Foundations",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "instrument-setup",
+      "title": "Instrument Setup",
+      "summary": "Hold the violin and bow safely with a balanced, relaxed posture.",
+      "key_terms": [
+        "posture",
+        "shoulder rest",
+        "balance"
+      ]
+    },
+    {
+      "slug": "bow-hold",
+      "title": "Bow Hold",
+      "summary": "Shape the right hand around the bow with flexible fingers and thumb.",
+      "difficulty": 1,
+      "key_terms": [
+        "bow hold",
+        "thumb",
+        "flexible fingers"
+      ]
+    },
+    {
+      "slug": "left-hand-frame",
+      "title": "Left-Hand Frame",
+      "summary": "Place the left hand and fingers over the fingerboard without squeezing.",
+      "difficulty": 2,
+      "key_terms": [
+        "fingerboard",
+        "left hand",
+        "relaxed thumb"
+      ]
+    },
+    {
+      "slug": "open-string-bow",
+      "title": "Open-String Bow",
+      "summary": "Draw a straight, steady bow across an open string.",
+      "difficulty": 2,
+      "key_terms": [
+        "open string",
+        "straight bow",
+        "bow speed"
+      ]
+    },
+    {
+      "slug": "first-position-notes",
+      "title": "First-Position Notes",
+      "summary": "Place first-position fingers accurately on the fingerboard.",
+      "difficulty": 3,
+      "key_terms": [
+        "first position",
+        "intonation",
+        "finger placement"
+      ]
+    },
+    {
+      "from": "sustained-tone",
+      "slug": "steady-bow",
+      "title": "Steady Bowing",
+      "summary": "Maintain consistent bow contact and rhythm across a short phrase.",
+      "key_terms": [
+        "bow contact",
+        "rhythm",
+        "steady sound"
+      ]
+    },
+    {
+      "slug": "intonation-basics",
+      "title": "Intonation Basics",
+      "summary": "Listen for and correct pitch placement in first-position notes.",
+      "difficulty": 4,
+      "key_terms": [
+        "pitch",
+        "intonation",
+        "ear training"
+      ]
+    },
+    {
+      "from": "first-melody",
+      "slug": "simple-violin-melody",
+      "title": "Simple Violin Melody",
+      "summary": "Perform a short melody by combining bow control, fingering, and pitch.",
+      "key_terms": [
+        "melody",
+        "phrasing",
+        "pitch"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "instrument-setup",
+      "target": "bow-hold",
+      "confidence": 0.97,
+      "rationale": "A safe balanced setup precedes the bow hold."
+    },
+    {
+      "prereq": "instrument-setup",
+      "target": "left-hand-frame",
+      "confidence": 0.94,
+      "rationale": "Left-hand placement depends on a stable instrument position."
+    },
+    {
+      "prereq": "bow-hold",
+      "target": "open-string-bow",
+      "confidence": 0.99,
+      "rationale": "The open-string bow exercise teaches the hold in motion."
+    },
+    {
+      "prereq": "left-hand-frame",
+      "target": "first-position-notes",
+      "confidence": 0.98,
+      "rationale": "Finger placement requires the left-hand frame."
+    },
+    {
+      "prereq": "open-string-bow",
+      "target": "steady-bow",
+      "confidence": 0.96,
+      "rationale": "Steady bowing develops from open-string control."
+    },
+    {
+      "prereq": "first-position-notes",
+      "target": "intonation-basics",
+      "confidence": 0.98,
+      "rationale": "Pitch correction requires known first-position notes."
+    },
+    {
+      "prereq": "steady-bow",
+      "target": "simple-violin-melody",
+      "confidence": 0.95,
+      "rationale": "The melody requires consistent bow motion."
+    },
+    {
+      "prereq": "intonation-basics",
+      "target": "simple-violin-melody",
+      "confidence": 0.97,
+      "rationale": "The melody requires reliable pitch placement."
+    }
+  ]
+}

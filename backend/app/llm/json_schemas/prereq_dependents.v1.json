@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dependents"],
+  "properties": {
+    "dependents": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_slug", "confidence", "evidence"],
+        "properties": {
+          "target_slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64,
+            "description": "One of the candidate slugs shown below. Anything else is discarded. There is no prereq_slug: the source skill is fixed by the caller, so this answer can never invert a direction."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "How certain the candidate's own excerpt makes this dependency. Below 0.6 is discarded."
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 300,
+            "description": "The phrase from THAT CANDIDATE'S excerpt showing it uses the source skill. Not from the source's own text, and not a justification you wrote."
+          }
+        }
+      }
+    }
+  }
+}

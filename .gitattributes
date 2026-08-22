@@ -1,0 +1,24 @@
+# Normalise line endings. Without this, CRLF sneaks into shell scripts and
+# anything copied into a Linux container fails with `\r: command not found`.
+* text=auto eol=lf
+
+# Windows-native scripts keep CRLF.
+*.ps1  text eol=crlf
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+
+# Never touch binary fixtures.
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+
+# Model weights. `* text=auto eol=lf` above would rewrite bytes inside these and
+# the model would load as garbage with no error message worth reading.
+*.bin     binary
+*.task    binary
+*.tflite  binary
+*.wav     binary
+*.mp3     binary

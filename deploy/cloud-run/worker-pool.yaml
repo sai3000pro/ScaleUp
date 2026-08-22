@@ -1,0 +1,18 @@
+apiVersion: run.googleapis.com/v1
+kind: WorkerPool
+metadata:
+  name: learn-anything-worker
+spec:
+  template:
+    spec:
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/backend:IMAGE_TAG
+          command:
+            - celery
+          args:
+            - -A
+            - app.tasks.celery_app
+            - worker
+            - --loglevel=INFO
+            - -Q
+            - default,ingest,llm,graph

@@ -1,0 +1,191 @@
+{
+  "instrument": "piano",
+  "slug": "piano-foundations",
+  "version": 1,
+  "title": "Piano Foundations",
+  "concepts": [
+    {
+      "from": "instrument-orientation",
+      "slug": "keyboard-layout",
+      "title": "Keyboard Layout",
+      "summary": "Locate white keys, black keys, and repeating octave patterns on the piano keyboard.",
+      "key_terms": [
+        "white keys",
+        "black keys",
+        "octave"
+      ]
+    },
+    {
+      "slug": "finger-numbers",
+      "title": "Finger Numbers",
+      "summary": "Use the standard one-to-five numbering system to identify each finger of either hand.",
+      "difficulty": 1,
+      "key_terms": [
+        "thumb",
+        "finger numbering"
+      ]
+    },
+    {
+      "from": "steady-pulse",
+      "slug": "quarter-note-rhythm",
+      "title": "Quarter-Note Rhythm",
+      "summary": "Count and perform a steady pulse using quarter notes in common time.",
+      "difficulty": 1,
+      "key_terms": [
+        "pulse",
+        "quarter note",
+        "common time"
+      ]
+    },
+    {
+      "slug": "five-finger-pattern",
+      "title": "Five-Finger Pattern",
+      "summary": "Play five adjacent notes with a relaxed hand shape and consistent finger placement.",
+      "difficulty": 2,
+      "key_terms": [
+        "hand shape",
+        "five-finger position"
+      ]
+    },
+    {
+      "from": "first-melody",
+      "slug": "stepwise-melody",
+      "title": "Stepwise Melody",
+      "summary": "Read and perform a short melody that moves between adjacent notes.",
+      "difficulty": 2,
+      "key_terms": [
+        "melody",
+        "stepwise motion"
+      ]
+    },
+    {
+      "slug": "legato-phrasing",
+      "title": "Legato Phrasing",
+      "summary": "Connect successive notes smoothly while keeping the pulse even.",
+      "difficulty": 3,
+      "key_terms": [
+        "legato",
+        "connected sound"
+      ]
+    },
+    {
+      "slug": "right-hand-scale",
+      "title": "Right-Hand Scale",
+      "summary": "Coordinate a right-hand five-finger pattern across a one-octave scale.",
+      "difficulty": 3,
+      "key_terms": [
+        "scale",
+        "right hand"
+      ]
+    },
+    {
+      "slug": "major-scale",
+      "title": "Major Scale",
+      "summary": "Recognize and perform the whole-step and half-step pattern of a major scale.",
+      "difficulty": 4,
+      "key_terms": [
+        "whole step",
+        "half step",
+        "major scale"
+      ]
+    },
+    {
+      "slug": "basic-triad",
+      "title": "Basic Triad",
+      "summary": "Build and identify a three-note major or minor chord in root position.",
+      "difficulty": 4,
+      "key_terms": [
+        "triad",
+        "root position",
+        "chord"
+      ]
+    },
+    {
+      "slug": "simple-chord-progression",
+      "title": "Simple Chord Progression",
+      "summary": "Move between a small set of chords while maintaining a steady rhythm.",
+      "difficulty": 5,
+      "key_terms": [
+        "chord progression",
+        "steady rhythm"
+      ]
+    },
+    {
+      "from": "sight-reading-basics",
+      "slug": "sight-reading-basics",
+      "summary": "Perform an unfamiliar short exercise by combining note reading and pulse.",
+      "key_terms": [
+        "sight reading",
+        "notation"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "prereq": "keyboard-layout",
+      "target": "finger-numbers",
+      "confidence": 0.99,
+      "rationale": "Finger numbers are taught on the keyboard."
+    },
+    {
+      "prereq": "finger-numbers",
+      "target": "five-finger-pattern",
+      "confidence": 0.98,
+      "rationale": "A five-finger pattern requires consistent finger identity."
+    },
+    {
+      "prereq": "quarter-note-rhythm",
+      "target": "stepwise-melody",
+      "confidence": 0.96,
+      "rationale": "The melody exercise requires a steady pulse."
+    },
+    {
+      "prereq": "five-finger-pattern",
+      "target": "stepwise-melody",
+      "confidence": 0.97,
+      "rationale": "The learner uses the five-finger position to play the melody."
+    },
+    {
+      "prereq": "stepwise-melody",
+      "target": "legato-phrasing",
+      "confidence": 0.93,
+      "rationale": "Connected phrasing builds on controlled successive notes."
+    },
+    {
+      "prereq": "five-finger-pattern",
+      "target": "right-hand-scale",
+      "confidence": 0.94,
+      "rationale": "The scale starts with the same right-hand coordination."
+    },
+    {
+      "prereq": "right-hand-scale",
+      "target": "major-scale",
+      "confidence": 0.96,
+      "rationale": "The one-octave scale establishes the major-scale pattern."
+    },
+    {
+      "prereq": "major-scale",
+      "target": "basic-triad",
+      "confidence": 0.88,
+      "rationale": "Triads are introduced from scale degrees."
+    },
+    {
+      "prereq": "basic-triad",
+      "target": "simple-chord-progression",
+      "confidence": 0.95,
+      "rationale": "Chord changes require recognizable root-position triads."
+    },
+    {
+      "prereq": "stepwise-melody",
+      "target": "sight-reading-basics",
+      "confidence": 0.91,
+      "rationale": "Sight reading combines note recognition with a short melody."
+    },
+    {
+      "prereq": "quarter-note-rhythm",
+      "target": "simple-chord-progression",
+      "confidence": 0.87,
+      "rationale": "Chord changes must remain inside a steady rhythm."
+    }
+  ]
+}

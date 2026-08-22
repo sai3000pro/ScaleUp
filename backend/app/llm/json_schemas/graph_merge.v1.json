@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["merges", "edges", "roots"],
+  "properties": {
+    "merges": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["canonical_slug", "alias_slugs"],
+        "properties": {
+          "canonical_slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+          "alias_slugs": {
+            "type": "array",
+            "maxItems": 12,
+            "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "maxItems": 600,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["prereq_slug", "target_slug", "confidence", "rationale"],
+        "properties": {
+          "prereq_slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+          "target_slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rationale": { "type": "string", "maxLength": 200 }
+        }
+      }
+    },
+    "roots": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 64 }
+    }
+  }
+}

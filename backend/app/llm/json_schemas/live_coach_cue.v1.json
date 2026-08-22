@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["utterance"],
+  "properties": {
+    "utterance": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "description": "One or two spoken sentences, under 25 words."
+    }
+  }
+}

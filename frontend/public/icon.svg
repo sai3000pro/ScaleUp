@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Learn-Any-Instrument</title>
+  <rect width="64" height="64" rx="16" fill="#020617"/>
+  <path d="M32 11 45 18.5v15L32 41 19 33.5v-15L32 11Z" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="32" cy="26" r="5" fill="#fbbf24"/>
+  <path d="M32 31v15M25 42h14" stroke="#fbbf24" stroke-width="4" stroke-linecap="round"/>
+</svg>

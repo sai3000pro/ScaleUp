@@ -1,0 +1,183 @@
+# Two jobs, split by what they need rather than by language.
+#
+# `fast` needs nothing but a checkout: unit tests, ruff, tsc and eslint all run
+# without a datastore, which is a property worth protecting -- `app/domain/` is
+# deliberately dependency-free and the parsers are pure, so a broken DAG or a
+# broken parser should be caught in under a minute, not behind a five-minute
+# service boot.
+#
+# `integration` pays for all four datastores. Neo4j is the slow one -- see the
+# 300s start_period in docker-compose.yml -- and it was tempting to drop it on
+# the grounds that the projection is derived data whose failures are swallowed.
+# But `test_graph_endpoint.py` genuinely asserts the projection matches Postgres
+# and walks `prerequisite_closure`, and a test that exists should run. Dropping
+# the service would have meant silently skipping the only coverage the derived
+# read-model has.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  # @spec OPS-CI-001, OPS-CI-003
+  # Runs with no provider credentials in the environment: the deterministic
+  # providers are the default, so the whole suite is a no-key run by construction.
+  fast:
+    name: lint, types, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: ruff
+        working-directory: backend
+        run: ruff check .
+
+      # Runs with no datastores on purpose. If this job ever needs one, a pure
+      # module has grown an import it should not have.
+      - name: Unit tests
+        working-directory: backend
+        run: pytest tests/unit tests/test_no_continue.py tests/test_layering.py -q
+
+      # Fails only on a broken link -- a @spec citing a spec that does not
+      # exist, a duplicate ID, a segment missing a doc. Coverage is printed,
+      # never enforced: an uncited spec is a gap in linkage, and failing the
+      # build for one would penalise writing the spec down.
+      - name: Arrow coherence
+        run: python scripts/check_arrow.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: eslint
+        working-directory: frontend
+        run: npm run lint
+
+      # Pure reducers only -- pitch segmentation, posture geometry, CREPE
+      # decoding. No jsdom, no camera, no microphone, no model weights, so this
+      # belongs in the datastore-free job alongside the Python unit tests.
+      - name: Frontend unit tests
+        working-directory: frontend
+        run: npm run test
+
+  # @spec OPS-CI-002, OPS-CI-003
+  integration:
+    name: integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: la
+          POSTGRES_PASSWORD: la
+          POSTGRES_DB: learn_anything
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U la -d learn_anything"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6380:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      chroma:
+        image: chromadb/chroma:0.5.23
+        ports: ["8001:8000"]
+        env:
+          IS_PERSISTENT: "TRUE"
+          ANONYMIZED_TELEMETRY: "FALSE"
+        options: >-
+          --health-cmd "curl -fsS http://localhost:8000/api/v1/heartbeat || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+      neo4j:
+        image: neo4j:5-community
+        ports: ["7687:7687"]
+        env:
+          NEO4J_AUTH: neo4j/learnanything
+          NEO4J_server_memory_heap_max__size: 1G
+          NEO4J_server_memory_pagecache_size: 512M
+        # Generous retries rather than a long interval: a runner usually has
+        # Bolt up inside a minute, but a cold image pull can push it far longer,
+        # and failing the whole job on a slow JVM boot is a flake generator.
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p learnanything 'RETURN 1' || exit 1"
+          --health-interval 15s --health-timeout 30s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Migrate
+        working-directory: backend
+        run: alembic upgrade head
+        env: &backend_env
+          DATABASE_URL: postgresql+asyncpg://la:la@localhost:5433/learn_anything
+          SYNC_DATABASE_URL: postgresql+psycopg://la:la@localhost:5433/learn_anything
+          CELERY_BROKER_URL: redis://localhost:6380/0
+          CELERY_RESULT_BACKEND: redis://localhost:6380/1
+          CHROMA_HOST: localhost
+          CHROMA_PORT: "8001"
+          NEO4J_URI: bolt://localhost:7687
+          NEO4J_USER: neo4j
+          NEO4J_PASSWORD: learnanything
+          # The whole suite runs on the deterministic provider -- no keys, no
+          # spend, no network. A test that needs a real provider is marked
+          # `live` and is opt-in.
+          LLM_PROVIDER: fake
+          EMBEDDING_PROVIDER: fake
+          DEV_AUTH_ENABLED: "true"
+          JWT_SECRET: ci-only-not-a-real-secret-ci-only-not-a-real-secret
+
+      # Excludes tests/unit, which the `fast` job already ran, and any test
+      # marked `live` -- those need a real provider by definition.
+      - name: Integration tests
+        working-directory: backend
+        run: pytest tests -q --ignore=tests/unit -m "not live"
+        env: *backend_env

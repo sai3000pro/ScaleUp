@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "tone", "strengths", "corrections", "next_step"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 400,
+      "description": "One sentence naming the exercise and the takeaway."
+    },
+    "tone": {
+      "type": "string",
+      "enum": ["celebratory", "encouraging", "coaching", "supportive"]
+    },
+    "strengths": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string", "minLength": 8, "maxLength": 200 }
+    },
+    "corrections": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string", "minLength": 8, "maxLength": 200 }
+    },
+    "next_step": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 400,
+      "description": "One concrete instruction for the next attempt."
+    }
+  }
+}

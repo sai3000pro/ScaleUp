@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "notes"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80,
+      "description": "A short name for the exercise, as a learner would see it."
+    },
+    "rationale": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "Why this phrase suits the skill. Never shown to the learner."
+    },
+    "notes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["beats"],
+        "properties": {
+          "step": {
+            "type": ["string", "null"],
+            "enum": ["C", "D", "E", "F", "G", "A", "B", null],
+            "description": "The note letter. null is a rest."
+          },
+          "alter": { "type": "integer", "minimum": -1, "maximum": 1 },
+          "octave": { "type": "integer", "minimum": 1, "maximum": 7 },
+          "beats": {
+            "type": "number",
+            "enum": [0.5, 1, 1.5, 2, 3, 4],
+            "description": "Written length in quarter-note beats. The enum is what keeps every bar notatable on a simple division grid."
+          },
+          "chord": {
+            "type": "boolean",
+            "description": "True when this note sounds together with the previous one instead of after it."
+          },
+          "drum": {
+            "type": "string",
+            "enum": ["kick", "snare", "hihat", "crash", "ride", "tom"],
+            "description": "Percussion only. Never send this for a pitched instrument."
+          }
+        }
+      }
+    }
+  }
+}

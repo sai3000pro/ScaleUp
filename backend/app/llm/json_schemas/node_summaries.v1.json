@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summaries"],
+  "properties": {
+    "summaries": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slug", "summary"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64,
+            "description": "Copied exactly from a node block in the prompt. Anything else is discarded."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 400,
+            "description": "One or two sentences saying what this node is, grounded in its own excerpt. Omit the node rather than guess."
+          }
+        }
+      }
+    }
+  }
+}

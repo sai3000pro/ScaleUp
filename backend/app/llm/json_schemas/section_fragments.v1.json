@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["fragments"],
+  "properties": {
+    "fragments": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["index", "title", "summary", "standalone"],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59,
+            "description": "The [fragment N] number from the prompt. Fragments are fixed; you may not add or reorder them."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80,
+            "description": "The name of the thing this fragment defines or states, in the book's own words. Never a lead-in label such as 'Definition' or 'Remark 1'."
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 400,
+            "description": "What a learner must be able to do to have this skill. Drawn from the fragment text, not invented."
+          },
+          "standalone": {
+            "type": "boolean",
+            "description": "False means this fragment is a continuation of the one before it and should be folded into it. Folding is the only change to the segmentation you may request."
+          },
+          "key_terms": {
+            "type": "array",
+            "maxItems": 6,
+            "items": { "type": "string", "minLength": 2, "maxLength": 40 }
+          }
+        }
+      }
+    }
+  }
+}

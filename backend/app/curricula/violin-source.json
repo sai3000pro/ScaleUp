@@ -1,0 +1,47 @@
+{
+  "instrument": "violin",
+  "slug": "violin-source-foundations",
+  "title": "Violin Foundations from Source",
+  "sections": [
+    {
+      "slug": "instrument-setup",
+      "title": "Instrument Setup",
+      "summary": "Hold the violin and bow safely with balanced posture.",
+      "difficulty": 1,
+      "key_terms": ["posture", "balance"],
+      "text": "Instrument setup establishes a safe, balanced playing posture."
+    },
+    {
+      "slug": "bow-hold",
+      "title": "Bow Hold",
+      "summary": "Shape the right hand around the bow with flexible fingers.",
+      "difficulty": 1,
+      "key_terms": ["bow hold", "flexible fingers"],
+      "text": "Prerequisites: instrument-setup. The bow hold uses flexible fingers and a relaxed thumb."
+    },
+    {
+      "slug": "open-string-bow",
+      "title": "Open-String Bow",
+      "summary": "Draw a straight, steady bow across an open string.",
+      "difficulty": 2,
+      "key_terms": ["open string", "straight bow"],
+      "text": "Prerequisites: bow-hold. Open-string bowing develops a straight, steady sound."
+    },
+    {
+      "slug": "first-position-notes",
+      "title": "First-Position Notes",
+      "summary": "Place first-position fingers accurately on the fingerboard.",
+      "difficulty": 3,
+      "key_terms": ["first position", "finger placement"],
+      "text": "Prerequisites: instrument-setup. First-position notes require accurate finger placement."
+    },
+    {
+      "slug": "simple-violin-melody",
+      "title": "Simple Violin Melody",
+      "summary": "Combine bow control, fingering, and pitch in a short melody.",
+      "difficulty": 4,
+      "key_terms": ["melody", "pitch"],
+      "text": "Prerequisites: open-string-bow, first-position-notes. A simple violin melody combines bow control and fingering."
+    }
+  ]
+}

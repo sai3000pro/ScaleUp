@@ -1,0 +1,110 @@
+{
+  "name": "Learn-Anything nightly quest refresh",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "2f4b8f0e-7d3a-4c1e-9b6a-5e8c2f1a3b4d",
+      "name": "Nightly schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1080,
+        220
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Build the exact request body and its HMAC signature from the SAME\n// string, so the bytes signed are the bytes sent. Fill in the learner's\n// user_id and the backend WEBHOOK_SECRET before activating.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_WITH_WEBHOOK_SECRET';\nconst USER_ID = '00000000-0000-4000-8000-000000000001'; // seeded dev user\n\nconst body = JSON.stringify({\n  event_id: crypto.randomUUID(), // one per logical event; reuse on retries\n  occurred_at: new Date().toISOString(),\n  correlation_id: $execution.id,\n  user_id: USER_ID,\n});\n\nreturn {\n  body,\n  signature: 'sha256=' + crypto.createHmac('sha256', SECRET).update(body).digest('hex'),\n};\n"
+      },
+      "id": "3c5e9a1b-4f7d-4a2e-9c8b-6f0d3b2c4e5f",
+      "name": "Build payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -780,
+        220
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/webhooks/v1/daily-quests.refresh",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "X-Correlation-ID",
+              "value": "={{ $json.correlation_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4d6f0b2c-5a8e-4b3f-9d0c-7a1e4c3d5f60",
+      "name": "Send webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -480,
+        220
+      ],
+      "retryOnFail": true
+    }
+  ],
+  "connections": {
+    "Nightly schedule": {
+      "main": [
+        [
+          {
+            "node": "Build payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build payload": {
+      "main": [
+        [
+          {
+            "node": "Send webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "active": false,
+  "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "tags": [],
+  "versionId": "1",
+  "createdAt": "2026-08-20T00:00:00.000Z",
+  "updatedAt": "2026-08-20T00:00:00.000Z"
+}

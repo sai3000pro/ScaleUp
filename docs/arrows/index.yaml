@@ -1,0 +1,149 @@
+schema_version: 2
+last_updated: 2026-08-21
+
+# Segments follow the signal path: sensor data becomes observations, observations
+# become metrics, metrics become language, outcomes become progression. Curriculum
+# supplies the graph all of that runs on; access and operations carry the system.
+# Interface sits across the path rather than on it: every segment's surfaces are drawn
+# in the visual language it owns, and it owns no behaviour of its own.
+taxonomy:
+  perception:
+    - capture
+    - observation
+  assessment:
+    - evaluation
+    - coaching
+  learning:
+    - progression
+    - curriculum
+  platform:
+    - model-gateway
+    - access
+    - operations
+  presentation:
+    - interface
+
+arrows:
+  capture:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [observation]
+    blockedBy: [operations]
+    detail: capture.md
+    next: "Disable browser audio processing (CAP-MIC-007); declare the MediaPipe CDN hosts (CAP-CAM-007)."
+    drift: "Audio measured through automatic gain control; two external hosts undeclared; no body-pose producer; note segmentation reimplemented inline."
+
+  observation:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [evaluation]
+    blockedBy: [capture]
+    detail: observation.md
+    next: "Persist threshold_version (OBS-RED-008); implement or withdraw grip_openness (OBS-POSE-012)."
+    drift: "Reducers are correct and unreachable — the tested note segmenter and the whole 16-rule posture engine have no production caller. Producers are capture's."
+
+  evaluation:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [coaching, progression]
+    blockedBy: [observation, model-gateway]
+    detail: evaluation.md
+    next: "Write the missing dynamics tests, then record a rationale for each instrument weight (EVAL-WEIGHT-005) and build the golden take matrix — both closed defects were reachable by a perfect take."
+    drift: "Dynamics has no test at all -- four implemented specs, nothing verifying them. The shared alignment core exists in four copies, identical by authorship rather than by construction. Constants meant to agree are unlinked. The weight table is unjustified."
+
+  coaching:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: []
+    blockedBy: [evaluation, model-gateway]
+    detail: coaching.md
+    next: "Tune policy constants against real takes; build a prompt evaluation harness over the ledger."
+    drift: "Clean. Signed pitch bias distinguishes sharp from flat; intonation copy accurately describes deviation; live takes coordinate across instances."
+
+  progression:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: []
+    blockedBy: [evaluation, curriculum]
+    detail: progression.md
+    next: "Make 0.85 the single mastery definition (PROG-STATE-007), and count instrument takes toward the streak (PROG-META-006). The drill loop is specified only where a lesson opens; the rest of it has no specs."
+    drift: "Two attempt lineages never join, so instrument practice does not continue a streak — contrary to decided intent. Three streak computations. A hardcoded 0.8 mastery threshold against the decided 0.85. Three prerequisite walks."
+
+  curriculum:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [progression]
+    blockedBy: [model-gateway, operations]
+    detail: curriculum.md
+    next: "Separate graph replacement from learner-progress lifetime by construction (CURR-GRAPH-005); link compiled concepts to catalogue skills, as goal-first construction already does."
+    drift: "persist_graph cascade has destroyed learner progress once and is guarded only by six tests. A stale comment inverts the live confidence ordering. The measurement harness is missing from the repository. Compiled concepts are still not linked to catalogue skills, though goal-built ones now are."
+
+  model-gateway:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [coaching, curriculum, evaluation]
+    blockedBy: []
+    detail: model-gateway.md
+    next: "Refuse the call when prompt rendering fails, rather than bypassing the budget check (LLM-BUDGET-005)."
+    drift: "An unstated unit-vector requirement holds up similarity scoring. The deterministic provider reverse-parses four renderers, guarded only by comment."
+
+  access:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: []
+    blockedBy: []
+    detail: access.md
+    next: "Take the authenticated principal from the dependency rather than importing the entity (ACCESS-OWN-004)."
+    drift: null
+
+  operations:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: [capture, curriculum]
+    blockedBy: []
+    detail: operations.md
+    next: "Write the deferred naming-convention migration (OPS-MIGRATE-006) — until it lands no generated schema diff is trustworthy."
+    drift: "A promised migration was deferred twice and never written. Deployment requirements enforced in two disagreeing places. Thirteen documentation-versus-code disagreements. A file cited by docs and live code does not exist."
+
+  interface:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-21
+    audited: 2026-08-21
+    audited_sha: 2006ff8
+    blocks: []
+    blockedBy: []
+    detail: interface.md
+    next: "Adopt MUTED at the 58 raw sites or delete it (UI-SYS-004, UI-SYS-005), per component rather than as a sweep."
+    drift: "A shared constant used by nothing, while the class it replaces appears 58 times -- those sites are correct only because the token beneath them moved. Type sizes are chosen per component."
+
+unmapped:
+  docs:
+    intent: []

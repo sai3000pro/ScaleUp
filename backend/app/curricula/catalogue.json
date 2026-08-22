@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "title": "Shared skill catalogue",
+  "skills": [
+    {
+      "id": "instrument-orientation",
+      "title": "Instrument Orientation",
+      "summary": "Identify the parts of the instrument and settle into a safe, repeatable playing position.",
+      "difficulty": 1,
+      "key_terms": [
+        "parts",
+        "posture",
+        "setup"
+      ]
+    },
+    {
+      "id": "steady-pulse",
+      "title": "Steady Pulse",
+      "summary": "Hold an even quarter-note pulse against a count, without drifting faster or slower.",
+      "difficulty": 2,
+      "key_terms": [
+        "pulse",
+        "quarter note",
+        "counting"
+      ]
+    },
+    {
+      "id": "sustained-tone",
+      "title": "Sustained Tone",
+      "summary": "Produce a single note that stays even in pitch and volume for its whole length.",
+      "difficulty": 3,
+      "key_terms": [
+        "tone",
+        "sustain",
+        "evenness"
+      ]
+    },
+    {
+      "id": "strumming",
+      "title": "Strumming",
+      "summary": "Sound several strings together in a repeating rhythmic pattern, keeping the pulse in the strumming arm.",
+      "difficulty": 3,
+      "key_terms": [
+        "strum",
+        "downstroke",
+        "upstroke",
+        "pattern"
+      ]
+    },
+    {
+      "id": "sight-reading-basics",
+      "title": "Sight-Reading Basics",
+      "summary": "Read pitch and duration from notation accurately enough to play a short unseen passage.",
+      "difficulty": 4,
+      "key_terms": [
+        "notation",
+        "staff",
+        "note values"
+      ]
+    },
+    {
+      "id": "tempo-control",
+      "title": "Tempo Control",
+      "summary": "Hold a chosen tempo through a passage, and change tempo deliberately rather than by drifting.",
+      "difficulty": 4,
+      "key_terms": [
+        "tempo",
+        "metronome",
+        "consistency"
+      ]
+    },
+    {
+      "id": "first-melody",
+      "title": "First Melody",
+      "summary": "Play a short prepared melody from start to finish with correct notes and steady timing.",
+      "difficulty": 4,
+      "key_terms": [
+        "melody",
+        "phrase",
+        "performance"
+      ]
+    }
+  ],
+  "suggested_edges": [
+    {
+      "prereq": "instrument-orientation",
+      "target": "steady-pulse",
+      "confidence": 0.9,
+      "rationale": "Keeping time on an instrument presupposes holding it in a repeatable way."
+    },
+    {
+      "prereq": "instrument-orientation",
+      "target": "sustained-tone",
+      "confidence": 0.92,
+      "rationale": "A steady tone comes from a stable setup before it comes from anything else."
+    },
+    {
+      "prereq": "steady-pulse",
+      "target": "strumming",
+      "confidence": 0.9,
+      "rationale": "A strum pattern is a pulse expressed by the playing arm."
+    },
+    {
+      "prereq": "steady-pulse",
+      "target": "sight-reading-basics",
+      "confidence": 0.8,
+      "rationale": "Note values are durations against a pulse; without one they are only shapes."
+    },
+    {
+      "prereq": "steady-pulse",
+      "target": "tempo-control",
+      "confidence": 0.9,
+      "rationale": "Holding a chosen tempo presupposes holding a pulse at all."
+    },
+    {
+      "prereq": "sustained-tone",
+      "target": "first-melody",
+      "confidence": 0.85,
+      "rationale": "A melody is a sequence of tones, and each one has to be worth hearing."
+    },
+    {
+      "prereq": "sight-reading-basics",
+      "target": "first-melody",
+      "confidence": 0.75,
+      "rationale": "A prepared melody is read before it is performed."
+    },
+    {
+      "prereq": "tempo-control",
+      "target": "first-melody",
+      "confidence": 0.8,
+      "rationale": "A performed melody has to hold its tempo from start to finish."
+    }
+  ]
+}

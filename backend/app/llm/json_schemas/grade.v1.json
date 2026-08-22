@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["score", "verdict", "feedback", "points_hit", "points_missed"],
+  "properties": {
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Weighted fraction of rubric points the answer conveys."
+    },
+    "verdict": { "type": "string", "enum": ["correct", "partial", "incorrect"] },
+    "feedback": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 800,
+      "description": "Addressed to the learner. Names what was missed, specifically."
+    },
+    "points_hit": { "type": "array", "items": { "type": "string", "pattern": "^kp[0-9]+$" } },
+    "points_missed": { "type": "array", "items": { "type": "string", "pattern": "^kp[0-9]+$" } }
+  }
+}

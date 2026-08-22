@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["edges"],
+  "properties": {
+    "edges": {
+      "type": "array",
+      "maxItems": 60,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["prereq_slug", "target_slug", "confidence", "evidence"],
+        "properties": {
+          "prereq_slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64,
+            "description": "Must be one of the slugs listed in the prompt. Anything else is discarded."
+          },
+          "target_slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "maxLength": 64
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "How certain the text makes this dependency. Below 0.5 is discarded."
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 300,
+            "description": "The phrase or sentence from the section that shows the dependency. Not a justification you wrote."
+          }
+        }
+      }
+    }
+  }
+}

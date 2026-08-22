@@ -1,0 +1,90 @@
+name: learn-anything
+
+# Datastores only. The FastAPI app, the Celery worker, and the Next.js frontend
+# all run on the HOST — see CLAUDE.md § Why the app is not containerised.
+#
+# Every service uses a NAMED VOLUME, never a bind mount. That keeps all database
+# files inside the Docker VM and entirely out of OneDrive's sync path, which is
+# the single most important decision in this file.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: la
+      POSTGRES_PASSWORD: la
+      POSTGRES_DB: learn_anything
+    ports:
+      - "5433:5432" # 5433 to dodge any pre-existing local Postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U la -d learn_anything"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    # noeviction: the Celery broker must never silently drop queued tasks under
+    # memory pressure. Better to fail loudly than to lose an ingest job.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/learnanything
+      NEO4J_server_memory_heap_max__size: 1G
+      NEO4J_server_memory_pagecache_size: 512M
+    ports:
+      - "7474:7474" # HTTP browser
+      - "7687:7687" # Bolt
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      # `cypher-shell` boots a fresh JVM on every probe, which on a cold or
+      # loaded machine takes well over 10s -- the container then reports
+      # `unhealthy` while Bolt is serving queries perfectly well. That is worse
+      # than no healthcheck: the documented setup says "wait for all four to
+      # report healthy", and this one never would.
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p learnanything 'RETURN 1' || exit 1"]
+      interval: 30s
+      timeout: 45s
+      retries: 10
+      # Neo4j has been observed taking ~4 minutes from `Starting...` to
+      # `Bolt enabled` on this host. Probes during the start period do not
+      # count as failures.
+      start_period: 300s
+
+  chroma:
+    # Keep this version in lockstep with `chromadb-client` in backend/pyproject.toml.
+    # Chroma's HTTP client checks server compatibility on connect.
+    image: chromadb/chroma:0.5.23
+    ports:
+      - "8001:8000" # 8001 so the API can own 8000 on the host
+    volumes:
+      - chromadata:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/v1/heartbeat || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  pgdata:
+  redisdata:
+  neo4jdata:
+  chromadata:
