@@ -5,7 +5,7 @@ a ledger, and a deterministic floor that needs no credentials.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The seam holds: the whole product
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The seam holds: the whole product
 runs and is tested with no credentials. Two invariants it depends on are unstated, and one
 budget path can be bypassed.
 

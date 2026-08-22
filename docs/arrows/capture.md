@@ -5,7 +5,7 @@ audio — turned into the frame streams that `observation` reduces.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). Reverse-engineered during
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). Reverse-engineered during
 brownfield bootstrap. The audio path is live; the camera path emits hand landmarks only and
 is fed to the interface from a fixture.
 

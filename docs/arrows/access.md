@@ -4,7 +4,7 @@ Who a request is, what they may reach, and how a course reaches someone who does
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The cleanest segment in the
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The cleanest segment in the
 system: 31 of 32 specs implemented, one minor layering deviation outstanding.
 
 ## References

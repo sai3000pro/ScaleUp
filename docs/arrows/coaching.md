@@ -5,7 +5,7 @@ corrections during one.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The live socket, the turn policy,
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The live socket, the turn policy,
 the examiner and the voice seam all ship and are reachable from the interface. One cue kind
 is unreachable; a live take is pinned to one process.
 

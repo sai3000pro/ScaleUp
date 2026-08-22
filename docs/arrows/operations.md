@@ -6,7 +6,7 @@ the halves of the system.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The integration and webhook seams
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The integration and webhook seams
 are strong. Schema migration carries the system's one self-identified, twice-deferred
 structural debt, and documentation disagrees with code in thirteen catalogued places.
 
@@ -26,6 +26,8 @@ structural debt, and documentation disagrees with code in thirteen catalogued pl
 - `backend/tests/integration/test_webhooks.py`, `test_admin_reindex.py`
 
 ### Code
+- `backend/app/services/health_service.py` — the provider and datastore report the health surface renders
+- `scripts/check_arrow.py` — the structural coherence check CI runs
 - `backend/app/config.py`, `backend/app/integrations.py`, `backend/app/main.py`
 - `backend/app/services/webhook_service.py`, `n8n_service.py`, `object_storage.py`
 - `backend/app/api/routers/health.py`, `webhooks.py`
