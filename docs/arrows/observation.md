@@ -9,10 +9,9 @@ explainable observations that the grader is permitted to see.
 during brownfield bootstrap. Design and specs describe current reality; two of the three
 reducers in this segment have no production caller.
 
-Since that audit the selected-video path landed and has not been audited here. The note
-segmenter still lacks a production caller. The hand and body-pose reducers share production
-callers for live-camera and selected-video analysis; selected-video skill profiles and
-full-window aggregation are implemented and tested.
+Since that audit, the selected-video path landed. The note segmenter still lacks a production caller.
+The hand and body-pose reducers share production callers for live-camera and selected-video
+analysis. Selected-video skill profiles and full-window aggregation are implemented and tested.
 
 ## References
 

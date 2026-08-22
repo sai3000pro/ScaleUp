@@ -65,16 +65,13 @@ export interface SegmenterConfig {
 export const DEFAULT_SEGMENTER_CONFIG: SegmenterConfig = {
   minNoteDurationSeconds: 0.12,
   pitchChangeFrames: 6,
-  confidenceOn: 0.55,
-  // Hysteresis: a note has to be *more* convincing to start than to continue.
-  // A single threshold makes a decaying piano note flicker on and off at the
-  // boundary, and each flicker becomes a spurious extra note in the score.
-  confidenceOff: 0.4,
+  confidenceOn: 0.45,
+  confidenceOff: 0.32,
   pitchMedianWindow: 5,
-  noteOnRmsDb: -45,
-  noteOffRmsDb: -52,
-  noteOffFrames: 3,
-  reattackRiseDb: 6,
+  noteOnRmsDb: -42,
+  noteOffRmsDb: -50,
+  noteOffFrames: 4,
+  reattackRiseDb: 9,
   reattackWindowFrames: 4,
 };
 
@@ -175,16 +172,15 @@ export function pushFrame(
     pendingChange = 0;
   } else {
     const semitone = Math.round(smoothed);
-    // Two ways a new note starts: the pitch changed and held, or the level
-    // jumped. Without the second, two identical repeated notes merge into one
-    // long note — the detector cannot see a re-attack in pitch alone.
     const priorDb = recentDb.length > 1 ? Math.min(...recentDb.slice(0, -1)) : frame.rmsDb;
     const reattack = open !== null && frame.rmsDb - priorDb >= config.reattackRiseDb;
+    const currentMedian = open !== null ? median(open.midiValues) : smoothed;
+    const isPitchChanged = open !== null && Math.abs(smoothed - currentMedian) >= 0.75;
 
     if (open === null) {
       nextOpen = openNote(semitone, smoothed, frame);
       pendingChange = 0;
-    } else if (semitone !== Math.round(median(open.midiValues)) || reattack) {
+    } else if (isPitchChanged || reattack) {
       pendingChange = reattack ? config.pitchChangeFrames : pendingChange + 1;
       if (pendingChange >= config.pitchChangeFrames) {
         const segment = closeNote(open, frame.timeSeconds, config);

@@ -27,6 +27,7 @@ live and batch notions of "close enough" cannot drift apart.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, replace
 from typing import Sequence
 
@@ -49,8 +50,8 @@ __all__ = [
 
 # Above this the arriving note is not a plausible attempt at anything in the
 # lookahead window, so it is an extra note rather than a bad match.
-MATCH_COST_CEILING = 0.75
-DEFAULT_LOOKAHEAD = 6
+MATCH_COST_CEILING = 0.85
+DEFAULT_LOOKAHEAD = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,8 +92,8 @@ class MatcherState:
     levels: tuple[float, ...] = ()
 
 
-def expected_events(score: MusicXMLScore, instrument: str) -> tuple[ExpectedEvent, ...]:
-    """The score as a flat, time-ordered event list.
+def expected_events(score: MusicXMLScore, instrument: str, repeats: int = 1) -> tuple[ExpectedEvent, ...]:
+    """The score as a flat, time-ordered event list, looped across `repeats` measures for drills.
 
     Chord notes collapse to their earliest onset the way the chord scorer treats
     them, so a strum is one thing to hit rather than six things to miss.
@@ -102,6 +103,8 @@ def expected_events(score: MusicXMLScore, instrument: str) -> tuple[ExpectedEven
     seen_onsets: set[float] = set()
     polyphonic = instrument in {"guitar", "piano"}
 
+    base_notes: list[tuple[int | None, float, str | None]] = []
+    max_onset_beats = 0.0
     for note in score.notes:
         playable = note.pitch_midi is not None or note.unpitched_step is not None
         if not playable:
@@ -110,12 +113,25 @@ def expected_events(score: MusicXMLScore, instrument: str) -> tuple[ExpectedEven
             pass
         else:
             seen_onsets.add(note.onset_beats)
+            base_notes.append((note.pitch_midi, note.onset_beats, note.unpitched_step))
+            if note.onset_beats > max_onset_beats:
+                max_onset_beats = note.onset_beats
+
+    if not base_notes:
+        return ()
+
+    num_repeats = repeats if max_onset_beats < 12.0 else 1
+    measure_beats = max(4.0, math.ceil((max_onset_beats + 0.1) / 4.0) * 4.0)
+
+    for r in range(num_repeats):
+        beat_offset = r * measure_beats
+        for pitch_midi, onset_beats, drum in base_notes:
             events.append(
                 ExpectedEvent(
                     index=len(events),
-                    pitch_midi=note.pitch_midi,
-                    onset_seconds=note.onset_beats * seconds_per_beat,
-                    drum=note.unpitched_step,
+                    pitch_midi=pitch_midi,
+                    onset_seconds=(onset_beats + beat_offset) * seconds_per_beat,
+                    drum=drum,
                 )
             )
     return tuple(events)
@@ -131,14 +147,15 @@ def _cost(expected: ExpectedEvent, observed: ObservedEvent, timing_tolerance: fl
         pitch_cost = 0.0 if expected.pitch_midi is None and observed.pitch_midi is None else 1.0
     else:
         diff = abs(expected.pitch_midi - observed.pitch_midi)
-        if diff <= 1.2:
-            # Very close pitch / slight microtonal pitch drift or acoustic intonation
-            pitch_cost = min(diff / 6.0, 0.15)
-        elif diff >= 11.2 and round(diff) % 12 == 0:
-            # Harmonic overtone capture
+        if diff <= 0.8:
+            pitch_cost = 0.0
+        elif diff <= 1.8:
+            pitch_cost = 0.18
+        elif diff >= 11.2 and round(diff) % 12 <= 0.8:
+            # Octave harmonic
             pitch_cost = 0.12
         else:
-            pitch_cost = min(diff / 8.0, 1.0)
+            pitch_cost = min(diff / 4.0, 1.0)
     timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return PITCH_COST_WEIGHT * pitch_cost + TIMING_COST_WEIGHT * timing_cost + CONFIDENCE_COST_WEIGHT * confidence_cost
@@ -224,9 +241,12 @@ def flush_stale(
     through shows no missed notes at all -- the cursor simply never moves, and
     the live view says everything is fine.
     """
+    if now_seconds < 0.0:
+        return state, ()
     emitted: list[MatchOutcome] = []
     cursor = state.cursor
-    while cursor < len(expected) and expected[cursor].onset_seconds + timing_tolerance < now_seconds:
+    grace_period = max(timing_tolerance * 2.5, 2.0)
+    while cursor < len(expected) and expected[cursor].onset_seconds + grace_period < now_seconds:
         emitted.append(MatchOutcome("missed", expected[cursor].index, None, None, None, 0.0))
         cursor += 1
     if not emitted:

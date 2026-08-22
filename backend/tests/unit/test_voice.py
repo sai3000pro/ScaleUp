@@ -30,7 +30,9 @@ async def test_fake_voice_provider_emits_a_valid_silence_wav() -> None:
     assert content.endswith(b"\x00\x00")
 
 
-async def test_synthesize_feedback_with_fake_provider_returns_audio() -> None:
+async def test_synthesize_feedback_with_fake_provider_returns_audio(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import get_settings
+    monkeypatch.setattr(get_settings(), "voice_provider", "fake")
     artifact = await synthesize_feedback(TEXT, voice_key="professor-cadenza")
 
     assert isinstance(artifact, VoiceArtifact)
@@ -47,6 +49,7 @@ def test_cache_key_is_deterministic_and_content_addressed() -> None:
 
 
 async def test_elevenlabs_provider_requires_a_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import get_settings
     from app.services import voice as voice_module
 
     with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY"):
@@ -58,6 +61,8 @@ async def test_elevenlabs_provider_requires_a_key(monkeypatch: pytest.MonkeyPatc
         async def synthesize(self, text: str, *, voice_key: str) -> bytes:
             raise RuntimeError("provider down")
 
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "")
+    monkeypatch.setattr(get_settings(), "voice_provider", "elevenlabs")
     monkeypatch.setattr(voice_module, "_provider_for", lambda _name: BrokenProvider())
     artifact = await synthesize_feedback(TEXT, voice_key="professor-cadenza")
 

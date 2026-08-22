@@ -71,9 +71,9 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
   if (bestLag < 0) return null;
 
   const clarity = bestCorrelation / energy;
-  if (clarity < 0.22) return null;
+  if (clarity < 0.12) return null;
 
-  // Subharmonic / harmonic peak picking to prevent octave octave-down errors
+  // Subharmonic correction: only divide lag if the shorter lag is genuinely as periodic (>= 0.92)
   for (const divisor of [2, 3, 4]) {
     const subLag = Math.round(bestLag / divisor);
     if (subLag >= minLag && subLag <= maxLag) {
@@ -85,7 +85,7 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
           localMax = testLag;
         }
       }
-      if (correlations[localMax] >= bestCorrelation * 0.78) {
+      if (correlations[localMax] >= bestCorrelation * 0.92) {
         bestLag = localMax;
         bestCorrelation = correlations[localMax];
         break;
@@ -107,20 +107,23 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
 }
 
 const MIN_NOTE_DURATION_SECONDS = 0.12;
-const DEFAULT_CLARITY_THRESHOLD = 0.38;
-const PITCH_CHANGE_FRAMES = 5;
-const SILENCE_FRAMES_TO_CLOSE = 6;
-const NEW_NOTE_CONFIRM_FRAMES = 2;
+const DEFAULT_CLARITY_THRESHOLD = 0.32;
+const PITCH_CHANGE_FRAMES = 4;
+const SILENCE_FRAMES_TO_CLOSE = 10;
+const NEW_NOTE_CONFIRM_FRAMES = 3;
 // Below this the learner has stopped playing. The coach only speaks at a rest,
 // so this threshold is what separates coaching from talking over someone.
 const SILENCE_LEVEL_DB = -48;
 
-interface _CurrentNote {
-  midi: number;
-  onsetSeconds: number;
-  confidenceSum: number;
-  frames: number;
-}
+import {
+  DEFAULT_SEGMENTER_CONFIG,
+  finalizeSegments,
+  initialSegmenterState,
+  pushFrame,
+  type PitchFrame,
+  type SegmenterConfig,
+  type SegmenterState,
+} from "@/lib/noteSegmentation";
 
 export type RecordingStatus = "idle" | "requesting" | "listening" | "stopping";
 
@@ -148,17 +151,7 @@ export class MicRecorder {
   private timeDomain: Float32Array<ArrayBuffer> | null = null;
   private rafId: number | null = null;
   private startedAt = 0;
-  private current: _CurrentNote | null = null;
-  private pendingChange = 0;
-  private pendingSilenceFrames = 0;
-  private pendingNewMidi: number | null = null;
-  private pendingNewFrames = 0;
-  private pendingNewOnset = 0;
-  private lastRmsDb = -100;
-  private lastClosedOnset = -1;
-  private notes: NoteSegment[] = [];
   private status: RecordingStatus = "idle";
-  private clarityThreshold = DEFAULT_CLARITY_THRESHOLD;
   private onStatus: (status: RecordingStatus) => void = () => {};
   private mediaRecorder: MediaRecorder | null = null;
   private chunks: Blob[] = [];
@@ -166,6 +159,20 @@ export class MicRecorder {
   private onNote: (note: NoteSegment) => void = () => {};
   private onLevel: (rmsDb: number, silenceSeconds: number) => void = () => {};
   private quietSince: number | null = null;
+
+  private segmenterState: SegmenterState = initialSegmenterState();
+  private segmenterConfig: SegmenterConfig = {
+    ...DEFAULT_SEGMENTER_CONFIG,
+    confidenceOn: 0.42,
+    confidenceOff: 0.28,
+    noteOnRmsDb: -38,
+    noteOffRmsDb: -48,
+    pitchChangeFrames: 6,
+    minNoteDurationSeconds: 0.16,
+    pitchMedianWindow: 5,
+    reattackRiseDb: 10,
+    noteOffFrames: 5,
+  };
 
   /**
    * `options` is how the live coach observes a take as it happens. Both
@@ -191,11 +198,8 @@ export class MicRecorder {
   }
 
   async start(): Promise<void> {
-    if (this.status === "listening" || this.status === "requesting") return;
+    if (this.status !== "idle") return;
     this.setStatus("requesting");
-    this.notes = [];
-    this.current = null;
-    this.pendingChange = 0;
 
     const AudioContextCtor = window.AudioContext
       ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -205,7 +209,14 @@ export class MicRecorder {
     }
 
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      });
     } catch {
       this.setStatus("idle");
       throw new Error("Microphone access was denied or unavailable.");
@@ -213,16 +224,29 @@ export class MicRecorder {
 
     this.context = new AudioContextCtor();
     const source = this.context.createMediaStreamSource(this.stream);
+
+    // Hardware/DSP Biquad Bandpass Filter to isolate musical instruments & reject room noise
+    const highpass = this.context.createBiquadFilter();
+    highpass.type = "highpass";
+    highpass.frequency.value = 65; // Strip sub-bass rumble, HVAC hum & handling thumps
+
+    const lowpass = this.context.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.frequency.value = 3600; // Strip high frequency hiss & room clicks
+
+    source.connect(highpass);
+    highpass.connect(lowpass);
+
     this.analyser = this.context.createAnalyser();
     this.analyser.fftSize = 4096;
     this.analyser.smoothingTimeConstant = 0;
-    source.connect(this.analyser);
+    lowpass.connect(this.analyser);
+
     this.timeDomain = new Float32Array(this.analyser.fftSize);
     this.sampleRate = this.context.sampleRate;
     this.startedAt = performance.now();
-    // Preserve the raw take alongside the note segmentation. WebM/opus is the
-    // only container guaranteed to be supported everywhere MediaRecorder is;
-    // when it is not, capture is skipped and the take has no blob.
+    this.segmenterState = initialSegmenterState();
+
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/webm")) {
       this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: "audio/webm" });
       this.chunks = [];
@@ -242,119 +266,41 @@ export class MicRecorder {
     this.analyser.getFloatTimeDomainData(this.timeDomain);
     const now = (performance.now() - this.startedAt) / 1000;
     const detection = detectPitch(this.timeDomain, this.sampleRate);
-    const midi = detection === null ? null : Math.round(frequencyToMidi(detection.frequency));
+    const midiExact = detection === null ? null : frequencyToMidi(detection.frequency);
     const clarity = detection === null ? 0 : detection.clarity;
 
-    // Level and silence, for the coach's turn policy. A phrase boundary is the
-    // only moment it is allowed to speak, so this is what earns an utterance.
     let energy = 0;
     for (let index = 0; index < this.timeDomain.length; index += 1) {
       energy += this.timeDomain[index] * this.timeDomain[index];
     }
     const rms = Math.sqrt(energy / this.timeDomain.length);
     const rmsDb = rms > 1e-8 ? 20 * Math.log10(rms) : -100;
-    if (rmsDb < SILENCE_LEVEL_DB) {
+
+    if (rmsDb < this.segmenterConfig.noteOffRmsDb) {
       if (this.quietSince === null) this.quietSince = now;
     } else {
       this.quietSince = null;
     }
     this.onLevel(rmsDb, this.quietSince === null ? 0 : now - this.quietSince);
 
-    const isHarmonic = midi !== null && this.current !== null && (
-      Math.abs(midi - this.current.midi) % 12 === 0 ||
-      Math.abs(midi - this.current.midi) === 7 ||
-      Math.abs(midi - this.current.midi) === 19
-    );
+    const prevCount = this.segmenterState.completed.length;
+    const frame: PitchFrame = {
+      timeSeconds: now,
+      midiExact: clarity >= this.segmenterConfig.confidenceOff ? midiExact : null,
+      confidence: clarity,
+      rmsDb,
+    };
+    this.segmenterState = pushFrame(this.segmenterState, frame, this.segmenterConfig);
 
-    if (midi !== null && clarity >= this.clarityThreshold && rmsDb >= SILENCE_LEVEL_DB) {
-      this.pendingSilenceFrames = 0;
-      if (this.current === null) {
-        if (now - this.lastClosedOnset < 0.08) {
-          this.pendingNewMidi = null;
-          this.pendingNewFrames = 0;
-        } else if (this.pendingNewMidi === midi) {
-          this.pendingNewFrames += 1;
-          if (this.pendingNewFrames >= NEW_NOTE_CONFIRM_FRAMES) {
-            this.current = {
-              midi,
-              onsetSeconds: this.pendingNewOnset,
-              confidenceSum: clarity * this.pendingNewFrames,
-              frames: this.pendingNewFrames,
-            };
-            this.pendingNewMidi = null;
-            this.pendingNewFrames = 0;
-          }
-        } else {
-          this.pendingNewMidi = midi;
-          this.pendingNewOnset = now;
-          this.pendingNewFrames = 1;
-        }
-        this.pendingChange = 0;
-      } else if (isHarmonic) {
-        // Harmonic overtone / decay resonance: keep playing the current fundamental note
-        this.current.confidenceSum += clarity;
-        this.current.frames += 1;
-        this.pendingChange = 0;
-      } else if (midi !== this.current.midi) {
-        // Distinct non-harmonic note change
-        this.pendingChange += 1;
-        if (this.pendingChange >= PITCH_CHANGE_FRAMES) {
-          this.closeNote(now);
-          this.current = { midi, onsetSeconds: now, confidenceSum: clarity, frames: 1 };
-          this.pendingChange = 0;
-        } else {
-          this.current.confidenceSum += clarity;
-          this.current.frames += 1;
-        }
-      } else {
-        // Same pitch: check for clear re-articulation / attack strike
-        const isReattack = rmsDb - this.lastRmsDb > 7.0 && (now - this.current.onsetSeconds) > 0.16;
-        if (isReattack) {
-          this.closeNote(now);
-          this.current = { midi, onsetSeconds: now, confidenceSum: clarity, frames: 1 };
-        } else {
-          this.current.confidenceSum += clarity;
-          this.current.frames += 1;
-        }
-        this.pendingChange = 0;
-      }
-    } else {
-      this.pendingNewMidi = null;
-      this.pendingNewFrames = 0;
-      this.pendingChange = 0;
-      if (this.current !== null) {
-        this.pendingSilenceFrames += 1;
-        if (this.pendingSilenceFrames >= SILENCE_FRAMES_TO_CLOSE) {
-          this.closeNote(now);
-          this.pendingSilenceFrames = 0;
-        }
+    if (this.segmenterState.completed.length > prevCount) {
+      for (let i = prevCount; i < this.segmenterState.completed.length; i++) {
+        const seg = this.segmenterState.completed[i];
+        this.onNote(seg);
       }
     }
 
-    this.lastRmsDb = rmsDb;
     this.rafId = requestAnimationFrame(this.tick);
   };
-
-  private closeNote(now: number): void {
-    if (this.current === null) return;
-    const duration = now - this.current.onsetSeconds;
-    if (duration >= MIN_NOTE_DURATION_SECONDS) {
-      const segment: NoteSegment = {
-        pitch_midi: this.current.midi,
-        onset_seconds: this.current.onsetSeconds,
-        duration_seconds: duration,
-        confidence: Math.min(1, this.current.confidenceSum / this.current.frames),
-        string: null,
-        fret: null,
-      };
-      this.notes.push(segment);
-      this.lastClosedOnset = now;
-      // The live listener gets the un-normalized onset: the coach follows a
-      // wall clock, while `stopTake` rebases onto the first note for scoring.
-      this.onNote(segment);
-    }
-    this.current = null;
-  }
 
   /**
    * Stop the analyser loop and release the microphone, returning the segmented
@@ -369,7 +315,7 @@ export class MicRecorder {
       this.rafId = null;
     }
     const now = (performance.now() - this.startedAt) / 1000;
-    this.closeNote(now);
+    const finalized = finalizeSegments(this.segmenterState, now, this.segmenterConfig);
 
     if (this.stream !== null) {
       for (const track of this.stream.getTracks()) {
@@ -383,27 +329,14 @@ export class MicRecorder {
     }
     this.analyser = null;
     this.timeDomain = null;
-
-    const notes = this.notes;
-    this.notes = [];
+    this.segmenterState = initialSegmenterState();
     this.setStatus("idle");
-
-    const ordered = [...notes].sort((left, right) => left.onset_seconds - right.onset_seconds);
-    if (ordered.length === 0) return [];
-    const firstOnset = ordered[0].onset_seconds;
-    return ordered.map((note) => ({
-      ...note,
-      onset_seconds: Number((note.onset_seconds - firstOnset).toFixed(3)),
-      duration_seconds: Number(note.duration_seconds.toFixed(3)),
-    }));
+    return finalized;
   }
 
   /** Stop recording and return the segmented notes. */
   stop(): NoteSegment[] {
     if (this.status !== "listening") return [];
-    // A running MediaRecorder must be stopped synchronously enough that its
-    // final dataavailable event fires before the tracks close; `stop()` alone
-    // is used on unmount where the blob is discarded anyway.
     if (this.mediaRecorder !== null && this.mediaRecorder.state === "recording") {
       try {
         this.mediaRecorder.stop();

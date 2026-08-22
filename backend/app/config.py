@@ -306,7 +306,7 @@ class Settings(BaseSettings):
     # Flash is the low-latency model and the right default for a live coach;
     # multilingual v2 is better for the post-take clip. Both are overridable
     # without touching code.
-    elevenlabs_model_id: str = "eleven_multilingual_v2"
+    elevenlabs_model_id: str = "eleven_flash_v2_5"
     elevenlabs_streaming_model_id: str = "eleven_flash_v2_5"
 
     # ── webhooks (n8n) ────────────────────────────────────────────────────
