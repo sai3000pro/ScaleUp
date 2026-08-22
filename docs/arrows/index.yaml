@@ -1,5 +1,9 @@
 schema_version: 2
-last_updated: 2026-08-21
+last_updated: 2026-08-22
+
+# Every audited_sha below is the repository's root commit: there is no earlier
+# audit to diff against, so this pass covered every segment in full rather than
+# incrementally. The next audit is the first that can compute a real window.
 
 # Segments follow the signal path: sensor data becomes observations, observations
 # become metrics, metrics become language, outcomes become progression. Curriculum
@@ -27,9 +31,9 @@ arrows:
   capture:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [observation]
     blockedBy: [operations]
     detail: capture.md
@@ -39,9 +43,9 @@ arrows:
   observation:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [evaluation]
     blockedBy: [capture]
     detail: observation.md
@@ -51,9 +55,9 @@ arrows:
   evaluation:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [coaching, progression]
     blockedBy: [observation, model-gateway]
     detail: evaluation.md
@@ -63,9 +67,9 @@ arrows:
   coaching:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: []
     blockedBy: [evaluation, model-gateway]
     detail: coaching.md
@@ -75,21 +79,21 @@ arrows:
   progression:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: []
     blockedBy: [evaluation, curriculum]
     detail: progression.md
     next: "Make 0.85 the single mastery definition (PROG-STATE-007), and count instrument takes toward the streak (PROG-META-006). The drill loop is specified only where a lesson opens; the rest of it has no specs."
-    drift: "Two attempt lineages never join, so instrument practice does not continue a streak — contrary to decided intent. Three streak computations. A hardcoded 0.8 mastery threshold against the decided 0.85. Three prerequisite walks."
+    drift: "The coverage table omitted PROG-DRILL entirely -- five implemented specs invisible in the segment total for two audits. Realms are specified and built; PROG-REALM-005 and -006 are the open ends, and the drill loop past its doorway is still unspecified."
 
   curriculum:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [progression]
     blockedBy: [model-gateway, operations]
     detail: curriculum.md
@@ -99,21 +103,21 @@ arrows:
   model-gateway:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [coaching, curriculum, evaluation]
     blockedBy: []
     detail: model-gateway.md
     next: "Refuse the call when prompt rendering fails, rather than bypassing the budget check (LLM-BUDGET-005)."
-    drift: "An unstated unit-vector requirement holds up similarity scoring. The deterministic provider reverse-parses four renderers, guarded only by comment."
+    drift: "Gemini is wired as a provider in its own right, with per-lane credentials and a deterministic fallback per lane. Streamed calls are still ledgered on estimated token counts rather than reported ones (LLM-PROV-006). Model ids are moving aliases, which weakens prompt-version reproducibility for Gemini-served calls."
 
   access:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: []
     blockedBy: []
     detail: access.md
@@ -123,9 +127,9 @@ arrows:
   operations:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: [capture, curriculum]
     blockedBy: []
     detail: operations.md
@@ -135,14 +139,14 @@ arrows:
   interface:
     status: AUDITED
     parent: null
-    sampled: 2026-08-21
-    audited: 2026-08-21
-    audited_sha: 2006ff8
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: dc77249
     blocks: []
     blockedBy: []
     detail: interface.md
-    next: "Adopt MUTED at the 58 raw sites or delete it (UI-SYS-004, UI-SYS-005), per component rather than as a sweep."
-    drift: "A shared constant used by nothing, while the class it replaces appears 58 times -- those sites are correct only because the token beneath them moved. Type sizes are chosen per component."
+    next: "Delete the replaced 2D canvas and drop @xyflow/react, or explain why it is kept. Then adopt MUTED at its 58 raw sites (UI-SYS-004)."
+    drift: "The 2D canvas the 3D one replaced is still on disk -- SkillTree.tsx, SkillNodeCard.tsx and useFocusNode.ts, 555 lines nothing imports -- and it still carries @spec annotations, so citation coverage counts behaviour that no longer runs. It is also the only remaining consumer of @xyflow/react."
 
 unmapped:
   docs:

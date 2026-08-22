@@ -5,7 +5,7 @@ performance was worth.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). Six instruments score through five
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). Six instruments score through five
 evaluators — banjo routes to the guitar path — sharing an alignment approach, a registry, and
 generated notation. The honesty rule now holds everywhere in the segment; what remains is
 duplication that is correct by authorship rather than by construction.

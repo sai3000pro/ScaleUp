@@ -5,7 +5,7 @@ character layer above them. The reason a learner returns tomorrow.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The domain layer is
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The domain layer is
 dependency-free and time-injected throughout. Two attempt lineages exist and never join, and
 two surfaces disagree on what "mastered" means.
 
@@ -57,9 +57,10 @@ it was worth — computing every time-derived value on read.
 | Node state | `PROG-STATE-001` – `007` | 6 | 0 | 1 |
 | Daily board | `PROG-QUEST-001` – `006` | 6 | 0 | 0 |
 | Character and cohort | `PROG-META-001` – `007` | 5 | 0 | 2 |
+| Opening a lesson | `PROG-DRILL-001` – `005` | 5 | 0 | 0 |
 | Skill realms | `PROG-REALM-001` – `006` | 4 | 0 | 2 |
 
-**Summary:** 38 of 47 implemented; 1 deliberate non-want; 8 active gaps.
+**Summary:** 43 of 52 implemented; 1 deliberate non-want; 8 active gaps.
 
 ## Key Findings
 

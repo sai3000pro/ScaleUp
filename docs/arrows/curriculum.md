@@ -5,7 +5,7 @@ traversal and retrieval.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). The largest segment: 106 files,
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The largest segment: 106 files,
 roughly a quarter of the repository. The compiler works and is measured; its measured quality
 is mediocre and its measurement harness is missing from the repository.
 
@@ -18,7 +18,7 @@ is mediocre and its measurement harness is missing from the repository.
 - `docs/intent/curriculum/curriculum-design.md`
 
 ### EARS
-- `docs/intent/curriculum/curriculum-specs.md` (85 specs)
+- `docs/intent/curriculum/curriculum-specs.md` (86 specs)
 
 ### Tests
 - `backend/tests/unit/test_skill_catalogue.py` — the shared catalogue, spec by spec
@@ -75,7 +75,7 @@ the relational store as the only authority and everything else rebuildable from 
 | Derived stores | `CURR-PROJ-001` – `006` | 5 | 1 | 0 |
 | Background work | `CURR-JOB-001` – `006` | 5 | 0 | 1 |
 
-**Summary:** 75 of 85 implemented; 4 deliberate non-wants; 7 active gaps.
+**Summary:** 75 of 86 implemented; 4 deliberate non-wants; 7 active gaps.
 
 ## Key Findings
 

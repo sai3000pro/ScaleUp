@@ -5,7 +5,7 @@ explainable observations that the grader is permitted to see.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `2006ff8`). Reverse-engineered from code
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). Reverse-engineered from code
 during brownfield bootstrap. Design and specs describe current reality; two of the three
 reducers in this segment have no production caller.
 
@@ -18,7 +18,7 @@ reducers in this segment have no production caller.
 - `docs/intent/observation/observation-design.md`
 
 ### EARS
-- `docs/intent/observation/observation-specs.md` (34 specs)
+- `docs/intent/observation/observation-specs.md` (35 specs)
 
 ### Tests
 - `frontend/lib/noteSegmentation.test.ts`
@@ -50,11 +50,11 @@ unreliable measurement can never reach the grader as a confident number.
 | Category | Spec IDs | Implemented | Deferred | Gaps |
 |---|---|---|---|---|
 | Note segmentation | `OBS-NOTE-001` – `011` | 10 | 1 | 0 |
-| Posture | `OBS-POSE-001` – `012` | 9 | 1 | 1 |
+| Posture | `OBS-POSE-001` – `012` | 10 | 1 | 1 |
 | Hand technique | `OBS-HAND-001` – `004` | 3 | 1 | 0 |
 | Take reduction | `OBS-RED-001` – `008` | 7 | 0 | 1 |
 
-**Summary:** 29 of 34 specs observed working; 3 deliberate non-wants; 2 active gaps.
+**Summary:** 30 of 35 specs observed working; 3 deliberate non-wants; 2 active gaps.
 
 The reducers here are almost entirely correct and almost entirely unreachable — but that is
 a *producer* problem, so it is tracked in `capture` (`CAP-MIC-008`, `CAP-CAM-006`,

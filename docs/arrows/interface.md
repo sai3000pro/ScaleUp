@@ -5,7 +5,7 @@ contrast, and the persistent shell.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-21 (git SHA `f3a4706`). Created to close a hole the
+**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). Created to close a hole the
 signal-path mapping itself left: the lens dissolved the frontend across the behavioural
 segments, which is right for behaviour and leaves visual design with no owner. The theme
 layer, the shared class system and the shell were governed by no spec in any segment.
