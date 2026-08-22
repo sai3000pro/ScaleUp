@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",
-    "@mediapipe/tasks-vision": "^1.0.1",
+    "@mediapipe/tasks-vision": "1.0.1",
     "@types/three": "^0.185.4",
     "@xyflow/react": "^12.3.5",
     "next": "^15.1.0",

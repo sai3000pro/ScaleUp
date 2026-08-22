@@ -1,7 +1,7 @@
 # Capture — EARS Specs
 
 Prefix: `CAP`. Facets: `MIC` (audio), `PITCH` (detection), `CAM` (camera),
-`TAKE` (recording persistence), `PERM` (permission and absence).
+`VID` (selected video), `TAKE` (recording persistence), `PERM` (permission and absence).
 
 **Reducers live in `observation`.** This segment owns the hardware and the code paths;
 the folds that turn its frames into typed observations are `observation`'s.
@@ -40,9 +40,9 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-CAM-003**: The camera path shall emit hand landmark arrays for reduction, and shall itself apply no thresholds or judgement.
 - [x] **CAP-CAM-004**: The camera path shall share one video element and one media stream across all landmark models.
 - [D] **CAP-CAM-005**: No video frame or image buffer shall leave the browser.
-- [ ] **CAP-CAM-006**: The camera path shall construct a body-pose landmarker and emit its landmark arrays.
+- [x] **CAP-CAM-006**: The camera path shall construct a body-pose landmarker and emit its landmark arrays.
 - [ ] **CAP-CAM-007**: Where the landmark model and its runtime are fetched from an external host, that dependency shall be declared in the integration register alongside every other external service.
-- [ ] **CAP-CAM-008**: The technique panel shall sample metrics from the live camera stream, not only from its fixture source.
+- [x] **CAP-CAM-008**: The technique panel shall sample metrics from the live camera stream, not only from its fixture source.
 
 ## Take persistence
 
@@ -52,6 +52,16 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-TAKE-004**: The system shall permit only a recording's owner to delete it, and deletion shall be permanent.
 - [x] **CAP-TAKE-005**: When a submission names a recording, the system shall link that recording to the resulting attempt.
 - [x] **CAP-TAKE-006**: When a caller requests a recording they do not own, the system shall answer as though it does not exist.
+
+## Selected video
+
+- [x] **CAP-VID-001**: The visual-analysis surface shall accept an MP4 only after an explicit file-selection action.
+- [x] **CAP-VID-002**: The browser shall decode a selected MP4 locally and shall not upload its bytes, frames, or audio track.
+- [x] **CAP-VID-003**: The selected-video path and live-camera path shall use the same visual landmarker adapter and observation reducers.
+- [x] **CAP-VID-004**: Every emitted visual frame shall carry the selected video's media timestamp independently of processing time.
+- [x] **CAP-VID-005**: The selected-video path shall expose ready, loading-model, analysing, paused, completed, cancelled, unsupported, and failed outcomes as renderable states.
+- [x] **CAP-VID-006**: The selected-video path shall release object URLs, animation callbacks, and landmarker resources when analysis stops, the file changes, or the surface unmounts.
+- [D] **CAP-VID-007**: Selected-video analysis shall not read or evaluate the video's audio track.
 
 ## Permission and absence
 

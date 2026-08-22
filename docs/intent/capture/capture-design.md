@@ -53,12 +53,31 @@ independently of the analysis.
 
 ## Camera capture
 
-`frontend/lib/handTracking.ts` wraps MediaPipe's `HandLandmarker`, sharing one `<video>`
-element and one `getUserMedia` stream, and emits 21-point landmark arrays through a
-`requestAnimationFrame` loop.
+`frontend/lib/visualTracking.ts` wraps MediaPipe's hand and pose landmarkers over one `<video>`
+element. A live source binds one `getUserMedia` stream; a selected-video source binds one local
+object URL. The adapter emits 21-point hand and 33-point body landmark arrays through a bounded
+`requestAnimationFrame` sampling loop.
 
 A tracking status — `idle`, `loading`, `tracking`, `unavailable` — is exposed so the UI can
 distinguish "no camera" from "camera starting" from "camera running but seeing nothing".
+
+## Selected-video capture
+
+A learner-selected MP4 is a local visual frame source, not an upload. The browser binds an
+object URL to a video element, decodes it locally, and supplies its frames to the same thin
+MediaPipe adapter used by the live camera. The analyser uses media time for feedback labels,
+while MediaPipe receives a monotonic processing timestamp so pausing or seeking cannot violate
+the landmarker contract.
+
+File selection is explicit and accepts MP4 only for the first release. Unsupported files,
+decode failures, model failures, cancellation, and an empty result are normal interface states.
+Starting analysis never reads the file's audio track and never invokes the audio observation or
+evaluation modules. Object URLs and model resources are released when the file changes or the
+surface unmounts.
+
+Analysis is sampled at a bounded cadence rather than on every decoded frame. Technique feedback
+does not need cinema frame rate, and a bounded cadence keeps local analysis responsive on a
+laptop while preserving media timestamps for the observation timeline.
 
 ## Take persistence
 
@@ -77,15 +96,12 @@ cancellation, and noise suppression by default. AGC continuously normalises leve
 means the loudness the app measures is substantially the browser's correction, not the
 learner's playing. The `dynamics` dimension in `evaluation` is scored from this signal.
 
-**The camera path depends on two external hosts, undeclared.** `handTracking.ts` loads the
-MediaPipe WASM bundle from `cdn.jsdelivr.net` and the hand-landmarker model from
-`storage.googleapis.com` at runtime. Neither appears in `app/integrations.py`, in
-`.env.example`, or in `docs/integrations.md`, all of which enumerate the system's external
-dependencies. The product's stated position is that everything runs with no keys and no
-network; the camera feature does not.
-
-**No body-pose landmarker exists.** `observation` implements a 33-landmark posture engine
-for five instruments. This segment constructs no producer for it.
+**The visual path depends on two external hosts.** `visualTracking.ts` loads the pinned
+MediaPipe WASM bundle from `cdn.jsdelivr.net` and the hand/pose models from
+`storage.googleapis.com` at runtime. The hosts and failure state are documented in
+`docs/integrations.md` and `docs/video-analysis.md`, but they do not yet appear in the backend's
+declarative integration report. The camera and selected-video features therefore require network
+access on first model load even though they require no credential.
 
 **Recorded audio is stored in Postgres.** `recordings.content` is a `LargeBinary` column.
 `docs/deployment.md` discusses object storage for *document* bytes and does not mention
@@ -103,6 +119,8 @@ that practice audio grows the primary database.
 | Take storage | Content-addressed by sha256, owner-deletable | Store every submission | Dedupe comes free from the hash, and a learner's own audio must be theirs to remove. |
 | Upload ceiling | 20 MB | Unbounded, or a duration cap | A practice-clip store, not a media library. |
 | Video egress | Never leaves the page | Upload frames for server-side analysis | Landmarks carry what the grader needs; video carries a learner's room. |
+| Prerecorded analysis | Decode a selected MP4 locally through the live visual analyser | Upload to a batch service; maintain a second analyser | Local decoding preserves privacy, and one analyser prevents live and prerecorded feedback from disagreeing by implementation. |
+| Audio in a selected video | Ignored by visual analysis | Reuse it for pitch/rhythm scoring | Audio analysis is a separate team boundary. The only shared coordinate is media time. |
 | Hardware absence | A no-microphone fixture path | Require hardware | The whole loop must be demonstrable and testable without a device. |
 
 ## Open Questions & Future Decisions
@@ -116,18 +134,18 @@ that practice audio grows the primary database.
 2. **Should the browser's audio processing be disabled?** Turning off AGC, echo cancellation
    and noise suppression is a one-line constraint change, and every dynamics measurement
    depends on it. Nothing records whether the current behaviour was chosen or inherited.
-2. **Should the MediaPipe CDN dependency be declared or vendored?** Declaring it in
-   `integrations.py` makes it visible; vendoring the WASM and model makes the offline claim
-   true. Doing neither leaves a silent network dependency in a product that advertises not
-   having one.
-3. **Should recorded audio move out of Postgres?** The object-storage backend already
+3. **Should the MediaPipe CDN dependency be registered or vendored?** The hosts are documented,
+   but adding them to the backend integration report would satisfy the one-register operations
+   rule; vendoring the WASM and models would make offline visual analysis true.
+4. **Should recorded audio move out of Postgres?** The object-storage backend already
    exists for document bytes.
-4. **A frame-capture worklet is not used.** The `requestAnimationFrame` loop samples at
+5. **A frame-capture worklet is not used.** The `requestAnimationFrame` loop samples at
    frame rate rather than at a fixed hop, so the interval between analysed windows follows
    display refresh and leaves audio unanalysed between windows.
 
 ## References
 
 - `docs/intent/observation/observation-design.md` — consumes this segment's frame streams
-- `docs/integrations.md` — the external-dependency register this segment is absent from
+- `docs/integrations.md` — browser model-host dependencies and their failure behaviour
+- `docs/video-analysis.md` — selected-video operation and calibration boundary
 - `docs/api_contract.md` — `Recording`

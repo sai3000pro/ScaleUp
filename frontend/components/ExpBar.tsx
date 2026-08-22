@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 const NAV_ITEMS = [
   { href: "/courses", label: "Courses", icon: "▦" },
   { href: "/quests", label: "Quests", icon: "✦" },
+  { href: "/video-analysis", label: "Video", icon: "◉" },
   { href: "/character", label: "Character", icon: "◇" },
 ];
 
