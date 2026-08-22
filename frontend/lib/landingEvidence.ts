@@ -1,33 +1,25 @@
 /**
- * Every figure the landing page states, and where each one came from.
+ * Every figure and claim the landing page states, and where each one came from.
  *
  * The project's tenet is that the public page claims only what the product
  * already does. This module is where that stops being a sentence in a design
- * document: a figure is a record with a mandatory `source`, so a claim without
- * provenance does not compile, and the page renders the source next to the
- * number so a reader can check it without reading this file.
+ * document: a claim is a record with a mandatory `source`, so one without
+ * provenance does not compile, and the page renders the source next to the claim
+ * so a reader can check it without reading this file.
  *
- * ── WHY THERE ARE NO MARKET STATISTICS HERE ─────────────────────────────────
- * The three prior attempts this page cites -- music-maestro, MusicTeacher and
- * vocal-ai -- were read for figures on what coaching costs: lesson prices,
- * teacher supply, how many learners give up. They contain none. They are three
- * hackathon projects, and what they hold is problem statements and DSP
- * thresholds.
+ * ── THE PAGE NAMES NOBODY ───────────────────────────────────────────────────
+ * It describes what is hard about hearing a performance, never who has failed
+ * at it. Naming another project to make a point about difficulty is a cheap
+ * argument and a discourtesy, and a reader who came to find out what this thing
+ * does did not come to read about somebody else's repository.
  *
- * So the cost argument is made from what a tutor *does* rather than from a
- * price, and every quantity below is drawn from this repository. The slot for a
- * sourced market figure is open and deliberately empty: adding a
- * plausible-looking one would be exactly the failure this module exists to
- * prevent, and a reader who checks one claim and finds it invented discounts
- * every other claim on the page.
+ * Everything below is either a property of the problem — true of any system
+ * that tries this — or a property of this one, cited to the file that
+ * implements it.
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-/**
- * One stated quantity.
- *
- * `source` is not optional and has no default. That is the whole mechanism.
- */
+/** One stated quantity. `source` is not optional and has no default. */
 export interface Figure {
   /** Stable handle, so a claim on the page can be traced back to this entry. */
   id: string;
@@ -35,28 +27,28 @@ export interface Figure {
   value: string;
   /** What it counts. */
   label: string;
-  /** Where it can be checked. A path in this repository, or a named outside source. */
+  /** Where it can be checked. */
   source: string;
 }
 
-/** One prior attempt at this product, and the specific thing it could not do. */
-export interface PriorAttempt {
-  repo: string;
-  /** What it set out to be, in its own terms. */
-  premise: string;
-  /** The file the finding can be checked in. */
-  file: string;
-  /** What the code actually does. */
-  finding: string;
-  /** What that leaves unmeasured -- the point of the section. */
-  missing: string;
+/** One reason hearing a performance well enough to coach it is hard. */
+export interface HardPart {
+  id: string;
+  /** The difficulty, in the fewest words that still carry it. */
+  title: string;
+  /** Why a reasonable first attempt gets this wrong. */
+  problem: string;
+  /** What this system does instead. */
+  answer: string;
+  /** The file the answer can be checked in. */
+  source: string;
 }
 
 /**
  * What this system measures and holds.
  *
- * Counted from the curricula and evaluators in this repository rather than
- * rounded up: six published curricula hold 7 + 9 + 10 + 11 + 8 + 8 skills.
+ * Counted from the curricula and evaluators here rather than rounded up: six
+ * published curricula hold 7 + 9 + 10 + 11 + 8 + 8 skills.
  */
 export const SYSTEM_FIGURES: readonly Figure[] = [
   {
@@ -78,12 +70,6 @@ export const SYSTEM_FIGURES: readonly Figure[] = [
     source: "backend/app/evaluation/registry.py",
   },
   {
-    id: "cents",
-    value: "±1 cent",
-    label: "the resolution intonation is reported at, rather than to the nearest semitone",
-    source: "backend/app/evaluation/violin.py",
-  },
-  {
     id: "posture",
     value: "16",
     label: "posture rules, each declaring the landmarks it needs to be honest",
@@ -92,45 +78,55 @@ export const SYSTEM_FIGURES: readonly Figure[] = [
   {
     id: "keys",
     value: "0",
-    label: "API keys required to record a take and be graded on it",
+    label: "API keys needed to record a take and be graded on it",
     source: "backend/app/llm/registry.py — LLM_PROVIDER=fake is the default",
   },
 ];
 
 /**
- * Three teams built an AI music coach. What each one could not hear.
+ * Why this is hard.
  *
- * Every finding below was read out of the named file in the sibling repository,
- * not inferred from its README. The section argues that this problem is hard,
- * and it would be self-defeating to argue that with a characterisation.
+ * Four properties of the problem, each with the thing this system does about
+ * it. None of them is a claim about anybody else's work — they are what the
+ * domain does to anyone who tries, and the reason a naive version of this is
+ * easy to build and useless to practise with.
  */
-export const PRIOR_ART: readonly PriorAttempt[] = [
+export const HARD_PARTS: readonly HardPart[] = [
   {
-    repo: "music-maestro",
-    premise: "An AI-guided vocal coach giving instant feedback in the absence of a teacher.",
-    file: "static/js/script.js",
-    finding:
-      "A note is scored by rounding the detected pitch to the nearest semitone and comparing it to the target — Math.round(midiNum) == current_note.pitch — then incrementing a counter.",
-    missing:
-      "There is no cents figure, no onset and no duration. A note 49 cents flat scores exactly like a perfect one, and a note played at the wrong moment scores exactly like one in time.",
+    id: "cents",
+    title: "The nearest note is not close enough",
+    problem:
+      "Round what you played to the nearest semitone and almost everything comes back correct. A note a quarter-tone flat rounds to the right name and passes. That is the entire problem a string player has, and it is invisible at that resolution.",
+    answer:
+      "Intonation is measured in cents against the written pitch, so being nearly right is a number rather than a pass. Fifty cents is a quarter-tone; the failure threshold sits at half of that.",
+    source: "backend/app/evaluation/violin.py",
   },
   {
-    repo: "MusicTeacher",
-    premise: "Upload a video of yourself playing; get feedback on style, tempo and technique.",
-    file: "backend/services/ai_services.py",
-    finding:
-      "The scoring path returns np.random.uniform(7.0, 9.5) for pitch, with comparable draws for rhythm and dynamics.",
-    missing:
-      "The number is not a measurement of anything. The rubric around it is real; the grade inside it is a random draw, and it looks exactly like a grade.",
+    id: "timing",
+    title: "Right note, wrong moment",
+    problem:
+      "Line your notes up against the score one for one and time disappears. Play the passage perfectly but a beat late and nothing objects. Compare strictly by the clock instead and playing it slowly to get it right becomes an error.",
+    answer:
+      "Takes are aligned elastically against the score rather than compared position by position, so a slow tempo and a wrong rhythm stop being the same mistake.",
+    source: "backend/app/evaluation/dtw.py",
   },
   {
-    repo: "vocal-ai",
-    premise: "Real-time voice analysis with a conversational coach that remembers your progress.",
-    file: "backend/enhanced_letta_service.py",
-    finding:
-      "It carries genuine vocal science — jitter above 0.020 and shimmer above 0.025 read as strain, vibrato sits optimally near 5.5–6 Hz — and its fallback analyzer invents metrics when the real one is unavailable.",
-    missing:
-      "The invented metrics are persisted like measured ones, so a session that was never analysed becomes a data point in the learner's own trend.",
+    id: "dynamics",
+    title: "Loud is a property of your room",
+    problem:
+      "Absolute level tells you about the microphone, how far away you sat, and the size of the room. Score it directly and moving your laptop counts as a change in your playing.",
+    answer:
+      "Levels are centred on your own take and dynamics are scored as rank agreement — did the crescendo actually happen — which no amount of gain can flatter.",
+    source: "backend/app/evaluation/dynamics.py",
+  },
+  {
+    id: "honesty",
+    title: "A number that measures nothing looks exactly like one that does",
+    problem:
+      "Silence, a hand out of frame, a hip the camera cannot see. The tempting thing is to score it anyway, because a grade with a gap in it feels broken — and nobody can tell the difference by looking.",
+    answer:
+      "An unmeasured dimension is reported as absent and the rest are renormalised around it. A drummer is not marked down for pitch. Nothing is scored zero because it was not observed.",
+    source: "backend/app/evaluation/registry.py",
   },
 ];
 

@@ -428,8 +428,12 @@ export function SkillRealm3D({ realm, onExit, renderLesson, onOpenTest }: Props)
     [],
   );
 
+  // Fills the frame the page draws rather than drawing a second one: the
+  // container owns the chrome and the size, and this fills it.
+  //
+  // @spec UI-PAGE-006
   return (
-    <div className="relative h-[560px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+    <div className="relative h-full w-full overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" aria-hidden="true" />
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">

@@ -87,6 +87,12 @@
   color-scheme: light;
   --sakura: #d98aa8;
   --ink: #2c2629;
+  /* The persistent HUD's height, declared once so a page that wants to fill the
+     rest of the viewport can subtract it rather than guess. `.hud-header` is
+     given the same value as a min-height below, so the number is enforced by the
+     thing it describes instead of drifting away from it.
+     @spec UI-PAGE-002 */
+  --hud-h: 4.5rem;
 }
 
 body {
@@ -162,6 +168,7 @@ h3 { font-weight: 400; letter-spacing: -0.02em; }
 
 /* Persistent game HUD ---------------------------------------------------- */
 .hud-header {
+  min-height: var(--hud-h);
   border-bottom: 1px solid rgb(214 205 208 / 0.75);
   background: rgb(253 251 251 / 0.82);
   box-shadow: 0 10px 30px rgb(253 251 251 / 0.22), inset 0 -1px rgb(200 110 140 / 0.03);

@@ -83,4 +83,4 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-REALM-003**: A skill's test shall open only when every lesson in its run is cleared, and a skill with no lessons shall not have an open test.
 - [x] **PROG-REALM-004**: Opening a skill shall enter its realm, and the realm shall show the run as a chain ending in that test.
 - [ ] **PROG-REALM-005**: Passing a skill's test shall be the moment the skill reads as complete in the tree, without the realm keeping its own record of that.
-- [ ] **PROG-REALM-006**: A lesson shall be playable from inside the realm, rather than from a panel beside the tree.
+- [x] **PROG-REALM-006**: A lesson shall be playable from inside the realm, rather than from a panel beside the tree.

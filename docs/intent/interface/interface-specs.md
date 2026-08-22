@@ -2,7 +2,8 @@
 
 Prefix: `UI`. Facets: `THEME` (the token layer and palette), `SYS` (shared class
 constants), `TYPE` (typography), `A11Y` (contrast, focus, motion, landmarks),
-`SHELL` (the persistent chrome — HUD, brand, navigation, responsive behaviour), `SPRITE`
+`PAGE` (how a working surface is composed — what is on screen at once, and what is one
+control away), `SHELL` (the persistent chrome — HUD, brand, navigation, responsive behaviour), `SPRITE`
 (the mascot's art pipeline and the registration contract it emits), `MASCOT` (the character's
 presence and behaviour across the application).
 
@@ -107,6 +108,16 @@ system itself.
 - [x] **UI-MASCOT-010**: The mascot shall preload the frames a reaction needs before that reaction can be triggered, so a first interaction does not show a gap.
 - [x] **UI-MASCOT-011**: The mascot shall derive no learner state, and shall report no progress, score or streak.
 - [D] **UI-MASCOT-012**: The mascot shall not speak, and shall not present copy in a bubble attached to itself.
+
+## Page composition
+
+- [x] **UI-PAGE-001**: A working surface built around one primary object shall occupy exactly one viewport on a wide screen, and no secondary column shall be able to extend the document.
+- [x] **UI-PAGE-002**: The height of the persistent chrome shall be declared once as a token and enforced on the chrome itself, so a surface that fills the remaining viewport subtracts a known value rather than a guessed one.
+- [x] **UI-PAGE-003**: Panels that are alternative views of one activity shall be presented as alternatives rather than stacked, and only the selected one shall be mounted where a hidden one would hold a camera, a microphone or a socket open.
+- [x] **UI-PAGE-004**: A surface shall show only the panels that answer a question its reader has while using it; panels used at setup or occasionally shall be one control away rather than below.
+- [x] **UI-PAGE-005**: A panel moved out of a surface shall remain reachable from it, and the control that reveals it shall name what it holds.
+- [x] **UI-PAGE-006**: A container and the component it frames shall not both declare the frame; the container shall own chrome and size, and the component shall fill it.
+- [ ] **UI-PAGE-007**: No two panels visible at once shall report the same figure.
 
 ## The shell
 

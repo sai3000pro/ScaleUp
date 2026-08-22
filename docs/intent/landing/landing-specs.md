@@ -17,19 +17,19 @@ the segment that owns that progress.
 
 - [x] **LAND-CLAIM-001**: Every quantity rendered on the landing page shall be declared in one evidence module rather than written inline in markup.
 - [x] **LAND-CLAIM-002**: Every declared figure shall carry the source it came from, and the type shall not permit a figure without one.
-- [x] **LAND-CLAIM-003**: Where a figure describes code in another repository, its source shall name the repository and the file the claim can be checked in.
+- [x] **LAND-CLAIM-003**: Every difficulty the page states shall carry both what goes wrong and what this system does instead, cited to the file that does it — a difficulty with no stated answer is a complaint rather than an argument.
 - [x] **LAND-CLAIM-004**: The page shall render a figure's source alongside the figure, so a reader can check a claim without reading the source code.
 - [x] **LAND-CLAIM-005**: A capability shall be described in the present tense only where it is implemented; anything not yet shipped shall be absent rather than described as forthcoming.
 - [D] **LAND-CLAIM-006**: The page shall not state a market statistic — a lesson price, a teacher supply figure, an attrition rate — until one is available with a citable outside source.
-- [D] **LAND-CLAIM-007**: The page shall not name a competitor product as inferior; a finding about another codebase shall be stated as what that code does, not as a verdict on its authors.
+- [x] **LAND-CLAIM-007**: The page shall name no other product, project or codebase, and shall not reach for a competitor framing; difficulty shall be argued from properties of the problem, never from somebody else's attempt at it.
 
 ## The narrative
 
 - [x] **LAND-STORY-001**: The page shall open with a single statement of what the product does and one primary action.
-- [x] **LAND-STORY-002**: The page shall state both failure modes of practising alone — practice that is never measured, and technique that decays unnoticed — before it describes any remedy.
-- [x] **LAND-STORY-003**: The page shall argue the cost of coaching from what a tutor supplies rather than from a price.
-- [x] **LAND-STORY-004**: The page shall present evidence that automating a music tutor is hard, drawn from named prior attempts, with one specific finding for each.
-- [x] **LAND-STORY-005**: Each evidence finding shall state what the prior attempt could not measure, not merely that it was limited.
+- [x] **LAND-STORY-002**: The page shall state both failure modes of practising alone — an error repeated until it is fluent, and technique lost without notice — before it describes any remedy.
+- [x] **LAND-STORY-003**: The page shall argue the cost of lessons from what a teacher supplies — attention in the moment, and memory across months — rather than from a price.
+- [x] **LAND-STORY-004**: The page shall show why hearing a performance well enough to coach it is hard, as properties of the problem that a working but naive implementation gets wrong.
+- [x] **LAND-STORY-005**: Each difficulty shall name the specific measurement that goes wrong, not merely assert that the problem is subtle.
 - [x] **LAND-STORY-006**: The page shall describe what this system measures in a take, naming the dimensions rather than claiming accuracy in general.
 - [x] **LAND-STORY-007**: The page shall state that grading runs with no credentials and no network, since a reader's first question about an AI product is what happens when the model is unavailable.
 - [x] **LAND-STORY-008**: The page shall describe decay and return — that unpractised technique fades and is scheduled back — as a distinct movement from measurement.
