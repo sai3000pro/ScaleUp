@@ -422,6 +422,7 @@ function CoachingStudioView() {
 
   const stopTake = useCallback(async () => {
     setStage("scoring");
+    stopDebriefVoice();
     const recorder = recorderRef.current;
     const socket = socketRef.current;
     const notes = recorder === null ? notesRef.current : await recorder.stop();

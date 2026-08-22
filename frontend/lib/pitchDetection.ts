@@ -163,13 +163,15 @@ export class MicRecorder {
   private segmenterState: SegmenterState = initialSegmenterState();
   private segmenterConfig: SegmenterConfig = {
     ...DEFAULT_SEGMENTER_CONFIG,
-    confidenceOn: 0.32,
-    confidenceOff: 0.22,
-    noteOnRmsDb: -40,
-    noteOffRmsDb: -50,
-    pitchChangeFrames: 5,
-    minNoteDurationSeconds: 0.12,
+    confidenceOn: 0.42,
+    confidenceOff: 0.28,
+    noteOnRmsDb: -38,
+    noteOffRmsDb: -48,
+    pitchChangeFrames: 6,
+    minNoteDurationSeconds: 0.16,
     pitchMedianWindow: 5,
+    reattackRiseDb: 10,
+    noteOffFrames: 5,
   };
 
   /**

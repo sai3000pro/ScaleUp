@@ -84,6 +84,8 @@ export class CoachSocket {
   private clockSeconds = 0;
   private started = 0;
   private ready = false;
+  private activeSourceNodes: AudioBufferSourceNode[] = [];
+  private currentAudio: HTMLAudioElement | null = null;
   private lastLevelSentAt = 0;
 
   readonly takeId: string;
@@ -200,6 +202,7 @@ export class CoachSocket {
     } else if (type === "cue") {
       this.handlers.onCue?.(frame as unknown as CoachCue);
     } else if (type === "coach.begin") {
+      this.stopPlayback();
       this.audioChunks = [];
       this.hasStreamedPcm = false;
       if (this.audioCtx) {
@@ -236,12 +239,12 @@ export class CoachSocket {
         void this.play(spoken);
       }
       this.utterance = null;
-    } else if (type === "coach.cancel" && this.utterance !== null) {
-      this.utterance = { ...this.utterance, streaming: false, cancelled: true };
-      this.handlers.onUtterance?.(this.utterance);
-      this.utterance = null;
-      if (this.audioCtx) {
-        this.nextPlayTime = this.audioCtx.currentTime;
+    } else if (type === "coach.cancel") {
+      this.stopPlayback();
+      if (this.utterance !== null) {
+        this.utterance = { ...this.utterance, streaming: false, cancelled: true };
+        this.handlers.onUtterance?.(this.utterance);
+        this.utterance = null;
       }
     } else if (type === "take.result") {
       this.handlers.onResult?.(frame.attempt as PerformanceAttempt);
@@ -275,6 +278,21 @@ export class CoachSocket {
         void ctx.resume().catch(() => {});
       }
 
+      // Stop any conflicting HTMLAudio or SpeechSynthesis before playing PCM
+      if (this.currentAudio) {
+        try {
+          this.currentAudio.pause();
+          this.currentAudio.currentTime = 0;
+          this.currentAudio.src = "";
+        } catch {}
+        this.currentAudio = null;
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch {}
+      }
+
       const audioBuffer = ctx.createBuffer(1, sampleCount, sampleRate);
       const channelData = audioBuffer.getChannelData(0);
 
@@ -296,6 +314,14 @@ export class CoachSocket {
       const startAt = Math.max(currentTime, this.nextPlayTime);
       source.start(startAt);
       this.nextPlayTime = startAt + audioBuffer.duration;
+
+      this.activeSourceNodes.push(source);
+      source.onended = () => {
+        const idx = this.activeSourceNodes.indexOf(source);
+        if (idx >= 0) {
+          this.activeSourceNodes.splice(idx, 1);
+        }
+      };
     } catch (err) {
       console.warn("PCM audio stream scheduling error:", err);
     }
@@ -307,6 +333,8 @@ export class CoachSocket {
   private async play(text: string): Promise<void> {
     const chunks = this.audioChunks;
     this.audioChunks = [];
+
+    this.stopPlayback();
 
     if (chunks.length > 0) {
       try {
@@ -324,6 +352,16 @@ export class CoachSocket {
           : "audio/wav";
         const blob = new Blob([bytes], { type: mimeType });
         const audio = new Audio(URL.createObjectURL(blob));
+        this.currentAudio = audio;
+        audio.onended = () => {
+          if (this.currentAudio === audio) this.currentAudio = null;
+        };
+        audio.onpause = () => {
+          if (this.currentAudio === audio) this.currentAudio = null;
+        };
+        audio.onerror = () => {
+          if (this.currentAudio === audio) this.currentAudio = null;
+        };
         await audio.play();
         return;
       } catch (err) {
@@ -338,12 +376,39 @@ export class CoachSocket {
     }
   }
 
-  /** Stop any currently playing audio immediately. */
+  /** Stop any currently playing audio immediately and clear queued frames. */
   stopPlayback(): void {
+    // 1. Stop active HTML audio element
+    if (this.currentAudio) {
+      try {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+        this.currentAudio.src = "";
+      } catch {}
+      this.currentAudio = null;
+    }
+
+    // 2. Stop all active Web Audio PCM sources
+    for (const node of this.activeSourceNodes) {
+      try {
+        node.stop();
+        node.disconnect();
+      } catch {}
+    }
+    this.activeSourceNodes = [];
+
+    // 3. Reset scheduled playback timeline
     if (this.audioCtx) {
-      void this.audioCtx.close().catch(() => {});
-      this.audioCtx = null;
+      this.nextPlayTime = this.audioCtx.currentTime;
+    } else {
       this.nextPlayTime = 0;
+    }
+
+    // 4. Cancel any pending Web Speech Synthesis
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
     }
   }
 

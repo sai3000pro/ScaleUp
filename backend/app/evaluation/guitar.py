@@ -168,16 +168,16 @@ def _distance(expected: object, observed: object, timing_tolerance: float) -> fl
     if not isinstance(expected, _ExpectedGuitarNote) or not isinstance(observed, GuitarNote):
         raise TypeError("Guitar DTW distance received an unexpected event type.")
     diff = abs(expected.pitch_midi - observed.pitch_midi)
-    if diff <= 0.8:
+    if diff <= 1.2:
         pitch_cost = 0.0
-    elif diff <= 2.0:
-        pitch_cost = 0.18
-    elif round(diff) % 12 <= 0.8 and diff >= 11.2:
+    elif diff <= 2.5:
+        pitch_cost = 0.08
+    elif round(diff) % 12 <= 1.2 and diff >= 10.8:
         # Octave harmonic on guitar
-        pitch_cost = 0.15
+        pitch_cost = 0.06
     else:
-        pitch_cost = min(diff / 6.0, 1.0)
-    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
+        pitch_cost = min(diff / 8.0, 1.0)
+    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 2.2, 0.6), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return 0.45 * pitch_cost + 0.25 * timing_cost + 0.20 * _position_cost(expected, observed) + 0.10 * confidence_cost
 
@@ -186,16 +186,16 @@ def _quality(
     expected: _ExpectedGuitarNote, observed: GuitarNote, timing_tolerance: float
 ) -> tuple[float, float]:
     diff = abs(expected.pitch_midi - observed.pitch_midi)
-    if diff <= 0.8:
+    if diff <= 1.2:
         pitch_quality = 1.0
-    elif diff <= 2.0:
-        pitch_quality = max(0.6, 1.0 - diff / 3.0)
-    elif round(diff) % 12 <= 0.8 and diff >= 11.2:
-        pitch_quality = 0.90
+    elif diff <= 2.5:
+        pitch_quality = max(0.85, 1.0 - diff / 5.0)
+    elif round(diff) % 12 <= 1.2 and diff >= 10.8:
+        pitch_quality = 0.95
     else:
-        pitch_quality = max(0.0, 1.0 - diff / 4.0)
+        pitch_quality = max(0.0, 1.0 - diff / 6.0)
 
-    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4))
+    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 2.2, 0.6))
     confidence = observed.confidence
     return pitch_quality * confidence, rhythm_quality * confidence
 
@@ -241,7 +241,7 @@ def score_guitar_performance(
         observed,
         distance=lambda left, right: _distance(left, right, timing_tolerance),
         deletion_cost=1.0,
-        insertion_cost=0.85,
+        insertion_cost=0.60,
     )
 
     pitch_total = 0.0
@@ -272,7 +272,7 @@ def score_guitar_performance(
         max(0.0, min(1.0, 1.0 - alignment.distance / max(expected_count, observed_count))),
         4,
     )
-    extra_penalty = expected_count / max(expected_count + len(alignment.insertions), 1)
+    extra_penalty = expected_count / max(expected_count + len(alignment.insertions) * 0.20, 1)
     base = 0.6 * pitch_accuracy + 0.4 * rhythm_accuracy
     if technique_accuracy is not None:
         base = 0.5 * pitch_accuracy + 0.3 * rhythm_accuracy + 0.2 * technique_accuracy
@@ -427,7 +427,7 @@ def _chord_distance(expected: object, observed: object, timing_tolerance: float)
         raise TypeError("Guitar chord DTW distance received an unexpected event type.")
     missing = expected.pitch_midis - observed.pitch_midis
     pitch_cost = min(len(missing) / max(len(expected.pitch_midis), 1), 1.0)
-    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
+    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 2.2, 0.6), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return 0.5 * pitch_cost + 0.35 * timing_cost + 0.15 * confidence_cost
 
@@ -438,7 +438,7 @@ def _chord_quality(
     """Return (pitch quality, rhythm quality, matched positions)."""
     sounding = expected.pitch_midis & observed.pitch_midis
     pitch_quality = len(sounding) / max(len(expected.pitch_midis), 1)
-    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4))
+    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 2.2, 0.6))
     confidence = observed.confidence
     expected_positions = {position: True for position in expected.positions}
     matched_positions = tuple(position for position in observed.positions if expected_positions.get(position))
@@ -470,7 +470,7 @@ def score_guitar_chords_performance(
         observed,
         distance=lambda left, right: _chord_distance(left, right, timing_tolerance),
         deletion_cost=1.0,
-        insertion_cost=0.85,
+        insertion_cost=0.60,
     )
 
     pitch_total = 0.0
@@ -496,7 +496,7 @@ def score_guitar_chords_performance(
         max(0.0, min(1.0, 1.0 - alignment.distance / max(expected_count, observed_count))),
         4,
     )
-    extra_penalty = expected_count / max(expected_count + len(alignment.insertions), 1)
+    extra_penalty = expected_count / max(expected_count + len(alignment.insertions) * 0.20, 1)
     # Same shape as the single-note path above: technique is worth 0.2 when the
     # notation named a fingering to compare against, and weighs nothing when it
     # did not. Folding an unmeasured dimension in as 0.0 would tell a learner
