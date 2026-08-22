@@ -12,6 +12,54 @@ watch it decay → come back.**
 
 ---
 
+## Tracks
+
+**[Main] Arts — the expensive half of learning an instrument is a second pair of ears, and this builds one.**
+Scales and repertoire are in every book. What costs £40 an hour is somebody in
+the room who hears the flat third while it is still in the air and remembers your
+left hand collapsing the same way two months ago. ScaleUp measures the things a
+teacher actually listens for, at the resolution they matter: intonation in
+**cents** rather than nearest-note, so a quarter-tone-flat string is a number
+instead of a pass; rhythm by **elastic alignment**, so playing slowly to get it
+right stops being scored as an error; dynamics as **rank agreement**, so it asks
+whether the crescendo happened rather than how loud your room is. Six
+instruments ship with published curricula, technique is read from your posture
+and hands, and a dimension nothing could measure is reported as missing rather
+than as zero. The craft is treated as measurable without being flattened.
+
+**[Sponsor] ElevenLabs — the examiner's actual voice, and the restraint to stay quiet.**
+Two seams, because feedback after a take and coaching during one want different
+things. After a take, the whole examiner paragraph is synthesised once and cached
+on `sha256(voice|text)`, so the same feedback in the same voice is never billed
+twice. During a take, the coach streams **sentence by sentence** through
+ElevenLabs' HTTP streaming endpoint at `optimize_streaming_latency=4`, so audio
+starts arriving before the sentence finishes. We deliberately skipped the
+WebSocket input API: the coach only speaks at phrase boundaries — silence of at
+least 0.6 s, at most four times a take — so the latency it would save buys
+nothing, and it would mean a second socket beside the one the take already holds.
+The hard part of a live voice coach is knowing when **not** to speak; the voice
+is what makes the rest feel like a teacher rather than a readout. With no key
+configured, every response still carries its text and the OS voice speaks it —
+audio is the upgrade, the words are the guarantee.
+
+**[Sponsor] Render — the live coach needs a process that stays up, so it runs on one.**
+`WS /api/practice/coach` holds an open connection for the length of a take,
+streaming note observations up and cues back down. A function that answers a
+request and exits cannot do that, which ruled out serverless and made Render the
+substrate rather than a default: a Web Service for the API, Render Postgres, and
+Render Key Value behind it, with the frontend on Vercel.
+`backend/Dockerfile` runs there unmodified because it already reads the `PORT`
+the platform supplies. Two things we learned the hard way and wrote down:
+readiness deliberately probes all four datastores, so a deployment that runs
+without Neo4j and Chroma is *legitimately* red and a health check aimed at
+`/ready` restarts the service for ever — point it at `/api/health/live`. And
+migrations are a one-off, never a boot step, which on the free tier means running
+them from outside against the external database URL. The whole deployment stands
+up with **no third-party credential of any kind**, because every integration has
+a working fallback.
+
+---
+
 ## What it does
 
 Pick an instrument and open a node on its skill tree. The node hands you an
