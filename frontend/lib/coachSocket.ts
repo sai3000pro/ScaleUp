@@ -13,6 +13,7 @@
  */
 
 import { readToken } from "@/lib/api";
+import { getAudioContext } from "@/lib/audioSynth";
 import type { PerformanceAttempt, PerformedNote } from "@/lib/types";
 
 export const COACH_PROTOCOL_VERSION = "coach.v1";
@@ -220,10 +221,10 @@ export class CoachSocket {
       const b64 = String(frame.audio_base64 ?? "");
       this.audioChunks.push(b64);
       if (frame.format) {
-        this.audioFormat = String(frame.format);
+        this.audioFormat = String(frame.format).toLowerCase();
       }
       // Instantly play PCM chunks on arrival for zero-latency live voice
-      if (this.audioFormat.includes("pcm") || !this.audioFormat.includes("mp3")) {
+      if (this.audioFormat.includes("pcm")) {
         this.hasStreamedPcm = true;
         this.streamPcmChunk(b64, this.audioFormat);
       }
@@ -258,40 +259,40 @@ export class CoachSocket {
    */
   private streamPcmChunk(pcmBase64: string, format = "audio/pcm;rate=24000"): void {
     if (typeof window === "undefined" || !pcmBase64) return;
-    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-
-    if (!this.audioCtx) {
-      this.audioCtx = new AudioCtx();
-    }
-    if (this.audioCtx.state === "suspended") {
-      void this.audioCtx.resume();
-    }
 
     try {
       const binary = atob(pcmBase64);
-      const pcmBytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        pcmBytes[i] = binary.charCodeAt(i);
-      }
-      const sampleCount = Math.floor(pcmBytes.length / 2);
+      const sampleCount = Math.floor(binary.length / 2);
       if (sampleCount === 0) return;
 
       const rateMatch = format.match(/rate=(\d+)/);
       const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
 
-      const int16 = new Int16Array(pcmBytes.buffer, pcmBytes.byteOffset, sampleCount);
-      const audioBuffer = this.audioCtx.createBuffer(1, sampleCount, sampleRate);
-      const channelData = audioBuffer.getChannelData(0);
-      for (let i = 0; i < sampleCount; i++) {
-        channelData[i] = int16[i] / 32768.0;
+      const ctx = this.audioCtx || getAudioContext() || new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      if (!ctx) return;
+      this.audioCtx = ctx;
+      if (ctx.state === "suspended") {
+        void ctx.resume().catch(() => {});
       }
 
-      const source = this.audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(this.audioCtx.destination);
+      const audioBuffer = ctx.createBuffer(1, sampleCount, sampleRate);
+      const channelData = audioBuffer.getChannelData(0);
 
-      const currentTime = this.audioCtx.currentTime;
+      // Robust Little-Endian 16-bit PCM decoding via DataView (handles arbitrary chunk alignments)
+      const u8 = new Uint8Array(sampleCount * 2);
+      for (let i = 0; i < sampleCount * 2; i++) {
+        u8[i] = binary.charCodeAt(i);
+      }
+      const dataView = new DataView(u8.buffer);
+      for (let i = 0; i < sampleCount; i++) {
+        channelData[i] = dataView.getInt16(i * 2, true) / 32768.0;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+
+      const currentTime = ctx.currentTime;
       const startAt = Math.max(currentTime, this.nextPlayTime);
       source.start(startAt);
       this.nextPlayTime = startAt + audioBuffer.duration;
@@ -301,33 +302,36 @@ export class CoachSocket {
   }
 
   /**
-   * Play a buffered utterance fallback (e.g. for containerized MP3 or OS TTS).
+   * Play a buffered utterance fallback (e.g. for containerized WAV/MP3 or OS TTS).
    */
   private async play(text: string): Promise<void> {
     const chunks = this.audioChunks;
     this.audioChunks = [];
 
-    if (chunks.length > 0 && this.audioFormat === "mp3") {
+    if (chunks.length > 0) {
       try {
         const binaryStrings = chunks.map((chunk) => atob(chunk));
         const totalLen = binaryStrings.reduce((acc, str) => acc + str.length, 0);
-        const pcmBytes = new Uint8Array(totalLen);
+        const bytes = new Uint8Array(totalLen);
         let offset = 0;
         for (const str of binaryStrings) {
           for (let i = 0; i < str.length; i++) {
-            pcmBytes[offset++] = str.charCodeAt(i);
+            bytes[offset++] = str.charCodeAt(i);
           }
         }
-        const blob = new Blob([pcmBytes], { type: "audio/mpeg" });
+        const mimeType = this.audioFormat.includes("mp3") || this.audioFormat.includes("mpeg")
+          ? "audio/mpeg"
+          : "audio/wav";
+        const blob = new Blob([bytes], { type: mimeType });
         const audio = new Audio(URL.createObjectURL(blob));
         await audio.play();
         return;
       } catch (err) {
-        console.warn("MP3 playback error:", err);
+        console.warn("Audio buffer playback error:", err);
       }
     }
 
-    // Fall back to Web Speech Synthesis if text exists
+    // Fall back to Web Speech Synthesis only when no audio chunks were received
     if (text && typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));

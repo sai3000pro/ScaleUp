@@ -146,8 +146,17 @@ def _distance(expected: object, observed: object, timing_tolerance: float) -> fl
 def _quality(
     expected: _ExpectedGuitarNote, observed: GuitarNote, timing_tolerance: float
 ) -> tuple[float, float]:
-    pitch_quality = max(0.0, 1.0 - abs(expected.pitch_midi - observed.pitch_midi) / 0.5)
-    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / timing_tolerance)
+    diff = abs(expected.pitch_midi - observed.pitch_midi)
+    if diff <= 0.2:
+        pitch_quality = 1.0
+    elif diff <= 1.5:
+        pitch_quality = max(0.4, 1.0 - diff / 2.0)
+    elif round(diff) % 12 <= 1.0 and diff >= 11.0:
+        pitch_quality = 0.85
+    else:
+        pitch_quality = max(0.0, 1.0 - diff / 3.0)
+
+    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4))
     confidence = observed.confidence
     return pitch_quality * confidence, rhythm_quality * confidence
 

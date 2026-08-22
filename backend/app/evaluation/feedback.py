@@ -177,35 +177,98 @@ def merge_feedback(deterministic: ExaminerFeedback, upgraded: dict[str, object] 
     )
 
 
+import random
+
 # ── live coaching ────────────────────────────────────────────────────────────
 #
-# One sentence per cue, derived from the measurements rather than a model. This
-# is what the learner hears when the LLM is off, the course budget is spent, the
-# provider is slow, or the stream is cancelled because they started playing
-# again. The streaming role rewords these; it never replaces them, and it never
-# gets to decide the verdict.
+# Expressive, diverse cue variations derived from measurements and LLM roles.
+# The coach rotates through these variations so real-time and fallback feedback
+# remains engaging, natural, and non-repetitive across takes.
+
+_LIVE_CUE_VARIATIONS: dict[str, list[str]] = {
+    "rushing": [
+        "You're getting ahead of the beat - let the pulse come to you.",
+        "Pull back just a touch - lock into the groove.",
+        "Breathe into the tempo, don't rush the downbeat.",
+        "Feel the space between the notes - relax the pulse.",
+        "A little quick on the transitions - steady the tempo.",
+    ],
+    "dragging": [
+        "You're sitting behind the beat - lean into the pulse a little.",
+        "Drive the rhythm forward - anticipate the next note.",
+        "Stay on the front edge of the beat.",
+        "Crisp attacks - don't lag behind the click.",
+        "Pick up the momentum - keep the tempo moving.",
+    ],
+    "flat_pitch": [
+        "Those notes are landing under pitch - listen up into them.",
+        "Support the tone and raise your pitch slightly.",
+        "Target the center of the pitch - aim a little higher.",
+        "Clean fret and key contact will bring that pitch right in tune.",
+        "Lift the intonation upward on the higher intervals.",
+    ],
+    "sharp_pitch": [
+        "You're reaching over the notes - settle back onto them.",
+        "Relax the hand pressure - let the pitch settle down.",
+        "Ease into the pitch - soften the attack slightly.",
+        "Bring the pitch down slightly into the center of the target.",
+    ],
+    "missed_run": [
+        "A few notes are going by unplayed - slow it down and take every one.",
+        "Focus on clean transitions across that whole run.",
+        "Shape every note in the phrase - leave none behind.",
+        "Step cleanly through each interval one note at a time.",
+    ],
+    "extra_notes": [
+        "There are extra notes creeping in - play only what's written.",
+        "Mute neighboring strings and keys for a cleaner sound.",
+        "Keep your fingers disciplined - just the target notes.",
+        "Isolate each note cleanly without ghost strikes.",
+    ],
+    "dynamics_flat": [
+        "It's all at one volume - let the loud parts be loud.",
+        "Add some dynamic contrast - give the music light and shade.",
+        "Bring out the accents to give the phrase more life.",
+        "Vary your touch between the gentle and accented notes.",
+    ],
+    "lost_place": [
+        "Take a breath and find your place - start again from the top of the phrase.",
+        "Reset your hand position and jump back in on the downbeat.",
+        "Pause, shake out the tension, and let's catch the next measure.",
+        "No worries - regroup and start clean from the phrase head.",
+        "Anchor your eyes on the sheet and lock into the click.",
+    ],
+    "good_streak": [
+        "That's clean playing. Keep exactly that going.",
+        "Locked in! Beautiful consistency.",
+        "Spot on - great articulation!",
+        "Rhythm is rock solid right now.",
+        "Flawless groove - keep that momentum!",
+        "Super smooth execution - sounding great!",
+    ],
+    "take_complete": [
+        "That's the take. Let's see how it went.",
+        "Take wrapped up! Let's check the breakdown.",
+        "Nice run through the piece! Reviewing your score.",
+        "Finished! Let's analyze your timing and pitch.",
+    ],
+}
 
 _LIVE_CUE_TEXT: dict[str, str] = {
-    "rushing": "You're getting ahead of the beat - let the pulse come to you.",
-    "dragging": "You're sitting behind the beat - lean into the pulse a little.",
-    "flat_pitch": "Those notes are landing under pitch - listen up into them.",
-    "sharp_pitch": "You're reaching over the notes - settle back onto them.",
-    "missed_run": "A few notes are going by unplayed - slow it down and take every one.",
-    "extra_notes": "There are extra notes creeping in - play only what's written.",
-    "dynamics_flat": "It's all at one volume - let the loud parts be loud.",
-    "lost_place": "Take a breath and find your place - start again from the top of the phrase.",
-    "good_streak": "That's clean playing. Keep exactly that going.",
-    "take_complete": "That's the take. Let's see how it went.",
+    cue: variations[0] for cue, variations in _LIVE_CUE_VARIATIONS.items()
 }
 
 
 # @spec COACH-CUE-004, COACH-CUE-008
-def live_cue_text(cue: str, *, exercise_title: str = "", instrument: str = "") -> str:
-    """The deterministic sentence for one live cue.
+def live_cue_text(cue: str, *, exercise_title: str = "", instrument: str = "", seed: int | None = None) -> str:
+    """The varied pedagogical sentence for one live cue.
 
-    Named parameters are accepted and mostly unused on purpose: the sentence
-    stays instrument-agnostic so a new instrument needs no new copy, but the
-    signature is ready for the one that eventually does.
+    Selects an expressive variation or pseudo-random rotation based on utterance seed.
     """
     del exercise_title, instrument
-    return _LIVE_CUE_TEXT.get(str(cue), "Keep going - I'm listening.")
+    options = _LIVE_CUE_VARIATIONS.get(str(cue))
+    if not options:
+        return _LIVE_CUE_TEXT.get(str(cue), "Keep going - I'm listening.")
+    if seed is not None:
+        return options[seed % len(options)]
+    return random.choice(options)

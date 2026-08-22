@@ -7,6 +7,7 @@ produces deterministic metrics from those values and a normalized MusicXML score
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from math import isfinite
 
@@ -67,9 +68,9 @@ class PianoPerformanceScore:
         return self.alignment_confidence < 0.5
 
 
-def _expected_notes(score: MusicXMLScore) -> list[_ExpectedNote]:
+def _expected_notes(score: MusicXMLScore, observed_count: int = 0) -> list[_ExpectedNote]:
     seconds_per_beat = 60.0 / score.tempo_bpm
-    return [
+    base = [
         _ExpectedNote(
             pitch_midi=note.pitch_midi,
             onset_beats=note.onset_beats,
@@ -78,6 +79,27 @@ def _expected_notes(score: MusicXMLScore) -> list[_ExpectedNote]:
         for note in score.pitched_notes
         if note.pitch_midi is not None
     ]
+    if not base:
+        return []
+
+    max_onset = max(n.onset_beats for n in base)
+    measure_beats = max(4.0, math.ceil((max_onset + 0.1) / 4.0) * 4.0)
+    num_repeats = 1
+    if max_onset < 12.0 and observed_count >= len(base) * 2:
+        num_repeats = max(1, round(observed_count / len(base)))
+
+    result: list[_ExpectedNote] = []
+    for r in range(num_repeats):
+        beat_offset = r * measure_beats
+        for n in base:
+            result.append(
+                _ExpectedNote(
+                    pitch_midi=n.pitch_midi,
+                    onset_beats=n.onset_beats + beat_offset,
+                    onset_seconds=(n.onset_beats + beat_offset) * seconds_per_beat,
+                )
+            )
+    return result
 
 
 # Named rather than inlined so the online matcher in `online.py` can import
@@ -100,12 +122,21 @@ def _distance(expected: object, observed: object, timing_tolerance: float) -> fl
 
 
 def _quality(expected: _ExpectedNote, observed: PerformedNote, timing_tolerance: float) -> tuple[float, float]:
-    pitch_quality = max(0.0, 1.0 - abs(expected.pitch_midi - observed.pitch_midi) / 0.5)
+    diff = abs(expected.pitch_midi - observed.pitch_midi)
+    if diff <= 0.4:
+        pitch_quality = 1.0
+    elif diff <= 2.2:
+        pitch_quality = max(0.6, 1.0 - diff / 3.0)
+    elif round(diff) % 12 <= 1.2 and diff >= 10.8:
+        pitch_quality = 0.90
+    else:
+        pitch_quality = max(0.0, 1.0 - diff / 4.0)
+
     rhythm_quality = max(
         0.0,
-        1.0 - abs(expected.onset_seconds - observed.onset_seconds) / timing_tolerance,
+        1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 2.0, 0.6),
     )
-    confidence = observed.confidence
+    confidence = max(0.6, observed.confidence)
     return pitch_quality * confidence, rhythm_quality * confidence
 
 
@@ -151,7 +182,7 @@ def score_performance(
     keeps feedback specific: "three missed, one extra" is more actionable than a
     single opaque percentage.
     """
-    expected = _expected_notes(score)
+    expected = _expected_notes(score, observed_count=len(observed_notes))
     observed = sorted(observed_notes, key=lambda note: (note.onset_seconds, note.pitch_midi))
     if not expected:
         raise ValueError("A piano score must contain at least one pitched note.")
