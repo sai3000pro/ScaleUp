@@ -24,12 +24,18 @@ Three principles follow from that.
 symbol or source it came from, in the source and on the page. This is not a footnote habit; it
 is what makes the tenet checkable by someone who was not there when the number was chosen.
 
-**Evidence beats assertion.** "Coaching is expensive" is an assertion, and the reader has
-heard it. What they have not heard is that three independent teams built an AI music coach and
-none of them could hear a wrong note — one scored to the nearest semitone with no timing at
-all, one drew its scores from a random number generator, and one fabricated metrics in its
-fallback path and persisted them as real. That argument is specific, checkable, and makes the
-difficulty concrete in a way no market figure does.
+**Concreteness beats assertion, and it does not require a target.** "Coaching is expensive"
+is an assertion the reader has heard. What lands instead is the specific shape of the
+problem: that rounding a detected pitch to the nearest semitone passes a note a quarter-tone
+flat, that comparing note-for-note makes playing slowly indistinguishable from playing wrong,
+that absolute loudness measures the room. Each is checkable, each has an answer in this
+codebase, and none of them needs anybody to have failed at it first.
+
+**The page names nobody.** No other product, project or codebase appears on it. Arguing that
+a problem is hard by pointing at somebody who did it badly is a cheap argument and a
+discourtesy, and a reader who came to find out what this does did not come to read about
+somebody else's repository. This is enforced rather than trusted — see `LAND-CLAIM-007` and
+its test.
 
 **The mascot carries the tone, never the argument.** Quartz is why the page is likeable; the
 evidence is why it is believed. A reader who turns off animation loses charm and no substance.
@@ -42,40 +48,41 @@ expensive. The page walks that in seven movements:
 
 | # | Movement | What it does |
 |---|---|---|
-| I | **Hero** | The promise, with Quartz on stage. One sentence, one action. |
-| II | **The two failures** | Unmeasured practice and silent decay, stated as the HLD states them. |
-| III | **What a tutor actually costs** | The hour is not the product; the *attention* is. What a tutor does that a metronome and a video cannot. |
-| IV | **Three teams tried** | The evidence section. Three named repositories, one verified finding each, each citing the file it can be checked in. |
-| V | **What it takes to actually hear it** | The system's answer: alignment, cents, dynamics, posture — and the deterministic floor. |
-| VI | **And then remembering** | Decay, SM-2, the quest that brings a faded skill back. |
-| VII | **Enter** | The tech tree, and the way in. |
+| I | **Hero** | What it does, in one sentence, with Quartz on stage. |
+| II | **You can't hear yourself** | An error repeated until it is fluent, and technique lost without notice. |
+| III | **What a teacher is for** | A second pair of ears with a long memory — and why that is the expensive part. |
+| IV | **Why this is hard** | Four properties of the problem, each with what this system does about it. |
+| V | **What it measures** | The figures, each rendering its own source. |
+| VI | **And then it fades** | Decay, the review schedule, and the way in. |
 
-Movement IV is the load-bearing one and the reason the segment exists. Its three findings are
-verified facts about code in sibling repositories, not characterisations:
+Movement IV is the load-bearing one and the reason the segment exists as a segment. Its four
+entries are properties of the problem rather than observations about anyone's work, and each
+pairs the difficulty with the file here that answers it:
 
-- **music-maestro** scores a note by `Math.round(midiNum) == current_note.pitch`
-  (`static/js/script.js`), incrementing a counter. There is no cents figure, no onset, and no
-  duration — a note 49 cents flat scores identically to a perfect one, and a note played at
-  the wrong moment scores identically to one in time.
-- **MusicTeacher** returns `np.random.uniform(7.0, 9.5)` for pitch, and comparable draws for
-  rhythm and dynamics (`backend/services/ai_services.py`). The feedback is a random number
-  with a rubric written around it.
-- **vocal-ai** carries genuine vocal science — jitter above 0.020 and shimmer above 0.025 read
-  as strain, vibrato is optimal near 5.5–6 Hz (`backend/enhanced_letta_service.py`) — and its
-  fallback analyzer invents metrics that are then persisted as though measured.
+- **Cents, not semitones.** Rounding to the nearest semitone passes a note a quarter-tone
+  flat, which is the whole of a string player's problem
+  (`backend/app/evaluation/violin.py`).
+- **Elastic alignment.** Compared position by position, time disappears; compared strictly by
+  the clock, playing slowly to get it right becomes an error
+  (`backend/app/evaluation/dtw.py`).
+- **Relative dynamics.** Absolute level measures the microphone and the room, so levels are
+  centred on the take and contrast is scored as rank agreement
+  (`backend/app/evaluation/dynamics.py`).
+- **Absent, not zero.** An unmeasured dimension is reported as missing and the rest
+  renormalise around it (`backend/app/evaluation/registry.py`).
 
-The point of the section is not that these teams failed. It is that hearing a performance well
-enough to coach it is hard enough that three serious attempts each stopped short in a
-different place, and that the honest thing to do about it is to say which measurements are
-real and which are absent.
+The fourth is the through-line: a plausible number is far cheaper to produce than a true one
+and looks identical on a screen. Stating that as a property of the problem is honest;
+attaching it to a named project would be an accusation, and would also invite the reader to
+check the accusation rather than the product.
 
 ### The figures the page does not have
 
-**No market statistic on this page is sourced, because none of the named repositories contains
-one.** They are three hackathon projects: they hold problem statements and DSP thresholds, not
-lesson prices, teacher supply or attrition rates. Rather than invent a plausible-looking
-figure, the cost argument is made from what a tutor *does* — which is the argument the HLD
-itself makes — and every quantity on the page is drawn from this repository.
+**No market statistic on this page is sourced, because no citable one was found.** Lesson
+prices, teacher supply and attrition rates were looked for and are not available here at a
+standard this page would meet. Rather than invent a plausible-looking figure, the cost
+argument is made from what a teacher *does*, and every quantity on the page is drawn from this
+repository.
 
 `frontend/lib/landingEvidence.ts` is the single module those quantities live in, and it is the
 place a sourced market figure would be added: each entry carries its own `source` string, and
@@ -118,19 +125,19 @@ and cost the reader a bundle.
 
 | Decision | Chosen | Alternatives | Rationale |
 |---|---|---|---|
-| Cost argument's evidence | Verified findings from three sibling repositories | Market statistics on lesson pricing and teacher supply | The named repositories contain no market data. A figure invented to fill the slot would be the exact failure the segment exists to prevent, and a reader who checks one claim and finds it fabricated discounts every other claim on the page. |
+| How difficulty is shown | Properties of the problem, each paired with the file that answers it | Named prior attempts with a specific finding for each; market statistics on lesson pricing | Naming other projects is a cheap argument and a discourtesy, and it redirects the reader to checking an accusation instead of the product. Market figures were looked for and none is citable, and a figure invented to fill the slot is the exact failure the segment exists to prevent. |
 | Where figures live | One module, each entry carrying a `source` | Literals inline in the page markup | A claim's provenance has to travel with it or it is lost at the first edit. Making `source` non-optional means an unsourced figure fails to compile rather than fails to be noticed. |
 | Scroll narrative mechanism | `IntersectionObserver` reveals | GSAP + ScrollTrigger + Lenis, as in the reference implementation | Those buy pinning, scrub and smoothed scroll; this page uses none of the three. The reference page's structure is worth copying, its dependency list is not. |
 | Route | Application root, public, not redirected for learners | Root redirects signed-in users to `/courses` | The page is a document about the product, not an onboarding gate. A learner linking a friend to the argument should not have it swapped out from under them. |
 | Session gating | The public page renders before the session check resolves | Wait for hydration everywhere, as every other route does | Waiting spends a round-trip to learn something the page does not use, and fails open to a spinner when the API is unavailable — on the one page whose whole job is to be readable by someone with no account. |
 | Root's previous behaviour | Replaced | Landing moved to `/about` or `/welcome` | A product's root is its argument. `/courses` remains one redirect away and is where the primary action sends a signed-in reader. |
-| Mascot's role on the page | Tone and punctuation between movements | Mascot narrates the argument in speech bubbles | A character asserting the evidence weakens it — the findings are checkable and should be read as such. Quartz reacts to the argument rather than making it. |
+| Mascot's role on the page | Tone and punctuation between movements | Mascot narrates the argument in speech bubbles | A character asserting a technical claim weakens it — the claims are checkable and should read as such. Quartz reacts to the argument rather than making it. |
 
 ## Open Questions & Future Decisions
 
 - **A sourced cost figure is still wanted.** The qualitative argument is honest but a reader
-  responds to a number. The slot exists in `landingEvidence.ts` and needs a citable source —
-  a published survey of lesson rates, not an estimate.
+  responds to a number. The slot exists in `landingEvidence.ts` and needs a citable source — a
+  published survey of lesson rates, not an estimate.
 - **The page has no social preview.** No Open Graph image or card metadata is set, so a shared
   link renders as a bare URL.
 - **Nothing measures whether the argument works.** There is no analytics on the page and no

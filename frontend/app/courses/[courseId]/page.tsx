@@ -4,25 +4,15 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { CampaignBriefing } from "@/components/course/CampaignBriefing";
-import { CostPanel } from "@/components/course/CostPanel";
-import { LeaderboardPanel } from "@/components/course/LeaderboardPanel";
-import { CurriculumPlanner } from "@/components/course/CurriculumPlanner";
-import { DiagnosticsPanel } from "@/components/course/DiagnosticsPanel";
-import { LiveCoachPanel } from "@/components/course/LiveCoachPanel";
-import { PracticePanel } from "@/components/course/PracticePanel";
 import { ProgressPanel } from "@/components/course/ProgressPanel";
-import { SharePanel } from "@/components/course/SharePanel";
-import { TechniquePanel } from "@/components/course/TechniquePanel";
-import { SourceList } from "@/components/course/SourceList";
+import { CourseDrawer } from "@/components/course/CourseDrawer";
+import { LessonWorkspace } from "@/components/course/LessonWorkspace";
 import { DrillPanel } from "@/components/drill/DrillPanel";
-import { AskPanel } from "@/components/explore/AskPanel";
 import { GuidedPath } from "@/components/explore/GuidedPath";
 import { SearchBox } from "@/components/explore/SearchBox";
 import { SkillGraph3D } from "@/components/skill-tree/SkillGraph3D";
 import { SkillRealm3D } from "@/components/skill-tree/SkillRealm3D";
 import { SkillTreeOutline } from "@/components/skill-tree/SkillTreeOutline";
-import { UploadCard } from "@/components/ingest/UploadCard";
 import { api } from "@/lib/api";
 import { STATE_STYLES, STRUCTURAL_STYLE, difficultyLabel, stateStyle, type StateStyle } from "@/lib/nodeState";
 import { dueLabel } from "@/lib/time";
@@ -33,7 +23,7 @@ import type {
   ProgressAnalytics,
   SkillRealm,
 } from "@/lib/types";
-import { CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
 import { canOpenLesson } from "@/lib/lesson";
 import { useGraphStore } from "@/stores/useGraphStore";
 
@@ -82,6 +72,7 @@ function CourseView() {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   // `null` means no search is running, which is different from a search that
   // matched nothing -- the second dims the whole tree on purpose.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [matchedNodeIds, setMatchedNodeIds] = useState<Set<string> | null>(null);
   // The guided path's cursor is a function of mastery, so it has to be refetched
   // after a grade. Bumped rather than refetched inline so the panel owns its own
@@ -248,9 +239,19 @@ function CourseView() {
   const sourceName = (documentId: string) =>
     course?.documents.find((document) => document.id === documentId)?.filename ?? "Source document";
 
+  // On a wide screen the page is exactly one viewport: the header takes what it
+  // needs and the grid takes the rest, so neither column can make the document
+  // grow. Below the breakpoint it flows normally -- a phone has no room for two
+  // columns and scrolling is the right answer there.
+  //
+  // @spec UI-PAGE-001, UI-PAGE-002
   return (
-    <main id="main-content" tabIndex={-1} className="mx-auto max-w-[1400px] px-4 py-6 outline-none">
-      <div className="flex items-start justify-between gap-4">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="mx-auto flex max-w-[1400px] flex-col px-4 py-6 outline-none lg:h-[calc(100dvh-var(--hud-h))]"
+    >
+      <div className="flex shrink-0 items-start justify-between gap-4">
         <div>
           <Link href="/courses" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
             ← All courses
@@ -295,6 +296,14 @@ function CourseView() {
             title never appears on touch and is unreliable for screen readers.
             A <details> is reachable by keyboard, works on touch, and can hold
             the full sentence rather than a truncated tooltip. */}
+        <div className="flex shrink-0 items-start gap-3">
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className={`${BUTTON_SECONDARY} whitespace-nowrap text-xs`}
+        >
+          Course ▸
+        </button>
         <details className="max-w-xs">
           <summary className={`cursor-pointer text-[11px] text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
             What the orbs mean
@@ -313,10 +322,11 @@ function CourseView() {
             ))}
           </dl>
         </details>
+        </div>
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="relative hidden h-[70vh] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:block">
+      <div className="mt-5 grid min-h-0 gap-4 lg:flex-1 lg:grid-cols-[1fr_340px]">
+        <div className="relative hidden min-h-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:block lg:h-full max-lg:h-[70vh]">
           {/* Over the canvas rather than beside it: search is a way of moving
               around the tree, and putting it in the sidebar makes it read as
               another panel of metadata. Above React Flow's own z-index so the
@@ -357,11 +367,10 @@ function CourseView() {
                 // the one place a take is recorded, so the realm borrows it
                 // rather than growing a second recorder.
                 renderLesson={(lesson) => (
-                  <PracticePanel
+                  <LessonWorkspace
                     courseId={courseId}
-                    refreshKey={pathVersion}
                     exerciseId={lesson.exercise_id}
-                    pinned
+                    refreshKey={pathVersion}
                     onCompleted={() => {
                       // Refetch so the chain behind this overlay reflects the
                       // take. Deliberately NOT closing: the learner just earned a
@@ -402,38 +411,13 @@ function CourseView() {
           )}
         </div>
 
-        <aside className="space-y-4">
-          <CurriculumPlanner
-            courseId={courseId}
-            initialGoal={campaignGoal}
-            onComplete={refresh}
-          />
-          <CampaignBriefing
-            courseId={courseId}
-            refreshKey={pathVersion}
-            path={campaignPath}
-            progress={campaignProgress}
-            isBuilding={course?.status === "ingesting"}
-          />
-          <GuidedPath
-            courseId={courseId}
-            refreshKey={pathVersion}
-            onPathLoaded={setCampaignPath}
-          />
-          <ProgressPanel
-            courseId={courseId}
-            refreshKey={pathVersion}
-            onProgressLoaded={setCampaignProgress}
-          />
-          <LiveCoachPanel courseId={courseId} refreshKey={pathVersion} onCompleted={refresh} />
-          <PracticePanel courseId={courseId} refreshKey={pathVersion} onCompleted={refresh} />
-          <TechniquePanel />
-          <AskPanel courseId={courseId} documents={course?.documents ?? []} />
-          <SourceList documents={course?.documents ?? []} />
-          <SharePanel courseId={courseId} shareable={course?.status === "ready"} />
-          <LeaderboardPanel courseId={courseId} refreshKey={pathVersion} />
-          <UploadCard courseId={courseId} onComplete={refresh} />
-
+        {/* Three panels, in the order a learner needs them: what you just
+            clicked, what to do next, how it is going. The other twelve moved to
+            the course drawer or into the realm -- a column of fifteen stacked
+            panels was what made this page four screens tall, and the grid row
+            stretched to it.
+            @spec UI-PAGE-001, UI-PAGE-004 */}
+        <aside className="min-h-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
           <div className={CARD} ref={inspectorRef}>
             {selected ? (
               <>
@@ -551,10 +535,30 @@ function CourseView() {
             )}
           </div>
 
-          <CostPanel courseId={courseId} />
-          <DiagnosticsPanel courseId={courseId} />
+          <GuidedPath
+            courseId={courseId}
+            refreshKey={pathVersion}
+            onPathLoaded={setCampaignPath}
+          />
+          <ProgressPanel
+            courseId={courseId}
+            refreshKey={pathVersion}
+            onProgressLoaded={setCampaignProgress}
+          />
         </aside>
       </div>
+
+      <CourseDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        courseId={courseId}
+        course={course}
+        campaignGoal={campaignGoal}
+        campaignPath={campaignPath}
+        campaignProgress={campaignProgress}
+        refreshKey={pathVersion}
+        onRefresh={refresh}
+      />
     </main>
   );
 }

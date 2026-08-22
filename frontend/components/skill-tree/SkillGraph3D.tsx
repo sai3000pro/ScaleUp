@@ -595,8 +595,12 @@ export function SkillGraph3D({ snapshot, selectedNodeId, onSelect, onOpenLesson,
     [onOpenLesson, onSelect, selectedNodeId],
   );
 
+  // Fills the frame the page draws rather than drawing a second one: the
+  // container owns the chrome and the size, and this fills it.
+  //
+  // @spec UI-PAGE-006
   return (
-    <div className="relative h-[560px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+    <div className="relative h-full w-full overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" aria-hidden="true" />
 
       {/* Titles, projected. Pointer-events off so they never eat a click meant

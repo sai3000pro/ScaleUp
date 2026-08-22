@@ -44,7 +44,9 @@ export function ExpBar() {
   return (
     <header className="hud-header sticky top-0 z-20">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:py-3">
-        <Link href="/courses" className={`hud-wordmark ${NAV_LINK}`}>
+        {/* The wordmark goes home, which is the landing page -- `/courses` is the
+            first nav item and does not need to be the brand link as well. */}
+        <Link href="/" className={`hud-wordmark ${NAV_LINK}`}>
           {/* The mascot sits left of the wordmark and faces into it. It carries
               no name: the link's own text already says where this goes, and a
               second tab stop for a decoration would make the reader press Tab

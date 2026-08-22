@@ -1,23 +1,20 @@
 "use client";
 
 /**
- * The public argument for the product, in seven movements.
+ * The public argument for the product, in six movements.
  *
  * I    Hero — what it does, in one sentence, with Quartz on stage.
- * II   Two failures — practice nobody measures, and technique that fades. The
- *      HLD's own Problem section, stated to a stranger.
- * III  What a tutor costs — the hour is not the product; the attention is.
- * IV   Three teams tried — the evidence. Three named repositories, one verified
- *      finding each, each citing the file it can be checked in. This is the
- *      movement the segment exists for; everything else is scaffolding for it.
- * V    What it takes to hear it — the answer, as figures with sources.
- * VI   And then remembering — decay, and the quest that brings a skill back.
- * VII  Enter — the way in.
+ * II   You can't hear yourself — the thing everyone who practises alone knows.
+ * III  What a teacher is actually for — and why that is the expensive part.
+ * IV   Why this is hard — four properties of the problem, each with what this
+ *      system does about it. Names nobody. See `lib/landingEvidence.ts`.
+ * V    What it measures — the figures, each rendering its own source.
+ * VI   Enter — decay, and the way in.
  *
- * Every number on this page comes from `lib/landingEvidence.ts` and renders its
- * own source beside it. Nothing here types a figure inline; the tenet is that
- * the public page claims only what the product already does, and a claim whose
- * provenance lives in someone's memory is not checkable.
+ * Every claim comes from `lib/landingEvidence.ts` and renders its source beside
+ * it. Nothing here types a figure inline: the tenet is that the public page
+ * claims only what the product already does, and a claim whose provenance lives
+ * in somebody's memory is not checkable.
  *
  * @spec LAND-STORY-001, LAND-STORY-002, LAND-STORY-003, LAND-STORY-004
  * @spec LAND-STORY-005, LAND-STORY-006, LAND-STORY-007, LAND-STORY-008
@@ -27,7 +24,7 @@ import Link from "next/link";
 
 import { Quartz } from "@/components/mascot/Quartz";
 import { Reveal } from "@/components/landing/Reveal";
-import { PRIOR_ART, SYSTEM_FIGURES } from "@/lib/landingEvidence";
+import { HARD_PARTS, SYSTEM_FIGURES } from "@/lib/landingEvidence";
 
 export interface LandingPageProps {
   /** Where the primary action goes. Signed-in readers get their courses. */
@@ -49,23 +46,22 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
               Nobody can hear themselves play.
             </h1>
             <p className="landing-lede">
-              Pick a skill off the tree, play the exercise behind it, and get scored on pitch,
-              rhythm, dynamics and the way you are sitting — then coached about it in an
-              examiner&rsquo;s voice. What you stop practising fades, and comes back as
-              tomorrow&rsquo;s quest.
+              Pick a skill off the tree, play it, and find out what you actually did — pitch,
+              timing, dynamics, and how you were sitting. The things you stop practising fade,
+              and come back as tomorrow&rsquo;s quest.
             </p>
             <div className="landing-actions">
               <Link href={primaryHref} className="landing-cta">
                 {primaryLabel}
               </Link>
-              <a href="#evidence" className="landing-cta landing-cta--quiet">
+              <a href="#hard" className="landing-cta landing-cta--quiet">
                 Why this is hard
               </a>
             </div>
             <p className="landing-footnote">
               {signedIn
-                ? "You are signed in — your courses are one click away."
-                : "Free to try. Grading runs on your machine's microphone, with no API key."}
+                ? "You're signed in — your courses are one click away."
+                : "Free to try. Everything is graded on your machine, with no API key."}
             </p>
           </div>
 
@@ -84,131 +80,119 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
         </div>
       </section>
 
-      {/* ── II. The two failures ────────────────────────────────────────── */}
-      <section className="landing-band" aria-labelledby="failures-title">
+      {/* ── II. You can't hear yourself ─────────────────────────────────── */}
+      <section className="landing-band" aria-labelledby="alone-title">
         <div className="landing-shell">
           <Reveal>
             <p className="landing-eyebrow">The problem</p>
-            <h2 id="failures-title" className="landing-h2">
-              Practising alone fails twice, and each failure hides the other.
+            <h2 id="alone-title" className="landing-h2">
+              An hour of practice can make you worse.
             </h2>
           </Reveal>
           <div className="landing-pair">
             <Reveal delay={80} className="landing-card">
-              <h3 className="landing-h3">Practice nobody measures</h3>
+              <h3 className="landing-h3">You can&rsquo;t hear it while you do it</h3>
               <p>
-                You cannot hear your own intonation drift. You cannot tell rushing from
-                unevenness. You certainly cannot see your own right shoulder. With no signal
-                from outside, an hour of practice repeats an error until it is a habit — and
-                the habit feels like progress, because it is getting more fluent.
+                Your ear is busy playing. You can&rsquo;t tell a flat third from a nervous one,
+                or rushing from unevenness, and you certainly can&rsquo;t see your own right
+                shoulder. So the mistake gets repeated until it&rsquo;s fluent — and fluent
+                feels like progress.
               </p>
             </Reveal>
             <Reveal delay={160} className="landing-card">
-              <h3 className="landing-h3">Technique that fades quietly</h3>
+              <h3 className="landing-h3">And you won&rsquo;t notice it going</h3>
               <p>
-                Nothing tells you which of the hundred things you could once do has stopped
-                working. Decay is silent by construction: the skills you lose are the ones you
-                stopped touching, so nothing you are currently doing will surface them. You
-                find out in front of somebody.
+                The things you lose are the things you stopped touching, so nothing you&rsquo;re
+                currently playing will surface them. Scales you had cold in March are gone by
+                June and there&rsquo;s no moment where you find out. Until there is.
               </p>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ── III. What a tutor costs ─────────────────────────────────────── */}
-      <section className="landing-band landing-band--tint" aria-labelledby="cost-title">
+      {/* ── III. What a teacher is for ──────────────────────────────────── */}
+      <section className="landing-band landing-band--tint" aria-labelledby="teacher-title">
         <div className="landing-shell landing-narrow">
           <Reveal>
-            <p className="landing-eyebrow">The cost</p>
-            <h2 id="cost-title" className="landing-h2">
-              You are not paying for the hour.
+            <p className="landing-eyebrow">Why lessons cost what they cost</p>
+            <h2 id="teacher-title" className="landing-h2">
+              A teacher is a second pair of ears with a long memory.
             </h2>
             <p className="landing-body">
-              A tutor supplies exactly the two things practising alone cannot: measurement in
-              the moment, and memory across months. They hear the flat note as it happens, and
-              they remember that your left hand collapsed the same way in March. The hour is
-              only where those are delivered.
+              They hear the flat note while it&rsquo;s still in the air, and they remember your
+              left hand collapsing the same way two months ago. That&rsquo;s the job. The
+              scales and the repertoire you could get from a book.
             </p>
             <p className="landing-body">
-              That is most of what a tutor is <em>for</em>, and most of what makes one
-              expensive — attention that has to be present, in real time, repeatedly, for
-              years. It does not get cheaper with scale, because it is not reproducible: it is
+              It&rsquo;s also why an hour costs what it does. Someone has to be in the room,
+              paying attention, every week, for years — and it doesn&rsquo;t get cheaper the
+              more people want it, because it isn&rsquo;t one thing being copied. It&rsquo;s
               one person listening to one person.
             </p>
             <p className="landing-body landing-body--turn">
-              Which invites an obvious question. The measuring half is a signal-processing
-              problem, and signal processing is a solved field. How hard can it be?
+              The listening half sounds like a signal-processing problem, and signal processing
+              is a solved field. It isn&rsquo;t that simple.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* ── IV. Three teams tried ───────────────────────────────────────── */}
-      <section className="landing-evidence" id="evidence" aria-labelledby="evidence-title">
+      {/* ── IV. Why this is hard ────────────────────────────────────────── */}
+      <section className="landing-evidence" id="hard" aria-labelledby="hard-title">
         <div className="landing-shell">
           <Reveal>
-            <p className="landing-eyebrow landing-eyebrow--invert">The evidence</p>
-            <h2 id="evidence-title" className="landing-h2 landing-h2--invert">
-              Hard enough that three teams shipped a music coach that could not hear a wrong
-              note.
+            <p className="landing-eyebrow landing-eyebrow--invert">Why this is hard</p>
+            <h2 id="hard-title" className="landing-h2 landing-h2--invert">
+              Every obvious way to grade a performance is wrong in a way you can&rsquo;t see.
             </h2>
             <p className="landing-body landing-body--invert">
-              These are real projects, and each finding below was read out of the file it
-              cites — not inferred from a README. They are listed because what stopped each
-              one is different, and the three failures together are a map of the problem.
+              Not hard to build — hard to build so the number means something. Each of these is
+              a version that runs, returns a score, and would quietly teach you the wrong
+              lesson.
             </p>
           </Reveal>
 
           <ol className="landing-evidence__list">
-            {PRIOR_ART.map((attempt, i) => (
-              <Reveal as="li" key={attempt.repo} delay={80 * (i + 1)} className="landing-evidence__item">
-                <h3 className="landing-h3 landing-h3--invert">{attempt.repo}</h3>
-                <p className="landing-evidence__premise">{attempt.premise}</p>
-                <p className="landing-evidence__finding">{attempt.finding}</p>
+            {HARD_PARTS.map((part, i) => (
+              <Reveal as="li" key={part.id} delay={70 * (i + 1)} className="landing-evidence__item">
+                <h3 className="landing-h3 landing-h3--invert">{part.title}</h3>
+                <p className="landing-evidence__finding">{part.problem}</p>
                 <p className="landing-evidence__missing">
-                  <span className="landing-evidence__missing-label">What that misses</span>
-                  {attempt.missing}
+                  <span className="landing-evidence__missing-label">What we do instead</span>
+                  {part.answer}
                 </p>
                 <p className="landing-source landing-source--invert">
-                  Checkable in <code>{attempt.repo}/{attempt.file}</code>
+                  <code>{part.source}</code>
                 </p>
               </Reveal>
             ))}
           </ol>
 
-          <Reveal delay={320}>
+          <Reveal delay={340}>
             <p className="landing-body landing-body--invert landing-evidence__coda">
-              None of this is incompetence — two of the three are well-built, and the third
-              knows more vocal science than this project does. It is what the problem does to
-              you. The interesting part looks like the easy part, and a plausible number is
-              enormously cheaper to produce than a true one. A grade nobody can check looks
-              exactly like a grade.
+              The through-line is the last one. A plausible number is far cheaper to produce
+              than a true one, and on a screen they look identical. So the rule here is that a
+              dimension nothing measured is reported as missing, never as zero — and the score
+              you get is the one the recording can actually support.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* ── V. What it takes to hear it ─────────────────────────────────── */}
+      {/* ── V. What it measures ─────────────────────────────────────────── */}
       <section className="landing-band" aria-labelledby="measure-title">
         <div className="landing-shell">
           <Reveal>
-            <p className="landing-eyebrow">The answer, part one</p>
+            <p className="landing-eyebrow">What you get</p>
             <h2 id="measure-title" className="landing-h2">
-              Measure what you can. Say so when you can&rsquo;t.
+              A grade you can argue with.
             </h2>
             <p className="landing-body landing-narrow">
-              A take is aligned against a real score rather than compared note-for-note, so
-              playing something slowly is not the same mistake as playing it wrong. Intonation
-              is reported in cents, because &ldquo;nearest semitone&rdquo; cannot tell a
-              violinist anything they need. Dynamics are measured relative to your own take,
-              because absolute loudness is your microphone and your room, not your playing.
-            </p>
-            <p className="landing-body landing-narrow">
-              And where a measurement is not available — silence, an unseen hand, an occluded
-              hip — it is reported as absent and the remaining dimensions are renormalised. A
-              drummer is not marked down for pitch. Nothing is ever scored as zero because it
-              was not observed.
+              Every take comes back with the dimensions it could measure, the ones it
+              couldn&rsquo;t, and an examiner&rsquo;s read on what to fix first. All of it runs
+              on your own machine — the model makes the wording better and never touches the
+              numbers.
             </p>
           </Reveal>
 
@@ -228,45 +212,43 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
         </div>
       </section>
 
-      {/* ── VI. And then remembering ────────────────────────────────────── */}
-      <section className="landing-band landing-band--tint" aria-labelledby="memory-title">
+      {/* ── VI. Enter ───────────────────────────────────────────────────── */}
+      <section className="landing-band landing-band--tint" aria-labelledby="decay-title">
         <div className="landing-shell landing-narrow">
           <Reveal>
-            <p className="landing-eyebrow">The answer, part two</p>
-            <h2 id="memory-title" className="landing-h2">
-              The harder half is remembering.
+            <p className="landing-eyebrow">And then it fades</p>
+            <h2 id="decay-title" className="landing-h2">
+              The tree goes dull where you stop going.
             </h2>
             <p className="landing-body">
-              Every skill sits on a prerequisite graph and carries a review schedule. Play it
-              well and the interval stretches; leave it and it contracts. Nothing about that
-              state is stored — mastery is computed from when you last played it and how it
-              went, so a change to what &ldquo;mastered&rdquo; means applies to your whole
-              history rather than to whatever a nightly job last wrote down.
+              Every skill carries a review schedule. Play it well and the gap before it comes
+              back gets longer; leave it and the gap closes. None of that is stored as a
+              number — it&rsquo;s worked out from when you last played it and how it went, so
+              changing what &ldquo;solid&rdquo; means changes your whole history rather than
+              whatever a nightly job last wrote down.
             </p>
             <p className="landing-body">
-              The practical effect is that the tree goes quietly dull in the places you have
-              been avoiding, and the thing you were best at in March turns up as tomorrow&rsquo;s
-              quest. That is the part a metronome and a video cannot do for you, and it is the
-              half most practice tools skip.
+              What it feels like: the thing you were best at in March turns up as
+              tomorrow&rsquo;s quest, and you find out you&rsquo;d lost it before anyone else
+              does.
             </p>
           </Reveal>
           <Reveal delay={140} className="landing-mascot-note">
             <Quartz size={92} rest="idle-l" greet="stumble" react="cheer" label="Quartz, reacting" />
             <p>
-              Quartz has opinions about your semiquavers. It does not get a vote on your
+              Quartz has opinions about your semiquavers. It doesn&rsquo;t get a vote on your
               grade — nothing it does changes a number.
             </p>
           </Reveal>
         </div>
       </section>
 
-      {/* ── VII. Enter ──────────────────────────────────────────────────── */}
       <section className="landing-close" aria-labelledby="close-title">
         <div className="landing-shell landing-narrow landing-close__inner">
           <Reveal>
             <Quartz size={116} rest="bow" greet="cheer" react="belt" label="Quartz, taking a bow" />
             <h2 id="close-title" className="landing-h2">
-              Play something. Find out what it actually sounded like.
+              Play something. Find out what it sounded like.
             </h2>
             <div className="landing-actions landing-actions--center">
               <Link href={primaryHref} className="landing-cta">
@@ -276,10 +258,7 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
           </Reveal>
         </div>
         <footer className="landing-footer">
-          <p>
-            Learn Any Instrument — a practice tutor that measures what it can and says so when
-            it cannot.
-          </p>
+          <p>Learn Any Instrument — practice that measures itself, and says so when it can&rsquo;t.</p>
         </footer>
       </section>
     </main>
