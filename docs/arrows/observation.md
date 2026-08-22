@@ -9,6 +9,11 @@ explainable observations that the grader is permitted to see.
 during brownfield bootstrap. Design and specs describe current reality; two of the three
 reducers in this segment have no production caller.
 
+Since that audit, the selected-video path arrived by cherry-pick from the
+abandoned remote: The note segmenter still lacks a production caller.
+The hand and body-pose reducers share production callers for live-camera and selected-video
+analysis. Selected-video skill profiles and full-window aggregation are implemented and tested.
+
 ## References
 
 ### HLD
@@ -18,16 +23,20 @@ reducers in this segment have no production caller.
 - `docs/intent/observation/observation-design.md`
 
 ### EARS
-- `docs/intent/observation/observation-specs.md` (35 specs)
+- `docs/intent/observation/observation-specs.md` (55 specs)
 
 ### Tests
 - `frontend/lib/noteSegmentation.test.ts`
 - `frontend/lib/posture.test.ts`
+- `frontend/lib/videoAnalysis.test.ts`
+- `frontend/lib/visualAssessment.test.ts`
 
 ### Code
 - `frontend/lib/noteSegmentation.ts` (334 lines)
 - `frontend/lib/posture.ts` (599 lines)
 - `frontend/lib/technique.ts` (223 lines)
+- `frontend/lib/videoAnalysis.ts`
+- `frontend/lib/visualAssessment.ts`
 - `frontend/stores/usePostureStore.ts` (102 lines)
 - `backend/app/evaluation/posture.py` (93 lines)
 
@@ -44,21 +53,43 @@ unreliable measurement can never reach the grader as a confident number.
 3. `technique.ts` — the same shape for 21 hand landmarks; wrist elevation and hand stability.
 4. `usePostureStore.ts` — take-scoped accumulation; median per key, worst status, bounded.
 5. `evaluation/posture.py` — server-side reduction to one accuracy, or to unmeasured.
+6. `videoAnalysis.ts` — pure bounded timeline summary, highlight grouping, and privacy-safe export.
+7. `visualAssessment.ts` — six versioned skill profiles and a pure reducer from the visual
+   timeline to pass, retry, or insufficient evidence.
+
+## Edge Audit — Skill-Aware Selected Video
+
+The implementation impact is contained within the observation-owned selected-video consumer:
+
+| Edge | Impact |
+|---|---|
+| `capture -> observation` | None. The existing `VisualTracker` frame contract already supplies every required timestamped metric. |
+| `observation -> evaluation` | None. The local verdict does not change `PostureObservation`, `posture_accuracy`, or the canonical performance grader. |
+| `evaluation -> progression` | None. The local verdict cannot award EXP, update mastery or SRS, or unlock a node. |
+| `curriculum -> observation` | Identity reference only. All six profile skill slugs exist in shipped curriculum fixtures; no curriculum record is changed. |
+| `observation -> interface` | The observation-owned video workspace renders the result using existing interface tokens; no interface-system behavior changes. |
+| `observation -> API` | None. Export remains a local file; there is no request, persistence schema, or API-contract change. |
+| `audio -> observation` | None. Audio fields and modules remain outside the result by type and spec. |
+
+Search of the consumer graph finds `summarizeVisualFrames`, `assessVisualFrames`, and
+`createVisualAssessmentExport` only in their observation modules, unit tests, and
+`VideoAnalysisWorkspace`. The six skill slugs and every named metric key are present in the
+current curriculum fixtures and reducer registries.
 
 ## Spec Coverage
 
 | Category | Spec IDs | Implemented | Deferred | Gaps |
 |---|---|---|---|---|
 | Note segmentation | `OBS-NOTE-001` – `011` | 10 | 1 | 0 |
-| Posture | `OBS-POSE-001` – `012` | 10 | 1 | 1 |
+| Posture | `OBS-POSE-001` – `013` | 10 | 1 | 1 |
 | Hand technique | `OBS-HAND-001` – `004` | 3 | 1 | 0 |
 | Take reduction | `OBS-RED-001` – `008` | 7 | 0 | 1 |
+| Visual timeline | `OBS-TIME-001` – `006` | 5 | 1 | 0 |
+| Skill-aware assessment | `OBS-ASSESS-001` – `014` | 14 | 0 | 0 |
 
-**Summary:** 30 of 35 implemented; 3 deliberate non-wants; 2 active gaps.
-
-The reducers here are almost entirely correct and almost entirely unreachable — but that is
-a *producer* problem, so it is tracked in `capture` (`CAP-MIC-008`, `CAP-CAM-006`,
-`CAP-CAM-008`) rather than counted against this segment.
+**Summary:** 49 of 55 implemented; 4 deliberate non-wants; 2 active gaps.
+The visual reducers and timeline are reachable. The tested note segmenter remains unreachable
+until capture routes the microphone through it (`CAP-MIC-008`).
 
 ## Key Findings
 
@@ -75,13 +106,13 @@ a *producer* problem, so it is tracked in `capture` (`CAP-MIC-008`, `CAP-CAM-006
    at line 23 with a different shape (no `cents_deviation`, `peak_level_db`, `mean_level_db`)
    and restates three constants as literals. Test coverage here measures code nobody runs.
 
-2. **The posture engine has no producer.** No MediaPipe Pose landmarker is constructed
-   anywhere in `frontend/`. `usePostureStore.ts:3` imports two version strings from
-   `posture.ts` and nothing else; `reducePosture`, `POSTURE_RULES`, `calibrateThresholds`
-   and all 16 rules have no production caller.
+2. **The posture engine now has one shared production adapter.** `VisualTracker` constructs
+   MediaPipe hand and body models, feeds both pure reducers, and is used by the live technique
+   panel and selected-video workspace.
 
-3. **Even the hand path is fed from fixtures.** `TechniquePanel` writes to the posture store
-   only from its mock branch, never from the live camera stream.
+3. **Selected-video feedback remains visual-only by construction.** Its typed result has no
+   field for notes, pitch, rhythm, score alignment, landmarks, video, or audio, and it retains
+   media timestamps plus reducer versions.
 
 4. **`grip_openness` is a threshold with no rule.** `posture.ts:86` declares the band; no
    rule computes the metric.
@@ -100,10 +131,8 @@ a *producer* problem, so it is tracked in `capture` (`CAP-MIC-008`, `CAP-CAM-006
 1. Persist `threshold_version` (`OBS-RED-008`) or withdraw it from the wire contract.
 
 ### Blocked on `capture`
-2. Every reducer here is correct and unreachable until `capture` supplies producers:
-   `CAP-MIC-008` (route the recorder through this segmenter), `CAP-CAM-006` (body-pose
-   landmarker), `CAP-CAM-008` (live technique sampling). Until then the tests in this segment
-   measure code nobody runs.
+2. The note reducer remains unreachable until capture routes the recorder through the shared
+   segmenter (`CAP-MIC-008`). The visual reducers are no longer blocked.
 
 ### Should Fix
 3. Implement `grip_openness` or withdraw its threshold (`OBS-POSE-012`).

@@ -227,6 +227,17 @@ that does not cut into five rows of four, or a frame that encodes without transp
 the run rather than shipping a sheared drawing. See
 `docs/intent/interface/interface-design.md § The mascot`.
 
+## Test an MP4 locally
+
+Open **Video** in the app navigation (or `/video-analysis`), choose an instrument skill, select an MP4,
+and press **Analyze video**. Hand and body landmark models run in the browser over the local file;
+the MP4 and its audio track are not uploaded or scored. The result includes current feedback, a
+timestamped correction timeline, a full-window Pass/Retry/Insufficient-evidence verdict, and a
+derived-metric JSON export containing the versioned skill profile and requirement breakdown.
+
+See [`docs/video-analysis.md`](docs/video-analysis.md) for the morning test procedure, network
+requirements, responsibility boundary, and the physical-instrument calibration limitations.
+
 > **`pytest` TRUNCATEs every table, including any course you have created.**
 > Re-run `python -m app.seed` afterwards to get the seeded courses back. Dev
 > login itself survives — it provisions its own user.

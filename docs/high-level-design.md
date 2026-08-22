@@ -73,6 +73,14 @@ posture. Those metrics are then translated into an examiner's assessment. The sp
 load-bearing: the numbers are deterministic and reproducible, and the language is a rendering
 of them. A model may improve the wording; it may never alter a score.
 
+Physical technique is judged against the skill the learner attempted, not against an instrument
+in the abstract. Each assessable skill declares the visual metrics it requires, which ones are
+critical, how they are weighted, and how much visible evidence is enough to make a judgement.
+Frame observations reduce to one take-level outcome: **pass**, **retry**, or **insufficient
+evidence**. A momentary tracking error cannot fail a take, and missing or occluded landmarks
+cannot pass one. The aggregate retains its requirement breakdown and timestamped evidence so the
+learner can see why the outcome was reached.
+
 ### Corrections while playing, not after
 
 Short spoken corrections land at phrase ends during a take, in an examiner's voice. Post-take
@@ -134,6 +142,11 @@ exercises on a wrong tree teach the wrong thing next.
   owed to the learner; a fabricated number is not a grade, it is a claim the system cannot
   support. *(Defensible opposite: give every dimension a number regardless, so grades are
   comparable across takes.)*
+- **A pass belongs to a declared skill and an evidence window.** Instrument-wide posture is
+  feedback, not a pass criterion. A progression result names the attempted skill, evaluates its
+  declared requirements across the take, and distinguishes failing evidence from insufficient
+  evidence. *(Defensible opposite: use one posture score and threshold for every skill on an
+  instrument.)*
 - **A skill has one definition; an instrument specialises it, never restates it.** When a new
   skill resembles one already in the catalogue, extend the catalogue entry rather than
   authoring a parallel copy under a different name. *(Defensible opposite: let each instrument
@@ -210,14 +223,21 @@ why the graph, scheduling and coaching-policy rules test in milliseconds with no
 traversal and the vector store a derived index for retrieval; both are rebuildable, so
 consistency is a staleness metric rather than a correctness bug.
 
-**Raw media stays in the browser.** The camera path emits derived landmarks and metrics, never
-video. Audio is preserved only as a content-addressed recording its owner can delete.
+**Raw visual media stays in the browser.** Both a live camera and a learner-selected video file
+are local frame sources for the same visual analyser. The visual path emits derived metrics,
+never video or image buffers. A prerecorded file is not uploaded merely because it was selected
+for analysis. Audio capture remains a separate subsystem and is preserved only as a
+content-addressed recording its owner can delete. Visual frame metrics are aggregated locally
+against a versioned skill-assessment profile; only the derived result and its evidence summary
+may cross the browser boundary.
 
 ## Key Design Decisions
 
 | Decision | Chosen | Alternatives | Rationale |
 |---|---|---|---|
 | Where scoring happens | Server-side, from note events | Server-side from audio; fully client-side | The server never hears audio: the browser detects notes and sends events. Keeps media local and scoring reproducible from a small payload. |
+| Visual input sources | One analyser over live-camera and selected-video frame sources | Separate live and batch implementations; server-side video analysis | One reducer and one set of thresholds prevents uploaded-video feedback from drifting from live feedback. Local file decoding also preserves the raw-video privacy boundary. |
+| Visual skill verdict | Versioned per-skill requirements reduced over the full evidence window to pass, retry, or insufficient evidence | Worst frame decides; one instrument-wide posture threshold; always emit pass/fail | Temporal aggregation prevents a tracking outlier from deciding the take. Per-skill requirements keep unrelated technique from blocking progression, while a third outcome keeps occlusion from becoming either a false pass or false failure. |
 | Live coaching authority | Cues only; the persisted score comes from the standard attempt path | Persist the live matcher's result | One grading path means live and batch cannot drift, by construction rather than by discipline. |
 | Curriculum authoring | Three paths to one shape: assembled from the catalogue, proposed by a model, or compiled from source | A single path for all cases | The paths differ in latency and in what they can be trusted for, not in output. Assembly answers a named instrument instantly; compilation earns evidence for an unnamed subject; proposal covers what neither has. All three produce the same versioned graph. |
 | Turning a goal into a tree | Resolve the instrument from the learner's words, then assemble | Ask the learner to pick from a list; require source approval first | A sentence is what a learner actually arrives with. A list caps the product at what it already knows, and source approval puts a multi-minute pipeline in front of the first thing anyone sees. |
@@ -258,7 +278,10 @@ The present difficulty ladder moves only scale degrees, bar count and tempo, whi
 *Scoring:* agreement between the system's metric bundle and a teacher's assessment of the
 same take, on a fixed set of takes covering perfect, slow, fast, wrong-pitch, missed-note,
 extra-note and silence. **Falsified if** the system and a teacher disagree about whether a
-take was good.
+take was good. Visual skill outcomes are measured against teacher-labelled good, incorrect,
+partially occluded, and ungradable videos for every shipped instrument. They are falsified if a
+brief outlier changes the outcome, if insufficient evidence becomes a pass or retry, or if the
+declared skill's system outcome disagrees with the teacher more than rarely.
 *Coaching:* whether the correction offered was the one worth giving at that moment. Every
 model call already records prompt identifier, version and hash expressly so this becomes
 answerable across prompt revisions. *Current: nothing reads the ledger for quality.*

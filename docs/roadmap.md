@@ -376,12 +376,24 @@ responses are schema-compatible.
 - [x] Add a deterministic mock-landmark fixture (`mockHandLandmarks`) and keep
   the metric reducer (`reduceTechnique`) pure, so the reducer is testable and
   demoable independently of the browser camera runtime.
+- [x] Construct the MediaPipe body-pose producer and feed both live camera and
+  selected MP4 playback through the same `VisualTracker`, hand reducer, and
+  posture reducer. Media time labels every selected-video observation.
+- [x] Add a local MP4 analysis surface with model-loading, analysing, paused,
+  completed, cancelled, unsupported, failed, and unmeasured states; a bounded
+  correction timeline; and a derived visual JSON export. The MP4 audio track is
+  deliberately outside this workstream.
+- [x] Aggregate the complete selected video against a versioned curriculum-skill profile. Ship
+  one observable profile for each of piano, guitar, violin, trumpet, drums, and banjo; report
+  Pass, Retry, or Insufficient evidence from median value, good-frame ratio, evidence coverage,
+  weighted requirements, and critical requirements rather than worst-frame status.
 
 **Likely files:** `frontend/components/practice/`, `frontend/lib/`, a small
 technique-metric contract, and backend metric validation/persistence.
 
 **Acceptance:** camera denial never blocks audio scoring; mock landmarks produce
-stable metrics; no raw video is persisted by default; the UI exposes confidence.
+stable metrics; no raw video is persisted by default; the UI exposes confidence;
+an MP4 can be selected and analysed locally without invoking audio analysis.
 
 ### 5. Virtual examiner and voice feedback
 

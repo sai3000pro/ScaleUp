@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { usePostureStore } from "@/stores/usePostureStore";
 
-import { HandTracker, type TrackingStatus } from "@/lib/handTracking";
+import { VisualTracker, type VisualTrackingStatus } from "@/lib/visualTracking";
 import {
   HISTORY_SIZE,
   mockHandLandmarks,
@@ -32,14 +32,14 @@ const METRIC_COLOR: Record<string, string> = {
 };
 
 // @spec CAP-CAM-008, CAP-PERM-003, CAP-PERM-004
-export function TechniquePanel() {
+export function TechniquePanel({ instrument = "piano" }: { instrument?: string }) {
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
-  const [trackingStatus, setTrackingStatus] = useState<TrackingStatus>("idle");
+  const [trackingStatus, setTrackingStatus] = useState<VisualTrackingStatus>("idle");
   const [metrics, setMetrics] = useState<TechniqueMetrics | null>(null);
   const [mockMode, setMockMode] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const trackerRef = useRef<HandTracker | null>(null);
+  const trackerRef = useRef<VisualTracker | null>(null);
   const mockIntervalRef = useRef<number | null>(null);
   const mockHistoryRef = useRef<Landmark[][]>([]);
 
@@ -86,10 +86,26 @@ export function TechniquePanel() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      const tracker = new HandTracker({ onMetrics: setMetrics, onStatus: setTrackingStatus });
+      const tracker = new VisualTracker({
+        instrument,
+        onStatus: setTrackingStatus,
+        onFrame: (frame) => {
+          const combined: TechniqueMetrics = {
+            detected: frame.metrics.some((metric) => metric.status !== "not_detected"),
+            version: `${frame.versions.hand}+${frame.versions.posture}`,
+            metrics: frame.metrics,
+          };
+          setMetrics(combined);
+          usePostureStore.getState().sample(combined);
+        },
+      });
       trackerRef.current = tracker;
       if (videoRef.current !== null) {
-        void tracker.start(videoRef.current);
+        const started = await tracker.start(videoRef.current);
+        if (!started) {
+          setCameraStatus("idle");
+          return;
+        }
       }
       setCameraStatus("active");
     } catch {
@@ -120,7 +136,6 @@ export function TechniquePanel() {
     setTrackingStatus("tracking");
   }
 
-  const active = cameraStatus === "active" || mockMode;
   const summary = mockMode
     ? "Mock landmarks — a camera-free demo of the metric pipeline"
     : STATUS_LABEL[trackingStatus] ?? STATUS_LABEL.idle;
@@ -131,8 +146,8 @@ export function TechniquePanel() {
         <div>
           <h2 id="technique-heading" className="font-display text-sm font-semibold">Technique</h2>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-            MediaPipe tracks your hand in the browser. Raw video never leaves the page — only derived
-            metrics are shown, and a camera denial never blocks audio practice.
+            MediaPipe tracks hands and body posture in the browser. Raw video never leaves the page — only
+            derived metrics are shown, and a camera denial never blocks audio practice.
           </p>
         </div>
         <span className="rounded-full border border-violet-900/60 bg-violet-950/20 px-2 py-1 text-[10px] text-violet-300">

@@ -1,7 +1,8 @@
 # Observation — EARS Specs
 
 Prefix: `OBS`. Facets: `NOTE` (audio segmentation), `POSE` (body posture),
-`HAND` (hand technique), `RED` (take-level reduction).
+`HAND` (hand technique), `RED` (take-level reduction), `TIME` (visual timeline),
+`ASSESS` (skill-aware visual assessment).
 
 Status: `[x]` observed working in current code · `[ ]` specified but broken or partial ·
 `[D]` deliberate non-want.
@@ -59,3 +60,29 @@ tracked as `CAP-MIC-008`, `CAP-CAM-006` and `CAP-CAM-008`.
 - [x] **OBS-RED-006**: When posture is unmeasured, the take shall score exactly as it would if posture had never been submitted.
 - [x] **OBS-RED-007**: The observation payload shall carry derived metrics only, and shall never carry landmarks or video.
 - [ ] **OBS-RED-008**: The server shall persist the threshold version submitted with an observation.
+
+## Visual timeline
+
+- [x] **OBS-TIME-001**: Every selected-video observation frame shall retain its media timestamp and the versions of the reducers that produced it.
+- [x] **OBS-TIME-002**: The visual summary shall reduce each metric to its median value, mean confidence, good-frame ratio, and measured-frame count using a pure deterministic function.
+- [x] **OBS-TIME-003**: Adjacent needs-attention observations for the same metric shall collapse into one timestamped highlight rather than producing one correction per sampled frame.
+- [x] **OBS-TIME-004**: A selected video with no countable visual metrics shall complete as an unmeasured result rather than receive a zero technique score.
+- [D] **OBS-TIME-005**: The visual summary and export shall contain no notes, pitch, rhythm, MusicXML alignment, DTW result, raw landmark, video frame, or audio field.
+- [x] **OBS-TIME-006**: Given identical derived frame observations, the visual summary and export shall be identical.
+
+## Skill-aware visual assessment
+
+- [x] **OBS-ASSESS-001**: The client shall declare every visual assessment as a versioned profile with a stable profile ID, instrument, curriculum skill slug, title, confidence floor, coverage floor, overall pass floor, and one or more positively weighted metric requirements that declare criticality and a pass floor.
+- [x] **OBS-ASSESS-002**: The selected-video surface shall derive its instrument and skill choices from the assessment-profile registry, and shall not silently fall back to an instrument-wide rule set when a profile is absent.
+- [x] **OBS-ASSESS-003**: The initial profile registry shall contain `five-finger-pattern` for piano, `basic-strumming` for guitar, `open-string-bow` for violin, `trumpet-orientation` for trumpet, `basic-strokes` for drums, and `banjo-strumming` for banjo, using only the observable metrics declared in the observation design.
+- [x] **OBS-ASSESS-004**: A profile requirement shall count only readings whose status is good or needs-attention and whose confidence meets that profile's confidence floor.
+- [x] **OBS-ASSESS-005**: The assessment reducer shall compute a requirement's evidence coverage as its countable-reading count divided by the total sampled-frame count, so missing and low-confidence readings remain evidence about observability without becoming zero-valued technique.
+- [x] **OBS-ASSESS-006**: For each requirement with countable evidence, the assessment reducer shall compute median value, good-frame ratio, and a requirement score weighted 80 percent to median value and 20 percent to good-frame ratio so the derived binary status does not double-penalise the same geometry.
+- [x] **OBS-ASSESS-007**: When there are no sampled frames, a declared metric has no countable reading, or any requirement's coverage is below the profile floor, the assessment reducer shall return insufficient-evidence with a null overall score rather than pass or retry.
+- [x] **OBS-ASSESS-008**: Where evidence is sufficient, the assessment reducer shall compute the overall score as the requirement-weighted mean and shall return pass only when the overall score and every critical requirement score meet their declared floors; otherwise it shall return retry.
+- [x] **OBS-ASSESS-009**: A needs-attention frame or collapsed correction range shall contribute to temporal aggregates and explanations but shall never independently override the take-level outcome.
+- [x] **OBS-ASSESS-010**: Metrics not named by the selected profile may appear in diagnostic feedback but shall not affect its evidence coverage, score, or outcome.
+- [x] **OBS-ASSESS-011**: The visual assessment reducer shall be a pure deterministic function of a profile and timestamped derived frames, reading no browser, model, device, clock, network, audio, or raw-media resource.
+- [x] **OBS-ASSESS-012**: The assessment result shall retain profile identity and version, instrument, skill slug, outcome, nullable overall score, evidence coverage, thresholds, and a per-requirement breakdown containing weight, criticality, coverage, frame counts, median value, good-frame ratio, nullable score, pass state, and relevant timestamped corrections.
+- [x] **OBS-ASSESS-013**: When selected-video analysis completes, the interface shall present pass, retry, or insufficient-evidence together with overall score when measured, evidence coverage, and the result of each declared requirement.
+- [x] **OBS-ASSESS-014**: The selected-video JSON export shall include the assessment profile and derived result while retaining no raw video, image frame, landmark, note, pitch, rhythm, MusicXML alignment, DTW, or audio field.

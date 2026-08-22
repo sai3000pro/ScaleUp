@@ -107,6 +107,130 @@ contribute. When nothing qualifies, the result is `None` — and the evaluator's
 redistributes across the dimensions that remain, so a take with no usable camera data
 scores exactly as it would have if posture had never been measured.
 
+## Visual feedback timeline
+
+Live and selected-video capture both supply the same pair of landmark streams to observation:
+21-point hands and 33-point body pose. Their reduced metrics are merged per frame without
+merging meaning: each metric retains its key, value, confidence, status, explanation, raw
+geometry, unit, and evaluator version. Media time is attached by capture and is never inferred
+from frame count.
+
+The selected-video surface retains a bounded sequence of these derived frames. Its summary is a
+pure reduction: median value, mean confidence, good-frame ratio, measured-frame count, and the
+timestamps of actionable observations. Repeated adjacent observations for the same metric collapse
+into one highlight so a five-second wrist problem is feedback, not twenty-five copies of the same
+warning. The timeline may show every observed metric; progression uses only the requirements in the
+selected skill-assessment profile.
+
+An empty or low-confidence analysis remains a valid result. The interface explains that the
+learner or required joints were not visible; it does not turn missing evidence into a technique
+failure. Export contains metadata and derived observations only, never landmarks, video frames,
+or audio-derived fields.
+
+## Skill-aware visual assessment
+
+An instrument selects the available geometry rules; a skill selects which of those observations
+matter to progression. The visual analyser therefore grades against a versioned
+`VisualAssessmentProfile`, not against every metric MediaPipe happened to produce. A profile
+contains:
+
+- a stable profile ID, version, instrument, curriculum skill slug, and learner-facing title;
+- requirements naming one observable metric each, with a positive weight and a `critical` flag;
+- a minimum measured-coverage ratio for every requirement;
+- a minimum per-requirement score for critical requirements; and
+- a minimum weighted overall score.
+
+The first profile set deliberately promises only what the present landmark rules can observe:
+
+| Instrument | Curriculum skill | Verdict metrics |
+|---|---|---|
+| Piano | `five-finger-pattern` | wrist elevation (critical), torso lean, shoulder level |
+| Guitar | `basic-strumming` | neck angle (critical), strumming-arm angle (critical), torso lean |
+| Violin | `open-string-bow` | scroll height (critical), bow-arm elbow (critical), chin tilt, torso lean, shoulder level |
+| Trumpet | `trumpet-orientation` | head tilt (critical), elbow lift (critical), elbow symmetry, torso lean, shoulder level |
+| Drums | `basic-strokes` | wrist-height symmetry (critical), seated posture (critical), shoulder level |
+| Banjo | `banjo-strumming` | neck angle (critical), strumming-arm angle (critical), torso lean |
+
+Generic hand observations may still appear in the feedback timeline, but they do not affect an
+instrument's verdict unless its selected profile names them. This prevents a piano-oriented wrist
+heuristic from failing a trumpet or drum skill. Instrument-object interactions that the landmark
+model cannot see — key contact, valve fingering, bow/string contact, drumstick grip, and pick or
+finger contact — cannot be requirements in a profile.
+
+Movement-stability heuristics remain diagnostic until exercise-specific calibration exists.
+`hand_stability` and `strum_shoulder_stability` can mistake intentional musical movement for poor
+form, so the initial progression profiles exclude them even though the timeline may still report
+them.
+
+### Temporal aggregation
+
+Aggregation is a pure deterministic reduction over the full timestamped frame sequence. For each
+profile requirement:
+
+1. A reading is countable only when its status is `good` or `needs_attention` and its confidence
+   is at least 0.5.
+2. `coverage` is countable readings divided by total sampled frames. Missing and low-confidence
+   readings remain in the evidence denominator; they never become zero-valued technique.
+3. `medianValue` is the median value of countable readings and `goodFrameRatio` is the share of
+   countable readings whose status is `good`.
+4. `requirementScore` is 80% `medianValue` and 20% `goodFrameRatio`. The frame status is derived
+   from the same underlying metric value, so equal weighting would punish a borderline reading
+   twice. The smaller temporal term still makes a sustained problem matter while allowing a brief
+   outlier to wash out of a good take.
+5. Adjacent needs-attention readings retain their collapsed timestamp ranges for explanation, but
+   one range does not independently override the aggregate.
+
+The profile's `evidenceCoverage` is the minimum coverage among its requirements: the verdict is
+only as observable as its least-observed required fact. If there are no frames, a required metric
+is absent, or any requirement has coverage below 0.6, the outcome is `insufficient_evidence` and
+the overall score is `null`.
+
+With sufficient evidence, `overallScore` is the weighted mean of requirement scores. The outcome
+is `pass` when `overallScore` is at least 0.65 and every critical requirement score is at least
+0.55; otherwise it is `retry`. All ratios and thresholds are stored in the result through the
+profile version so an exported outcome remains reproducible after calibration changes.
+
+The initial 0.5 confidence floor, 0.6 coverage floor, 0.65 overall floor, and 0.55 requirement
+floor are product defaults, not teacher-validated facts. They belong to the versioned profile
+contract and must be replaced or specialised using a labelled corpus without changing the
+aggregation algorithm in place.
+
+### Result contract
+
+`VisualAssessmentResult` carries the profile identity and version, instrument, skill slug,
+outcome, nullable overall score, evidence coverage, and one result per requirement. Each
+requirement result carries its weight, criticality, coverage, countable and total frame counts,
+median value, good-frame ratio, nullable score, pass state, and the relevant timestamped
+corrections. The result contains only derived visual observations. It cannot carry raw video,
+frames, landmarks, audio observations, or musical-quality claims.
+
+## Boundary and downstream edges
+
+The selected-video surface is a local validation harness for this result contract. It does not
+award EXP, update mastery, schedule review, or unlock a curriculum node. Allowing an uncalibrated
+browser-only threshold to mutate progression would turn a demonstrator into a second grading
+authority. Promoting a visual assessment result into the canonical attempt grade is a later
+cross-segment change through `evaluation` and `progression`, after teacher-labelled validation and
+server-side persistence of the profile version.
+
+The six initial profile skill slugs already exist in the published curriculum fixtures. The
+frontend registry mirrors those identities for the local harness but does not alter curriculum
+data or claim ownership of skill definitions. A future server-delivered profile belongs to the
+curriculum contract; this MVP does not add an API or database schema for it.
+
+The edge impact is intentionally narrow:
+
+- `capture -> observation` is unchanged: `VisualTracker` continues to supply timestamped derived
+  hand and pose metrics from either live camera or local MP4 playback.
+- `observation -> evaluation` is unchanged: the existing server posture observation and canonical
+  performance score retain their current wire shapes and authority.
+- `evaluation -> progression` is unchanged: only the canonical graded-attempt path may mutate EXP,
+  mastery, SRS state, or unlocks.
+- `observation -> selected-video interface/export` gains the profile registry, aggregate result,
+  verdict card, and local JSON fields specified here.
+- The audio observation and alignment paths are untouched; neither the profile nor its result can
+  contain an audio-derived fact.
+
 ## Current state versus intent
 
 This section records divergence rather than pretending the code matches the design above.
@@ -119,12 +243,12 @@ own `NoteSegment` interface at line 23 with a different shape — it lacks
 constants above as its own literals. The tested reducer and the running reducer are
 different code.
 
-**The posture engine has no producer.** Nothing in the frontend constructs a MediaPipe Pose
-landmarker. `usePostureStore` imports `POSTURE_VERSION` and `POSTURE_THRESHOLD_VERSION`
-from `posture.ts` and nothing else; `reducePosture`, `POSTURE_RULES`, `calibrateThresholds`
-and all 16 rules have no production caller. The store's only writer is `TechniquePanel`'s
-*mock* branch, so even the hand metrics that do run are fed from fixtures rather than from
-a camera.
+**The visual reducers have production callers but uncalibrated thresholds.** `VisualTracker`
+constructs both MediaPipe landmarkers and drives the same hand/posture reducers from the live
+camera and from selected MP4 playback. The technique panel samples live results into the take
+store, and the selected-video surface reduces them into a bounded timeline and a versioned
+skill-aware outcome. This proves the signal path and aggregation behavior, not the pedagogical
+correctness of the initial threshold bands.
 
 **`grip_openness` is a band with no rule.** A threshold is declared for it; no rule computes
 it. The drums rule set names three rules, and this is not one of them.
@@ -141,7 +265,9 @@ it. The drums rule set names three rules, and this is not one of them.
 | Depth-dependent rules | Omitted | Approximate from MediaPipe `z` | `z` is a weak relative estimate; the rules it would support are precisely the ones a learner would most trust. |
 | Scale normalisation | Divide by `bodyScale` | Raw pixel distances | Otherwise leaning toward the camera changes every metric. |
 | Threshold ownership | Versioned constants + persisted raw value and unit | Bake thresholds into the score | A threshold you cannot retune is one you can never discover is wrong. |
-| Take reduction | Median per metric, worst status | Mean, or last frame | One page-turn frame should not become the take's posture. |
+| Skill-aware visual reduction | 80% median value plus 20% good-frame ratio per declared requirement; weighted take result after evidence gating | Equal-weight the correlated signals; worst frame; mean alone; last frame; one instrument-wide score | Median resists tracking outliers, the smaller temporal term exposes sustained form without double-penalising the same geometry, and a profile keeps unrelated observations out of progression. |
+| Visual outcomes | Pass, retry, or insufficient evidence | Binary pass/fail | A binary result must mislabel occlusion as either success or learner failure. |
+| Progression during local validation | No progression mutation; result remains local/exportable | Award EXP or unlock the named skill directly from the browser verdict | The thresholds are not teacher-validated, and bypassing the canonical attempt grade would create a second authority for mastery. |
 | Calibration bound | Clamp to half a band width | Unbounded per-learner shift | An unbounded baseline captured while slouching makes everything pass. |
 | Posture absent | Return `None`; weights redistribute | Score 0, or a neutral 0.5 | A take with no camera must score exactly as it would if posture had never existed. |
 

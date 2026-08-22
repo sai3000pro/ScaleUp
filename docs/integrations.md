@@ -45,6 +45,17 @@ from it.
 | **Exa** | `RESEARCH_PROVIDER=exa` + `EXA_API_KEY` | Deterministic example results, so propose/review/approve is demoable without a search bill. |
 | **Google Cloud Storage** | `STORAGE_BACKEND=gcs` + `GCS_BUCKET` | The local filesystem. Fine on one machine; ephemeral on a managed host. |
 
+### Browser model hosts
+
+Video technique analysis has two credential-free browser dependencies that are not backend
+providers: `cdn.jsdelivr.net` serves the pinned MediaPipe Tasks Vision WebAssembly runtime, and
+`storage.googleapis.com` serves the pinned hand and pose model assets. The selected MP4 is decoded
+locally and is never sent to either host. If either host is unavailable, the interface reports a
+model-loading failure and audio practice remains usable.
+
+The exact pinned URLs and the morning verification procedure are documented in
+[`video-analysis.md`](video-analysis.md).
+
 ---
 
 ## ElevenLabs

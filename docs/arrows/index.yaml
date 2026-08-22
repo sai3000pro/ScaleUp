@@ -8,9 +8,10 @@ last_updated: 2026-08-22
 # were re-audited. The remaining eight keep dc77249, which is still accurate: none
 # of their files has changed since it.
 #
-# CAVEAT: 6346ba8 is on the unmerged branch `landing-page`. If that branch is
-# squash-merged the sha stops resolving and those three segments need re-stamping
-# to the merge commit -- the same failure the reset above caused.
+# `landing-page` merged fast-forward, so 6346ba8 is permanent and the caveat that
+# stood here is discharged. capture and observation now carry source cherry-picked
+# from the abandoned remote that has never been audited here -- their audited_sha
+# deliberately stays behind it so the next pass treats them as stale.
 
 # Segments follow the signal path: sensor data becomes observations, observations
 # become metrics, metrics become language, outcomes become progression. Curriculum
@@ -39,7 +40,7 @@ taxonomy:
 
 arrows:
   capture:
-    status: AUDITED
+    status: UPDATED
     parent: null
     sampled: 2026-08-22
     audited: 2026-08-22
@@ -48,10 +49,10 @@ arrows:
     blockedBy: [operations]
     detail: capture.md
     next: "Disable browser audio processing (CAP-MIC-007); declare the MediaPipe CDN hosts (CAP-CAM-007)."
-    drift: "Audio measured through automatic gain control; two external hosts undeclared; no body-pose producer; note segmentation reimplemented inline."
+    drift: "Selected-video analysis arrived by cherry-pick from the abandoned remote and has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. Audio is measured through automatic gain control and reimplements note segmentation inline. Browser model hosts are documented but absent from the backend integration register. Live and selected-video hand/body producers now share one adapter."
 
   observation:
-    status: AUDITED
+    status: UPDATED
     parent: null
     sampled: 2026-08-22
     audited: 2026-08-22
@@ -59,8 +60,8 @@ arrows:
     blocks: [evaluation]
     blockedBy: [capture]
     detail: observation.md
-    next: "Persist threshold_version (OBS-RED-008); implement or withdraw grip_openness (OBS-POSE-012)."
-    drift: "Reducers are correct and unreachable — the tested note segmenter and the whole 16-rule posture engine have no production caller. Producers are capture's."
+    next: "Calibrate the skill-profile thresholds against teacher-labelled takes, then persist threshold_version (OBS-RED-008)."
+    drift: "Selected-video analysis arrived by cherry-pick from the abandoned remote and has not been audited in this repository: its specs and design were written by their author, not verified here. audited_sha stays at the last real audit so the next pass picks it up. The tested note segmenter still has no production caller. Visual profiles and full-window aggregation are implemented, but their pedagogical thresholds remain uncalibrated against real instrument takes."
 
   evaluation:
     status: AUDITED
