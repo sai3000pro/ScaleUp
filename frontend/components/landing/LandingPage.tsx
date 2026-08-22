@@ -61,7 +61,7 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
             <p className="landing-footnote">
               {signedIn
                 ? "You're signed in — your courses are one click away."
-                : "Free to try. Everything is graded on your machine, with no API key."}
+                : "Free to try. No model decides your grade — the numbers come from the recording."}
             </p>
           </div>
 
@@ -190,9 +190,9 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
             </h2>
             <p className="landing-body landing-narrow">
               Every take comes back with the dimensions it could measure, the ones it
-              couldn&rsquo;t, and an examiner&rsquo;s read on what to fix first. All of it runs
-              on your own machine — the model makes the wording better and never touches the
-              numbers.
+              couldn&rsquo;t, and an examiner&rsquo;s read on what to fix first. The numbers are
+              measured off the recording; a model may improve the wording and never touches
+              them.
             </p>
           </Reveal>
 

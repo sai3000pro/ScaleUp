@@ -75,12 +75,6 @@ export const SYSTEM_FIGURES: readonly Figure[] = [
     label: "posture rules, each declaring the landmarks it needs to be honest",
     source: "frontend/lib/posture.ts",
   },
-  {
-    id: "keys",
-    value: "0",
-    label: "API keys needed to record a take and be graded on it",
-    source: "backend/app/llm/registry.py — LLM_PROVIDER=fake is the default",
-  },
 ];
 
 /**
