@@ -49,8 +49,8 @@ __all__ = [
 
 # Above this the arriving note is not a plausible attempt at anything in the
 # lookahead window, so it is an extra note rather than a bad match.
-MATCH_COST_CEILING = 0.55
-DEFAULT_LOOKAHEAD = 4
+MATCH_COST_CEILING = 0.75
+DEFAULT_LOOKAHEAD = 6
 
 
 @dataclass(frozen=True, slots=True)
@@ -130,8 +130,16 @@ def _cost(expected: ExpectedEvent, observed: ObservedEvent, timing_tolerance: fl
     if expected.pitch_midi is None or observed.pitch_midi is None:
         pitch_cost = 0.0 if expected.pitch_midi is None and observed.pitch_midi is None else 1.0
     else:
-        pitch_cost = min(abs(expected.pitch_midi - observed.pitch_midi) / 6.0, 1.0)
-    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance, 1e-6), 1.0)
+        diff = abs(expected.pitch_midi - observed.pitch_midi)
+        if diff <= 1.2:
+            # Very close pitch / slight microtonal pitch drift or acoustic intonation
+            pitch_cost = min(diff / 6.0, 0.15)
+        elif diff >= 11.2 and round(diff) % 12 == 0:
+            # Harmonic overtone capture
+            pitch_cost = 0.12
+        else:
+            pitch_cost = min(diff / 8.0, 1.0)
+    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return PITCH_COST_WEIGHT * pitch_cost + TIMING_COST_WEIGHT * timing_cost + CONFIDENCE_COST_WEIGHT * confidence_cost
 

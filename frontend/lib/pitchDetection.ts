@@ -48,12 +48,13 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
   for (let i = 0; i < size; i += 1) {
     energy += timeDomain[i] * timeDomain[i];
   }
-  if (energy < 1e-6) return null;
+  if (energy < 1e-8) return null;
 
   const minLag = Math.max(2, Math.floor(sampleRate / 1200));
   const maxLag = Math.floor(sampleRate / 55);
   if (minLag >= maxLag) return null;
 
+  const correlations = new Float32Array(maxLag + 2);
   let bestLag = -1;
   let bestCorrelation = 0;
   for (let lag = minLag; lag <= maxLag; lag += 1) {
@@ -61,6 +62,7 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
     for (let i = 0; i < size - lag; i += 1) {
       correlation += timeDomain[i] * timeDomain[i + lag];
     }
+    correlations[lag] = correlation;
     if (correlation > bestCorrelation) {
       bestCorrelation = correlation;
       bestLag = lag;
@@ -69,27 +71,31 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
   if (bestLag < 0) return null;
 
   const clarity = bestCorrelation / energy;
-  if (clarity < 0.4) return null;
+  if (clarity < 0.22) return null;
+
+  // Subharmonic / harmonic peak picking to prevent octave octave-down errors
+  for (const divisor of [2, 3, 4]) {
+    const subLag = Math.round(bestLag / divisor);
+    if (subLag >= minLag && subLag <= maxLag) {
+      // Find local peak around subLag
+      let localMax = subLag;
+      for (let delta = -2; delta <= 2; delta += 1) {
+        const testLag = subLag + delta;
+        if (testLag >= minLag && testLag <= maxLag && correlations[testLag] > correlations[localMax]) {
+          localMax = testLag;
+        }
+      }
+      if (correlations[localMax] >= bestCorrelation * 0.78) {
+        bestLag = localMax;
+        bestCorrelation = correlations[localMax];
+        break;
+      }
+    }
+  }
 
   // Parabolic interpolation around the winning lag for sub-sample precision.
-  const before = bestLag > minLag
-    ? (() => {
-      let correlation = 0;
-      for (let i = 0; i < size - (bestLag - 1); i += 1) {
-        correlation += timeDomain[i] * timeDomain[i + bestLag - 1];
-      }
-      return correlation;
-    })()
-    : bestCorrelation;
-  const after = bestLag < maxLag
-    ? (() => {
-      let correlation = 0;
-      for (let i = 0; i < size - (bestLag + 1); i += 1) {
-        correlation += timeDomain[i] * timeDomain[i + bestLag + 1];
-      }
-      return correlation;
-    })()
-    : bestCorrelation;
+  const before = bestLag > minLag ? correlations[bestLag - 1] : bestCorrelation;
+  const after = bestLag < maxLag ? correlations[bestLag + 1] : bestCorrelation;
   const denominator = before - 2 * bestCorrelation + after;
   let refinedLag = bestLag;
   if (Math.abs(denominator) > 1e-9) {
@@ -101,11 +107,13 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
 }
 
 const MIN_NOTE_DURATION_SECONDS = 0.12;
-const DEFAULT_CLARITY_THRESHOLD = 0.55;
-const PITCH_CHANGE_FRAMES = 6;
+const DEFAULT_CLARITY_THRESHOLD = 0.38;
+const PITCH_CHANGE_FRAMES = 5;
+const SILENCE_FRAMES_TO_CLOSE = 6;
+const NEW_NOTE_CONFIRM_FRAMES = 2;
 // Below this the learner has stopped playing. The coach only speaks at a rest,
 // so this threshold is what separates coaching from talking over someone.
-const SILENCE_LEVEL_DB = -50;
+const SILENCE_LEVEL_DB = -48;
 
 interface _CurrentNote {
   midi: number;
@@ -142,6 +150,12 @@ export class MicRecorder {
   private startedAt = 0;
   private current: _CurrentNote | null = null;
   private pendingChange = 0;
+  private pendingSilenceFrames = 0;
+  private pendingNewMidi: number | null = null;
+  private pendingNewFrames = 0;
+  private pendingNewOnset = 0;
+  private lastRmsDb = -100;
+  private lastClosedOnset = -1;
   private notes: NoteSegment[] = [];
   private status: RecordingStatus = "idle";
   private clarityThreshold = DEFAULT_CLARITY_THRESHOLD;
@@ -246,11 +260,43 @@ export class MicRecorder {
     }
     this.onLevel(rmsDb, this.quietSince === null ? 0 : now - this.quietSince);
 
-    if (midi !== null && clarity >= this.clarityThreshold) {
+    const isHarmonic = midi !== null && this.current !== null && (
+      Math.abs(midi - this.current.midi) % 12 === 0 ||
+      Math.abs(midi - this.current.midi) === 7 ||
+      Math.abs(midi - this.current.midi) === 19
+    );
+
+    if (midi !== null && clarity >= this.clarityThreshold && rmsDb >= SILENCE_LEVEL_DB) {
+      this.pendingSilenceFrames = 0;
       if (this.current === null) {
-        this.current = { midi, onsetSeconds: now, confidenceSum: clarity, frames: 1 };
+        if (now - this.lastClosedOnset < 0.08) {
+          this.pendingNewMidi = null;
+          this.pendingNewFrames = 0;
+        } else if (this.pendingNewMidi === midi) {
+          this.pendingNewFrames += 1;
+          if (this.pendingNewFrames >= NEW_NOTE_CONFIRM_FRAMES) {
+            this.current = {
+              midi,
+              onsetSeconds: this.pendingNewOnset,
+              confidenceSum: clarity * this.pendingNewFrames,
+              frames: this.pendingNewFrames,
+            };
+            this.pendingNewMidi = null;
+            this.pendingNewFrames = 0;
+          }
+        } else {
+          this.pendingNewMidi = midi;
+          this.pendingNewOnset = now;
+          this.pendingNewFrames = 1;
+        }
+        this.pendingChange = 0;
+      } else if (isHarmonic) {
+        // Harmonic overtone / decay resonance: keep playing the current fundamental note
+        this.current.confidenceSum += clarity;
+        this.current.frames += 1;
         this.pendingChange = 0;
       } else if (midi !== this.current.midi) {
+        // Distinct non-harmonic note change
         this.pendingChange += 1;
         if (this.pendingChange >= PITCH_CHANGE_FRAMES) {
           this.closeNote(now);
@@ -261,15 +307,31 @@ export class MicRecorder {
           this.current.frames += 1;
         }
       } else {
-        this.current.confidenceSum += clarity;
-        this.current.frames += 1;
+        // Same pitch: check for clear re-articulation / attack strike
+        const isReattack = rmsDb - this.lastRmsDb > 7.0 && (now - this.current.onsetSeconds) > 0.16;
+        if (isReattack) {
+          this.closeNote(now);
+          this.current = { midi, onsetSeconds: now, confidenceSum: clarity, frames: 1 };
+        } else {
+          this.current.confidenceSum += clarity;
+          this.current.frames += 1;
+        }
         this.pendingChange = 0;
       }
     } else {
+      this.pendingNewMidi = null;
+      this.pendingNewFrames = 0;
       this.pendingChange = 0;
-      this.closeNote(now);
+      if (this.current !== null) {
+        this.pendingSilenceFrames += 1;
+        if (this.pendingSilenceFrames >= SILENCE_FRAMES_TO_CLOSE) {
+          this.closeNote(now);
+          this.pendingSilenceFrames = 0;
+        }
+      }
     }
 
+    this.lastRmsDb = rmsDb;
     this.rafId = requestAnimationFrame(this.tick);
   };
 
@@ -286,6 +348,7 @@ export class MicRecorder {
         fret: null,
       };
       this.notes.push(segment);
+      this.lastClosedOnset = now;
       // The live listener gets the un-normalized onset: the coach follows a
       // wall clock, while `stopTake` rebases onto the first note for scoring.
       this.onNote(segment);

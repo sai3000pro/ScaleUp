@@ -19,9 +19,17 @@ import websockets
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gemini.live")
 
 GEMINI_LIVE_WS_BASE = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent"
+
+AVAILABLE_GEMINI_VOICES = {
+    "Puck": "Crisp, energetic, and engaging voice",
+    "Charon": "Warm, deep, and grounding voice",
+    "Kore": "Calm, natural, and supportive voice",
+    "Fenrir": "Authoritative, resonant, and clear voice",
+    "Aoede": "Melodic, bright, and friendly voice",
+}
 
 
 class GeminiLiveCoachSession:
@@ -33,11 +41,14 @@ class GeminiLiveCoachSession:
         exercise_title: str,
         tempo_bpm: int,
         instructions: str = "",
+        voice_name: str | None = None,
     ) -> None:
+        settings = get_settings()
         self.instrument = instrument
         self.exercise_title = exercise_title
         self.tempo_bpm = tempo_bpm
         self.instructions = instructions
+        self.voice_name = voice_name or settings.gemini_live_voice or "Puck"
         self._ws: websockets.ClientConnection | None = None
         self._is_ready = False
 
@@ -50,10 +61,24 @@ class GeminiLiveCoachSession:
         settings = get_settings()
         api_key = settings.gemini_api_key.strip()
         if not api_key:
-            logger.info("Gemini API key is not configured; using deterministic live coach")
+            logger.info("ℹ️ [GEMINI LIVE] API key is not configured; using deterministic live coach")
             return False
 
+        model_name = settings.gemini_live_model.strip() or "models/gemini-3.1-flash-live-preview"
+        if "gemini-2.0" in model_name:
+            model_name = "models/gemini-3.1-flash-live-preview"
+        elif not model_name.startswith("models/"):
+            model_name = f"models/{model_name}"
+
         ws_url = f"{GEMINI_LIVE_WS_BASE}?key={api_key}"
+        logger.info(
+            "🚀 [GEMINI LIVE CONNECT] Opening bidi WebSocket stream to Gemini Live (model=%s, voice=%s, instrument=%s, tempo=%d BPM)",
+            model_name,
+            self.voice_name,
+            self.instrument,
+            self.tempo_bpm,
+        )
+
         try:
             self._ws = await websockets.connect(
                 ws_url,
@@ -62,25 +87,24 @@ class GeminiLiveCoachSession:
                 ping_timeout=20,
             )
 
-            # Construct setup configuration
+            # Construct setup configuration optimized for real-time latency
             system_prompt = (
-                f"You are a world-class real-time musical coach assisting a student practicing the {self.instrument}. "
-                f"The student is playing the exercise '{self.exercise_title}' at a target tempo of {self.tempo_bpm} BPM. "
-                f"Exercise Instructions: {self.instructions or 'Play smoothly with steady rhythm'}. "
-                "Your job is to listen closely to their audio stream. When they make an error (such as rushing ahead of the beat, "
-                "dragging behind, missing notes, or tone buzzing), speak an ultra-concise, supportive 1-sentence tip in real time. "
-                "When they are playing well, give brief encouragement. Keep spoken responses under 10 words so you do not talk over them."
+                f"You are an ultra-responsive real-time music coach for the {self.instrument} "
+                f"practicing '{self.exercise_title}' at {self.tempo_bpm} BPM. "
+                "Speed and low latency are critical. When you receive a cue or note event, immediately speak a 3 to 6 word "
+                "actionable vocal cue (e.g. 'Steady the tempo', 'Right on the beat', 'Careful with timing', 'Clean tone'). "
+                "Never speak long paragraphs or give conversational intros. Maximum 6 words per utterance."
             )
 
             setup_payload = {
                 "setup": {
-                    "model": settings.gemini_live_model or "models/gemini-2.0-flash-exp",
+                    "model": model_name,
                     "generationConfig": {
-                        "responseModalities": ["AUDIO", "TEXT"],
+                        "responseModalities": ["AUDIO"],
                         "speechConfig": {
                             "voiceConfig": {
                                 "prebuiltVoiceConfig": {
-                                    "voiceName": "Aoede"
+                                    "voiceName": self.voice_name
                                 }
                             }
                         },
@@ -91,15 +115,17 @@ class GeminiLiveCoachSession:
                 }
             }
 
+            logger.info("📤 [GEMINI LIVE OUT] Sending setup frame with voice='%s' and model='%s'", self.voice_name, model_name)
             await self._ws.send(json.dumps(setup_payload))
+
             # Wait for setup acknowledgment
             ack_raw = await asyncio.wait_for(self._ws.recv(), timeout=5.0)
             ack_data = json.loads(ack_raw) if isinstance(ack_raw, str) else json.loads(ack_raw.decode("utf-8"))
-            logger.info("Gemini Live session initialized: %s", ack_data)
+            logger.info("📥 [GEMINI LIVE IN] Setup ACK received from Gemini: %s", ack_data)
             self._is_ready = True
             return True
         except Exception as exc:
-            logger.warning("Could not establish Gemini Live session (%s); falling back to local coach", exc)
+            logger.warning("⚠️ [GEMINI LIVE ERROR] Could not establish Gemini Live session (%s); falling back to local coach", exc)
             if self._ws is not None:
                 with contextlib.suppress(Exception):
                     await self._ws.close()
@@ -122,10 +148,11 @@ class GeminiLiveCoachSession:
                 ]
             }
         }
+        logger.info("📤 [GEMINI LIVE OUT] Sent realtime audio chunk (%d bytes PCM, mime=%s)", len(pcm_bytes), mime_type)
         try:
             await self._ws.send(json.dumps(payload))
         except Exception as exc:
-            logger.warning("Failed to send audio chunk to Gemini Live: %s", exc)
+            logger.warning("⚠️ [GEMINI LIVE ERROR] Failed to send audio chunk: %s", exc)
 
     async def send_text_context(self, text: str) -> None:
         """Send an updated text note / cue event to Gemini Live."""
@@ -143,10 +170,11 @@ class GeminiLiveCoachSession:
                 "turnComplete": True,
             }
         }
+        logger.info("📤 [GEMINI LIVE OUT] Sent text context turn: %r", text)
         try:
             await self._ws.send(json.dumps(payload))
         except Exception as exc:
-            logger.warning("Failed to send text context to Gemini Live: %s", exc)
+            logger.warning("⚠️ [GEMINI LIVE ERROR] Failed to send text context: %s", exc)
 
     async def receive_stream(
         self,
@@ -176,20 +204,28 @@ class GeminiLiveCoachSession:
                         if raw_b64:
                             audio_bytes = base64.b64decode(raw_b64)
 
+                if text_chunk:
+                    logger.info("📥 [GEMINI LIVE IN] Text Delta: %r", text_chunk)
+                if audio_bytes:
+                    logger.info("📥 [GEMINI LIVE IN] Synthesized Audio Chunk (%d bytes PCM)", len(audio_bytes))
+                if turn_complete:
+                    logger.info("📥 [GEMINI LIVE IN] Turn Complete from Gemini Live model")
+
                 if text_chunk or audio_bytes or turn_complete:
                     yield (text_chunk, audio_bytes, turn_complete)
 
                 if turn_complete:
                     break
         except websockets.ConnectionClosed:
-            logger.info("Gemini Live session ended")
+            logger.info("🛑 [GEMINI LIVE] Connection closed by server")
         except Exception as exc:
-            logger.warning("Gemini Live receive stream error: %s", exc)
+            logger.warning("⚠️ [GEMINI LIVE ERROR] Receive stream error: %s", exc)
 
     async def close(self) -> None:
         """Cleanly close the Gemini Live WebSocket session."""
         self._is_ready = False
         if self._ws is not None:
+            logger.info("🛑 [GEMINI LIVE CLOSE] Closing Gemini Live WebSocket connection")
             with contextlib.suppress(Exception):
                 await self._ws.close()
             self._ws = None
@@ -220,6 +256,7 @@ async def generate_gemini_tip(
         "'focus_area' (e.g. 'Rhythm & Pacing' or 'Finger Posture'), and 'suggested_action' (brief 4-8 word direct instruction)."
     )
 
+    logger.info("📤 [GEMINI TIP REQUEST] Prompting Gemini 2.0 Flash for instant tip (%s at %d BPM)", instrument, tempo_bpm)
     try:
         import httpx
 
@@ -242,11 +279,12 @@ async def generate_gemini_tip(
                     if text:
                         parsed = json.loads(text)
                         if isinstance(parsed, dict) and "tip" in parsed:
+                            logger.info("📥 [GEMINI TIP RESPONSE] Generated tip: %s", parsed)
                             return {
                                 "tip": str(parsed.get("tip", "")),
                                 "focus_area": str(parsed.get("focus_area", "Technique & Rhythm")),
                                 "suggested_action": str(parsed.get("suggested_action", "Keep steady pulse.")),
                             }
     except Exception as exc:
-        logger.warning("Gemini tip generation failed (%s); using deterministic guidance", exc)
+        logger.warning("⚠️ [GEMINI TIP ERROR] Gemini tip generation failed (%s); using deterministic guidance", exc)
     return None

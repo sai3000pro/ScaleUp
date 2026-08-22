@@ -77,6 +77,9 @@ export class CoachSocket {
   private utterance: CoachUtteranceState | null = null;
   private audioChunks: string[] = [];
   private audioFormat = "wav";
+  private audioCtx: AudioContext | null = null;
+  private nextPlayTime = 0;
+  private hasStreamedPcm = false;
   private clockSeconds = 0;
   private started = 0;
   private ready = false;
@@ -89,6 +92,7 @@ export class CoachSocket {
     practiceSessionId: string,
     private readonly handlers: CoachHandlers = {},
     takeId: string = crypto.randomUUID(),
+    private readonly voice?: string,
   ) {
     this.practiceSessionId = practiceSessionId;
     this.takeId = takeId;
@@ -116,6 +120,7 @@ export class CoachSocket {
             take_id: this.takeId,
             practice_session_id: this.practiceSessionId,
             protocol_version: COACH_PROTOCOL_VERSION,
+            voice: this.voice,
           }),
         );
         this.started = performance.now();
@@ -195,6 +200,10 @@ export class CoachSocket {
       this.handlers.onCue?.(frame as unknown as CoachCue);
     } else if (type === "coach.begin") {
       this.audioChunks = [];
+      this.hasStreamedPcm = false;
+      if (this.audioCtx) {
+        this.nextPlayTime = this.audioCtx.currentTime;
+      }
       this.utterance = {
         id: String(frame.utterance_id),
         cue: String(frame.cue ?? ""),
@@ -208,17 +217,31 @@ export class CoachSocket {
       this.utterance = { ...this.utterance, text: this.utterance.text + String(frame.text ?? "") };
       this.handlers.onUtterance?.(this.utterance);
     } else if (type === "coach.audio") {
-      this.audioChunks.push(String(frame.audio_base64 ?? ""));
+      const b64 = String(frame.audio_base64 ?? "");
+      this.audioChunks.push(b64);
+      if (frame.format) {
+        this.audioFormat = String(frame.format);
+      }
+      // Instantly play PCM chunks on arrival for zero-latency live voice
+      if (this.audioFormat.includes("pcm") || !this.audioFormat.includes("mp3")) {
+        this.hasStreamedPcm = true;
+        this.streamPcmChunk(b64, this.audioFormat);
+      }
     } else if (type === "coach.end" && this.utterance !== null) {
       const spoken = String(frame.spoken_text ?? this.utterance.text);
       this.utterance = { ...this.utterance, text: spoken, streaming: false, cancelled: Boolean(frame.cancelled) };
       this.handlers.onUtterance?.(this.utterance);
-      if (!this.utterance.cancelled) void this.play(spoken);
+      if (!this.utterance.cancelled && !this.hasStreamedPcm) {
+        void this.play(spoken);
+      }
       this.utterance = null;
     } else if (type === "coach.cancel" && this.utterance !== null) {
       this.utterance = { ...this.utterance, streaming: false, cancelled: true };
       this.handlers.onUtterance?.(this.utterance);
       this.utterance = null;
+      if (this.audioCtx) {
+        this.nextPlayTime = this.audioCtx.currentTime;
+      }
     } else if (type === "take.result") {
       this.handlers.onResult?.(frame.attempt as PerformanceAttempt);
     } else if (type === "error") {
@@ -231,28 +254,92 @@ export class CoachSocket {
   }
 
   /**
-   * Play an utterance. The ladder, in order of preference:
-   *   1. decode the buffered audio chunks;
-   *   2. speak the text with the OS voice.
-   * The second is the default in fake mode, needs no key, and works everywhere,
-   * which is why the contract always carries the spoken text.
+   * Immediately schedule a single PCM audio chunk on the Web Audio timeline.
+   */
+  private streamPcmChunk(pcmBase64: string, format = "audio/pcm;rate=24000"): void {
+    if (typeof window === "undefined" || !pcmBase64) return;
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    if (!this.audioCtx) {
+      this.audioCtx = new AudioCtx();
+    }
+    if (this.audioCtx.state === "suspended") {
+      void this.audioCtx.resume();
+    }
+
+    try {
+      const binary = atob(pcmBase64);
+      const pcmBytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        pcmBytes[i] = binary.charCodeAt(i);
+      }
+      const sampleCount = Math.floor(pcmBytes.length / 2);
+      if (sampleCount === 0) return;
+
+      const rateMatch = format.match(/rate=(\d+)/);
+      const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+
+      const int16 = new Int16Array(pcmBytes.buffer, pcmBytes.byteOffset, sampleCount);
+      const audioBuffer = this.audioCtx.createBuffer(1, sampleCount, sampleRate);
+      const channelData = audioBuffer.getChannelData(0);
+      for (let i = 0; i < sampleCount; i++) {
+        channelData[i] = int16[i] / 32768.0;
+      }
+
+      const source = this.audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(this.audioCtx.destination);
+
+      const currentTime = this.audioCtx.currentTime;
+      const startAt = Math.max(currentTime, this.nextPlayTime);
+      source.start(startAt);
+      this.nextPlayTime = startAt + audioBuffer.duration;
+    } catch (err) {
+      console.warn("PCM audio stream scheduling error:", err);
+    }
+  }
+
+  /**
+   * Play a buffered utterance fallback (e.g. for containerized MP3 or OS TTS).
    */
   private async play(text: string): Promise<void> {
-    if (this.audioChunks.length > 0) {
+    const chunks = this.audioChunks;
+    this.audioChunks = [];
+
+    if (chunks.length > 0 && this.audioFormat === "mp3") {
       try {
-        const bytes = this.audioChunks.flatMap((chunk) => Array.from(atob(chunk), (c) => c.charCodeAt(0)));
-        const blob = new Blob([new Uint8Array(bytes)], { type: this.audioFormat === "mp3" ? "audio/mpeg" : "audio/wav" });
+        const binaryStrings = chunks.map((chunk) => atob(chunk));
+        const totalLen = binaryStrings.reduce((acc, str) => acc + str.length, 0);
+        const pcmBytes = new Uint8Array(totalLen);
+        let offset = 0;
+        for (const str of binaryStrings) {
+          for (let i = 0; i < str.length; i++) {
+            pcmBytes[offset++] = str.charCodeAt(i);
+          }
+        }
+        const blob = new Blob([pcmBytes], { type: "audio/mpeg" });
         const audio = new Audio(URL.createObjectURL(blob));
-        this.audioChunks = [];
         await audio.play();
         return;
-      } catch {
-        // Fall through to speech synthesis.
+      } catch (err) {
+        console.warn("MP3 playback error:", err);
       }
     }
-    this.audioChunks = [];
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+
+    // Fall back to Web Speech Synthesis if text exists
+    if (text && typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    }
+  }
+
+  /** Stop any currently playing audio immediately. */
+  stopPlayback(): void {
+    if (this.audioCtx) {
+      void this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+      this.nextPlayTime = 0;
     }
   }
 

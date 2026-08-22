@@ -141,8 +141,9 @@ async def synthesize_attempt_speech(
     attempt_id: uuid.UUID,
     user: CurrentUser,
     session: DbSession,
+    voice: str = "",
 ) -> VoiceArtifactOut:
-    return await performance_service.synthesize_attempt_speech(session, attempt_id, user)
+    return await performance_service.synthesize_attempt_speech(session, attempt_id, user, voice_key=voice)
 
 
 @router.post("/courses/{course_id}/practice/coach/tip", response_model=CoachLiveTipResponse)

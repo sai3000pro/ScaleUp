@@ -11,17 +11,24 @@ from app.services.gemini_live_service import GeminiLiveCoachSession, generate_ge
 
 
 @pytest.mark.asyncio
-async def test_gemini_session_inactive_without_key():
-    session = GeminiLiveCoachSession(
-        instrument="piano",
-        exercise_title="C Major Scale",
-        tempo_bpm=60,
-    )
-    assert not session.is_active
+async def test_gemini_session_inactive_without_key(monkeypatch: pytest.MonkeyPatch):
+    from app.config import get_settings
 
-    connected = await session.connect()
-    assert not connected
-    assert not session.is_active
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    get_settings.cache_clear()
+    try:
+        session = GeminiLiveCoachSession(
+            instrument="piano",
+            exercise_title="C Major Scale",
+            tempo_bpm=60,
+        )
+        assert not session.is_active
+
+        connected = await session.connect()
+        assert not connected
+        assert not session.is_active
+    finally:
+        get_settings.cache_clear()
 
     # Methods should be safe no-ops when inactive
     await session.send_audio_chunk(b"\x00" * 320)
