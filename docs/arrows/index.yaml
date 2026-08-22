@@ -9,7 +9,9 @@ last_updated: 2026-08-22
 # become metrics, metrics become language, outcomes become progression. Curriculum
 # supplies the graph all of that runs on; access and operations carry the system.
 # Interface sits across the path rather than on it: every segment's surfaces are drawn
-# in the visual language it owns, and it owns no behaviour of its own.
+# in the visual language it owns, and it owns no behaviour of its own. Landing sits off it
+# entirely: it renders no learner state and exists to hold one constraint -- what the
+# product may claim in public.
 taxonomy:
   perception:
     - capture
@@ -26,6 +28,7 @@ taxonomy:
     - operations
   presentation:
     - interface
+    - landing
 
 arrows:
   capture:
@@ -118,7 +121,7 @@ arrows:
     sampled: 2026-08-22
     audited: 2026-08-22
     audited_sha: dc77249
-    blocks: []
+    blocks: [landing]
     blockedBy: []
     detail: access.md
     next: "Take the authenticated principal from the dependency rather than importing the entity (ACCESS-OWN-004)."
@@ -142,11 +145,23 @@ arrows:
     sampled: 2026-08-22
     audited: 2026-08-22
     audited_sha: dc77249
-    blocks: []
+    blocks: [landing]
     blockedBy: []
     detail: interface.md
     next: "Delete the replaced 2D canvas and drop @xyflow/react, or explain why it is kept. Then adopt MUTED at its 58 raw sites (UI-SYS-004)."
     drift: "The 2D canvas the 3D one replaced is still on disk -- SkillTree.tsx, SkillNodeCard.tsx and useFocusNode.ts, 555 lines nothing imports -- and it still carries @spec annotations, so citation coverage counts behaviour that no longer runs. It is also the only remaining consumer of @xyflow/react."
+
+  landing:
+    status: AUDITED
+    parent: null
+    sampled: 2026-08-22
+    audited: 2026-08-22
+    audited_sha: 93ce731
+    blocks: []
+    blockedBy: [interface, access]
+    detail: landing.md
+    next: "Derive the instrument count from the curricula (LAND-STORY-010); declare social preview metadata (LAND-ROUTE-005)."
+    drift: "No sourced market figure exists -- the three named repositories contain none -- so the cost argument is qualitative and the slot in landingEvidence.ts is deliberately empty."
 
 unmapped:
   docs:

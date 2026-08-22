@@ -62,11 +62,28 @@ Tests and linting:
 
 ```powershell
 cd backend;  .\.venv\Scripts\pytest.exe -q;  .\.venv\Scripts\ruff.exe check .
-cd frontend; npm run typecheck; npm run lint
+cd frontend; npm run typecheck; npm run lint; npm run test
 ```
 
 **`pytest` TRUNCATEs every table, including the seeded dev user.** Re-run
 `python -m app.seed` after a test run or dev-login will 404.
+
+## The mascot's sprites
+
+Quartz's twenty frames are cut from `design/sprite_sheet.jpg` by a committed script. Both
+the frames and the manifest it writes are committed, so this only runs when the artwork
+changes:
+
+```powershell
+cd frontend
+npm run build:sprites     # -> public/sprites/quartz/*, lib/quartzSprites.ts
+```
+
+It is deliberately outside the Next build graph — nothing under `app/` or `lib/` imports
+`scripts/`, and `sharp` stays a devDependency. The script gates its own assumptions: a sheet
+that does not cut into five rows of four, or a frame that encodes without transparency, fails
+the run rather than shipping a sheared drawing. See
+`docs/intent/interface/interface-design.md § The mascot`.
 
 ## Scripts
 

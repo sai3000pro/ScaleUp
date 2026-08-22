@@ -154,6 +154,12 @@ exercises on a wrong tree teach the wrong thing next.
   small.)*
 - **Silence is a valid output.** The coach that has nothing useful to say says nothing.
   *(Defensible opposite: always give the learner something, since engagement is the product.)*
+- **The public page claims only what the product already does.** Every number on a
+  public surface is traceable to something in this repository or to a cited outside source,
+  and a capability is described in the present tense only once it ships. Where the honest
+  version of a claim is weaker, the honest version is the one that goes up. *(Defensible
+  opposite: describe the product you are building toward, since a landing page is a promise
+  and the roadmap is public anyway.)*
 
 ## System Design
 
@@ -175,18 +181,26 @@ flowchart LR
     ACC[access]
     OPS[operations]
   end
-  UI[interface<br/>tokens · type · shell]
+  UI[interface<br/>tokens · type · shell · mascot]
+  LAND[landing<br/>the public argument]
   LLM -.-> COACH
   LLM -.-> CURR
   OPS -.-> CAP
   OPS -.-> CURR
+  UI -.-> LAND
 ```
 
-Nine segments along the signal path, and one across it. Solid edges carry data; dotted edges
+Nine segments along the signal path, and two across it. Solid edges carry data; dotted edges
 are services. **Interface** is drawn apart because it owns no behaviour: every segment's
-surfaces are rendered in the visual language it holds — colour, type, focus, contrast and the
-shell — and a component belongs to the segment whose behaviour it renders, not to the one
-whose stylesheet it uses.
+surfaces are rendered in the visual language it holds — colour, type, focus, contrast, the
+shell and the mascot that inhabits it — and a component belongs to the segment whose behaviour
+it renders, not to the one whose stylesheet it uses.
+
+**Landing** is drawn apart for the opposite reason: it owns no behaviour *and* renders none.
+It is the argument for the product, addressed to someone who is not a learner yet, and it is a
+segment rather than a page because what it may claim is a design constraint with teeth — see
+the tenet below. It draws in interface's language and links into access; it reads no
+learner state.
 
 **Layering is one-directional and enforced:** routers → services → {repositories, models, llm,
 vector} → domain. The domain layer imports nothing from the rest of the application, which is

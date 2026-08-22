@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Quartz } from "@/components/mascot/Quartz";
 import { NAV_LINK } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -24,13 +25,16 @@ function isActivePath(pathname: string | null, href: string): boolean {
  * composition used once, not a pattern used many times.
  *
  * @spec UI-SHELL-001, UI-SHELL-002, UI-SHELL-003, UI-SHELL-004
+ * @spec UI-MASCOT-001, UI-MASCOT-002, LAND-ROUTE-004
  */
 export function ExpBar() {
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  if (!user) return null;
+  // The HUD reports a progress a stranger does not have, so it stays off the
+  // public landing page even for a signed-in reader (`LAND-ROUTE-004`).
+  if (!user || pathname === "/") return null;
 
   const pct = user.exp_for_next_level > 0
     ? Math.min(100, Math.round((user.exp_into_level / user.exp_for_next_level) * 100))
@@ -40,7 +44,13 @@ export function ExpBar() {
     <header className="hud-header sticky top-0 z-20">
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:py-3">
         <Link href="/courses" className={`hud-wordmark ${NAV_LINK}`}>
-          <span className="hud-wordmark-mark" aria-hidden>✦</span>
+          {/* The mascot sits left of the wordmark and faces into it. It carries
+              no name: the link's own text already says where this goes, and a
+              second tab stop for a decoration would make the reader press Tab
+              twice to pass one link. */}
+          <span className="hud-wordmark-mark">
+            <Quartz size={38} rest="idle-r" greet="blink" react="cheer" />
+          </span>
           <span><strong>Learn Any</strong><em>Instrument</em></span>
         </Link>
 
