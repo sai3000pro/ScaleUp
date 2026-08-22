@@ -73,7 +73,7 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
   const clarity = bestCorrelation / energy;
   if (clarity < 0.12) return null;
 
-  // Subharmonic / harmonic peak picking to prevent octave octave-down errors
+  // Subharmonic correction: only divide lag if the shorter lag is genuinely as periodic (>= 0.92)
   for (const divisor of [2, 3, 4]) {
     const subLag = Math.round(bestLag / divisor);
     if (subLag >= minLag && subLag <= maxLag) {
@@ -85,7 +85,7 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
           localMax = testLag;
         }
       }
-      if (correlations[localMax] >= bestCorrelation * 0.75) {
+      if (correlations[localMax] >= bestCorrelation * 0.92) {
         bestLag = localMax;
         bestCorrelation = correlations[localMax];
         break;
@@ -107,13 +107,13 @@ export function detectPitch(timeDomain: Float32Array, sampleRate: number): Pitch
 }
 
 const MIN_NOTE_DURATION_SECONDS = 0.12;
-const DEFAULT_CLARITY_THRESHOLD = 0.38;
+const DEFAULT_CLARITY_THRESHOLD = 0.32;
 const PITCH_CHANGE_FRAMES = 4;
 const SILENCE_FRAMES_TO_CLOSE = 10;
 const NEW_NOTE_CONFIRM_FRAMES = 3;
 // Below this the learner has stopped playing. The coach only speaks at a rest,
 // so this threshold is what separates coaching from talking over someone.
-const SILENCE_LEVEL_DB = -45;
+const SILENCE_LEVEL_DB = -48;
 
 import {
   DEFAULT_SEGMENTER_CONFIG,
@@ -163,12 +163,12 @@ export class MicRecorder {
   private segmenterState: SegmenterState = initialSegmenterState();
   private segmenterConfig: SegmenterConfig = {
     ...DEFAULT_SEGMENTER_CONFIG,
-    confidenceOn: 0.38,
-    confidenceOff: 0.28,
-    noteOnRmsDb: -38,
-    noteOffRmsDb: -48,
-    pitchChangeFrames: 6,
-    minNoteDurationSeconds: 0.15,
+    confidenceOn: 0.32,
+    confidenceOff: 0.22,
+    noteOnRmsDb: -40,
+    noteOffRmsDb: -50,
+    pitchChangeFrames: 5,
+    minNoteDurationSeconds: 0.12,
     pitchMedianWindow: 5,
   };
 

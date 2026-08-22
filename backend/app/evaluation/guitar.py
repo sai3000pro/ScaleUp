@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import isfinite
+import math
 
 from app.evaluation.dtw import DTWAlignment, align
 from app.evaluation.musicxml import MusicXMLScore
@@ -109,9 +110,9 @@ class GuitarPerformanceScore:
         return self.alignment_confidence < 0.5
 
 
-def _expected_notes(score: MusicXMLScore) -> list[_ExpectedGuitarNote]:
+def _expected_notes(score: MusicXMLScore, observed_notes: Sequence[GuitarNote] = ()) -> list[_ExpectedGuitarNote]:
     seconds_per_beat = 60.0 / score.tempo_bpm
-    return [
+    base = [
         _ExpectedGuitarNote(
             pitch_midi=note.pitch_midi,
             onset_beats=note.onset_beats,
@@ -122,6 +123,35 @@ def _expected_notes(score: MusicXMLScore) -> list[_ExpectedGuitarNote]:
         for note in score.pitched_notes
         if note.pitch_midi is not None
     ]
+    if not base:
+        return []
+
+    max_onset = max(n.onset_beats for n in base)
+    measure_beats = max(4.0, math.ceil((max_onset + 0.1) / 4.0) * 4.0)
+    measure_duration = measure_beats * seconds_per_beat
+    observed_duration = (
+        (observed_notes[-1].onset_seconds - observed_notes[0].onset_seconds)
+        if len(observed_notes) >= 2
+        else 0.0
+    )
+    num_repeats = 1
+    if max_onset < 12.0 and len(observed_notes) >= len(base) * 2 and observed_duration >= measure_duration * 1.5:
+        num_repeats = max(1, round(observed_duration / measure_duration))
+
+    result: list[_ExpectedGuitarNote] = []
+    for r in range(num_repeats):
+        beat_offset = r * measure_beats
+        for n in base:
+            result.append(
+                _ExpectedGuitarNote(
+                    pitch_midi=n.pitch_midi,
+                    onset_beats=n.onset_beats + beat_offset,
+                    onset_seconds=(n.onset_beats + beat_offset) * seconds_per_beat,
+                    string=n.string,
+                    fret=n.fret,
+                )
+            )
+    return result
 
 
 def _position_cost(expected: _ExpectedGuitarNote, observed: GuitarNote) -> float:
@@ -137,8 +167,17 @@ def _position_cost(expected: _ExpectedGuitarNote, observed: GuitarNote) -> float
 def _distance(expected: object, observed: object, timing_tolerance: float) -> float:
     if not isinstance(expected, _ExpectedGuitarNote) or not isinstance(observed, GuitarNote):
         raise TypeError("Guitar DTW distance received an unexpected event type.")
-    pitch_cost = min(abs(expected.pitch_midi - observed.pitch_midi) / 6.0, 1.0)
-    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / timing_tolerance, 1.0)
+    diff = abs(expected.pitch_midi - observed.pitch_midi)
+    if diff <= 0.8:
+        pitch_cost = 0.0
+    elif diff <= 2.0:
+        pitch_cost = 0.18
+    elif round(diff) % 12 <= 0.8 and diff >= 11.2:
+        # Octave harmonic on guitar
+        pitch_cost = 0.15
+    else:
+        pitch_cost = min(diff / 6.0, 1.0)
+    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return 0.45 * pitch_cost + 0.25 * timing_cost + 0.20 * _position_cost(expected, observed) + 0.10 * confidence_cost
 
@@ -147,14 +186,14 @@ def _quality(
     expected: _ExpectedGuitarNote, observed: GuitarNote, timing_tolerance: float
 ) -> tuple[float, float]:
     diff = abs(expected.pitch_midi - observed.pitch_midi)
-    if diff <= 0.2:
+    if diff <= 0.8:
         pitch_quality = 1.0
-    elif diff <= 1.5:
-        pitch_quality = max(0.4, 1.0 - diff / 2.0)
-    elif round(diff) % 12 <= 1.0 and diff >= 11.0:
-        pitch_quality = 0.85
+    elif diff <= 2.0:
+        pitch_quality = max(0.6, 1.0 - diff / 3.0)
+    elif round(diff) % 12 <= 0.8 and diff >= 11.2:
+        pitch_quality = 0.90
     else:
-        pitch_quality = max(0.0, 1.0 - diff / 3.0)
+        pitch_quality = max(0.0, 1.0 - diff / 4.0)
 
     rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4))
     confidence = observed.confidence
@@ -190,8 +229,8 @@ def score_guitar_performance(
     evaluator_version: str = "guitar-dtw-v1",
 ) -> GuitarPerformanceScore:
     """Score pitch, rhythm, and fretboard position with a single DTW alignment."""
-    expected = _expected_notes(score)
     observed = sorted(observed_notes, key=lambda note: (note.onset_seconds, note.pitch_midi))
+    expected = _expected_notes(score, observed)
     if not expected:
         raise ValueError("A guitar score must contain at least one pitched note.")
 
@@ -305,7 +344,7 @@ class _PositionedGuitarNote:
     fret: int | None
 
 
-def _expected_chords(score: MusicXMLScore) -> list[_ExpectedGuitarChord]:
+def _expected_chords(score: MusicXMLScore, observed_chords: Sequence[GuitarChord] = ()) -> list[_ExpectedGuitarChord]:
     """Group score notes by shared onset into chord events."""
     seconds_per_beat = 60.0 / score.tempo_bpm
     by_onset: dict[float, list[_PositionedGuitarNote]] = {}
@@ -318,7 +357,7 @@ def _expected_chords(score: MusicXMLScore) -> list[_ExpectedGuitarChord]:
                 fret=note.fret,
             )
         )
-    return [
+    base = [
         _ExpectedGuitarChord(
             pitch_midis=frozenset(note.pitch_midi for note in notes),
             onset_beats=onset,
@@ -327,6 +366,34 @@ def _expected_chords(score: MusicXMLScore) -> list[_ExpectedGuitarChord]:
         )
         for onset, notes in sorted(by_onset.items())
     ]
+    if not base:
+        return []
+
+    max_onset = max(c.onset_beats for c in base)
+    measure_beats = max(4.0, math.ceil((max_onset + 0.1) / 4.0) * 4.0)
+    measure_duration = measure_beats * seconds_per_beat
+    observed_duration = (
+        (observed_chords[-1].onset_seconds - observed_chords[0].onset_seconds)
+        if len(observed_chords) >= 2
+        else 0.0
+    )
+    num_repeats = 1
+    if max_onset < 12.0 and len(observed_chords) >= len(base) * 2 and observed_duration >= measure_duration * 1.5:
+        num_repeats = max(1, round(observed_duration / measure_duration))
+
+    result: list[_ExpectedGuitarChord] = []
+    for r in range(num_repeats):
+        beat_offset = r * measure_beats
+        for c in base:
+            result.append(
+                _ExpectedGuitarChord(
+                    pitch_midis=c.pitch_midis,
+                    onset_beats=c.onset_beats + beat_offset,
+                    onset_seconds=(c.onset_beats + beat_offset) * seconds_per_beat,
+                    positions=c.positions,
+                )
+            )
+    return result
 
 
 def _observed_chords(observed_notes: list[GuitarNote]) -> list[GuitarChord]:
@@ -360,7 +427,7 @@ def _chord_distance(expected: object, observed: object, timing_tolerance: float)
         raise TypeError("Guitar chord DTW distance received an unexpected event type.")
     missing = expected.pitch_midis - observed.pitch_midis
     pitch_cost = min(len(missing) / max(len(expected.pitch_midis), 1), 1.0)
-    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / timing_tolerance, 1.0)
+    timing_cost = min(abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4), 1.0)
     confidence_cost = 1.0 - observed.confidence
     return 0.5 * pitch_cost + 0.35 * timing_cost + 0.15 * confidence_cost
 
@@ -371,7 +438,7 @@ def _chord_quality(
     """Return (pitch quality, rhythm quality, matched positions)."""
     sounding = expected.pitch_midis & observed.pitch_midis
     pitch_quality = len(sounding) / max(len(expected.pitch_midis), 1)
-    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / timing_tolerance)
+    rhythm_quality = max(0.0, 1.0 - abs(expected.onset_seconds - observed.onset_seconds) / max(timing_tolerance * 1.5, 0.4))
     confidence = observed.confidence
     expected_positions = {position: True for position in expected.positions}
     matched_positions = tuple(position for position in observed.positions if expected_positions.get(position))
@@ -391,8 +458,8 @@ def score_guitar_chords_performance(
     sounded, and `technique_accuracy` is how many sounding strings were fretted
     at the written position.
     """
-    expected = _expected_chords(score)
-    observed = _observed_chords(observed_notes)
+    observed = _observed_chords(list(observed_notes))
+    expected = _expected_chords(score, observed)
     if not expected:
         raise ValueError("A guitar chord score must contain at least one chord.")
 
