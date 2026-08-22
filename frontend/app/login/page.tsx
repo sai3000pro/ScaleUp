@@ -13,6 +13,10 @@ export default function LoginPage() {
   const { user, error, login, register, devLogin } = useAuthStore();
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [redirectTo, setRedirectTo] = useState<string | null>(null);
+  // Hidden until the backend confirms federated sign-in is configured. Starting
+  // false rather than true means a slow or unreachable backend hides the button
+  // instead of flashing one that cannot work.
+  const [federatedAvailable, setFederatedAvailable] = useState(false);
 
   // A share page sends the learner here to sign in before copying; bring them
   // back to where they were instead of dumping them on /courses. Same-origin
@@ -23,6 +27,17 @@ export default function LoginPage() {
     if (next && next.startsWith("/") && !next.startsWith("//")) {
       setRedirectTo(next);
     }
+  }, []);
+
+  // @spec ACCESS-OAUTH-001
+  useEffect(() => {
+    let live = true;
+    api.federatedSignInAvailable().then((available) => {
+      if (live) setFederatedAvailable(available);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -90,22 +105,28 @@ export default function LoginPage() {
           Pick a skill, play it, and get coached on what you actually played.
         </p>
 
-        <button
-          type="button"
-          className="mt-6 w-full rounded-lg border border-slate-700 bg-white px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:bg-slate-800 disabled:opacity-50"
-          onClick={() => {
-            window.location.href = api.googleStartUrl();
-          }}
-          disabled={busy}
-        >
-          Continue with Google
-        </button>
+        {/* The divider goes with the button: an "or" separating one option from
+            nothing is a leftover, not a choice. */}
+        {federatedAvailable && (
+          <>
+            <button
+              type="button"
+              className="mt-6 w-full rounded-lg border border-slate-700 bg-white px-4 py-2.5 text-sm font-semibold text-slate-100 transition hover:bg-slate-800 disabled:opacity-50"
+              onClick={() => {
+                window.location.href = api.googleStartUrl();
+              }}
+              disabled={busy}
+            >
+              Continue with Google
+            </button>
 
-        <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-600">
-          <span className="h-px flex-1 bg-slate-800" />
-          <span>or</span>
-          <span className="h-px flex-1 bg-slate-800" />
-        </div>
+            <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+              <span className="h-px flex-1 bg-slate-800" />
+              <span>or</span>
+              <span className="h-px flex-1 bg-slate-800" />
+            </div>
+          </>
+        )}
 
         <form onSubmit={submit} className="space-y-3">
           {mode === "register" && (

@@ -197,6 +197,30 @@ export const api = {
 
   googleStartUrl: () => `${BASE_URL}/api/auth/google/start`,
 
+  /**
+   * Whether the backend actually has federated sign-in configured.
+   *
+   * The provider report is the one place that knows, and it reports presence
+   * rather than secret values, so it is safe to read unauthenticated. `live` is
+   * the only mode that means usable -- `off` is unconfigured and
+   * `misconfigured` is half-configured, and offering a button for either sends
+   * the learner to a page that cannot complete.
+   *
+   * Never throws. A backend that is down or slow resolves to false, which hides
+   * the button, which is the safe direction: email and password sign-in is
+   * always available.
+   */
+  federatedSignInAvailable: async (): Promise<boolean> => {
+    try {
+      const report = await request<{ integrations: { key: string; mode: string }[] }>(
+        "/api/health/providers",
+      );
+      return report.integrations.some((i) => i.key === "google_oauth" && i.mode === "live");
+    } catch {
+      return false;
+    }
+  },
+
   /** Only exists when the backend runs with DEV_AUTH_ENABLED=true. */
   devLogin: () => request<TokenResponse>("/api/auth/dev-login", { method: "POST" }),
 
