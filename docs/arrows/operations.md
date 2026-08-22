@@ -6,7 +6,7 @@ the halves of the system.
 
 ## Status
 
-**AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The integration and webhook seams
+**AUDITED** — last audited 2026-08-22 (git SHA `6346ba8`). The integration and webhook seams
 are strong. Schema migration carries the system's one self-identified, twice-deferred
 structural debt, and documentation disagrees with code in thirteen catalogued places.
 

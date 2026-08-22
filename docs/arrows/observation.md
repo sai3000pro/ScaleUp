@@ -54,7 +54,7 @@ unreliable measurement can never reach the grader as a confident number.
 | Hand technique | `OBS-HAND-001` – `004` | 3 | 1 | 0 |
 | Take reduction | `OBS-RED-001` – `008` | 7 | 0 | 1 |
 
-**Summary:** 30 of 35 specs observed working; 3 deliberate non-wants; 2 active gaps.
+**Summary:** 30 of 35 implemented; 3 deliberate non-wants; 2 active gaps.
 
 The reducers here are almost entirely correct and almost entirely unreachable — but that is
 a *producer* problem, so it is tracked in `capture` (`CAP-MIC-008`, `CAP-CAM-006`,
