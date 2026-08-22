@@ -43,3 +43,6 @@ graphify-out/
 
 # Brownfield mapping scratch (sweep reports); regenerate with /map-codebase
 .lid/
+
+.vercel
+.env*

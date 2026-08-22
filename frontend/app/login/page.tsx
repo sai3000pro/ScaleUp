@@ -84,7 +84,7 @@ export default function LoginPage() {
     <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Learn Any<span className="text-sky-400">Instrument</span>
+          Scale<span className="text-sky-400">Up</span>
         </h1>
         <p className="mt-1 text-sm text-slate-400">
           Pick a skill, play it, and get coached on what you actually played.
