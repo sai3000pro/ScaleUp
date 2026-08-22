@@ -223,31 +223,6 @@ Dev login creates its user if it is missing, so it keeps working after a test ru
 truncates the table. `python -m app.seed` is still what builds the seeded
 courses.
 
-### No API keys needed
-
-`LLM_PROVIDER=fake` is the default, and it is the default on purpose: the whole
-practice, scoring, coaching, and drilling loop runs and is tested with **no keys
-and no spend**. `VOICE_PROVIDER=fake` returns a deterministic silence WAV and
-always carries the spoken text, so the browser falls back to its own TTS. Set
-`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` and `ELEVENLABS_API_KEY` when you want the
-real thing.
-
-Every integration -- Anthropic, OpenAI, ElevenLabs, n8n in both directions,
-Resend, Google OAuth, Exa, GCS -- is off by default with a working fallback, and
-turning one on is configuration rather than code. `docs/integrations.md` lists
-what each one does and what happens without it. To see what actually took
-effect:
-
-```powershell
-cd backend
-.\.venv\Scripts\python.exe ..\scripts\check_integrations.py
-```
-
-It reports what is live, what is on a fallback, and what was asked for but is
-missing its key -- the case that otherwise fails at the first call rather than
-at startup.
-
----
 
 ### The examiner's voice (ElevenLabs)
 
