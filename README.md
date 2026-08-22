@@ -201,6 +201,42 @@ at startup.
 
 ---
 
+### The examiner's voice (ElevenLabs)
+
+`VOICE_PROVIDER=elevenlabs` plus `ELEVENLABS_API_KEY` turns the seam on. There
+are two of them, because post-take feedback and live coaching want different
+things from a speech API.
+
+**After a take**, `synthesize_feedback` sends the whole examiner paragraph to
+`POST /v1/text-to-speech/{voice_id}` and stores the result. Artifacts are
+content-addressed on `sha256(voice_key|text)`, so the same feedback in the same
+voice is synthesised once and replayed from cache rather than re-billed.
+
+**During a take**, the coach streams sentence by sentence through
+`POST /v1/text-to-speech/{voice_id}/stream`, with
+`optimize_streaming_latency=4` and `mp3_44100_64`, so audio starts arriving
+before the sentence is finished.
+
+That second path deliberately uses the HTTP streaming endpoint rather than
+ElevenLabs' WebSocket input API. The coach only speaks at phrase boundaries --
+it stays silent while you are actually playing -- so the couple of hundred
+milliseconds the socket would save buys nothing, and it would mean a second
+socket alongside the one the take already holds. It is a `StreamingVoiceProvider`
+implementation, so swapping in the socket API later changes that class and
+nothing else.
+
+Voices and models are configurable and all have defaults: `ELEVENLABS_VOICE_ID`,
+`ELEVENLABS_MODEL_ID`, and `ELEVENLABS_STREAMING_MODEL_ID` (both models default
+to `eleven_flash_v2_5`).
+
+With the key absent, `VOICE_PROVIDER=fake` returns a deterministic silence WAV
+and **every response still carries `spoken_text`**, so the browser speaks it with
+the OS voice. Audio is the upgrade; the words are the guarantee. `stream_feedback`
+never raises -- a TTS failure costs you the audio, never the score, which is not
+even in that code path.
+
+---
+
 ## Tests
 
 ```powershell
@@ -351,6 +387,46 @@ Production Dockerfiles are a real thing to want and explicitly not stage-1 work.
   serving. The failure looks like application code — `Cannot find module
   './vendor-chunks/zustand.js'`, or a page that renders HTML but never hydrates.
   The fix is always: stop the dev server, delete `.next`, start it again.
+
+---
+
+## Deploying
+
+Two shapes, both written down.
+
+**A shared-account demo** -- [`docs/deployment-render.md`](docs/deployment-render.md).
+Render for the backend, Vercel for the frontend, no third-party accounts and no
+credential you have to obtain from anyone:
+
+| Piece | Where |
+|---|---|
+| Next.js frontend | Vercel, root directory `frontend` |
+| FastAPI API | Render Web Service, Docker, root directory `backend` |
+| Postgres | Render Postgres |
+| Redis | Render Key Value |
+
+Render rather than a serverless host because **the live coach is a WebSocket**.
+`WS /api/practice/coach` needs a process that stays up and holds a connection,
+which a function that answers a request and exits cannot do. Render web services
+carry WebSockets; `backend/Dockerfile` runs there unmodified, since it already
+reads the `PORT` the platform supplies.
+
+Three things that bite, all documented in full in that file:
+
+- Point the health check at **`/api/health/live`**, never `/api/health/ready`.
+  Readiness probes all four datastores by design, and a demo deployment runs
+  without Neo4j and Chroma -- so `/ready` is legitimately red, and a health check
+  aimed at it restarts the service for ever.
+- Run `alembic upgrade head` and `python -m app.seed` **as a one-off**, never on
+  boot. The free tier has no shell, so run them from your own machine against the
+  external database URL; both use `SYNC_DATABASE_URL` only.
+- `NEXT_PUBLIC_API_BASE_URL` is compiled into the browser bundle at build time.
+  Changing it needs a redeploy, not a restart.
+
+**Production**, with real accounts and durable storage --
+[`docs/deployment.md`](docs/deployment.md). Cloud Run, GCS, Resend, Google OAuth,
+and `DEPLOYED=true`, whose startup validator refuses to boot on a placeholder JWT
+secret, dev-login, or ephemeral local storage.
 
 ---
 
