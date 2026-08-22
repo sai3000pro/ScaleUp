@@ -54,7 +54,7 @@ export function ExpBar() {
           <span className="hud-wordmark-mark">
             <Quartz size={38} rest="idle-r" greet="blink" react="cheer" />
           </span>
-          <span><strong>Learn Any</strong><em>Instrument</em></span>
+          <span><strong>Scale</strong><em>Up</em></span>
         </Link>
 
         <div className="hud-level-pill" title={`${user.total_exp.toLocaleString()} total EXP`}>

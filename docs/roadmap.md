@@ -1,4 +1,4 @@
-# Roadmap — Learn-Any-Instrument
+# Roadmap — ScaleUp
 
 **Last reviewed:** 2026-08-20
 **Product direction:** piano-first and guitar-next instrument tutoring, with the

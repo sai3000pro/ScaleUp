@@ -1,4 +1,4 @@
-# Learn-Any-Instrument
+# ScaleUp
 
 An AI music tutor. A learner picks a skill off an instrument's prerequisite DAG,
 plays the exercise behind it, and gets scored on pitch, rhythm, dynamics, and

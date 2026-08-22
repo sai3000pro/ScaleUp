@@ -1,4 +1,4 @@
-# High-Level Design: Learn-Any-Instrument
+# High-Level Design: ScaleUp
 
 ## Problem
 

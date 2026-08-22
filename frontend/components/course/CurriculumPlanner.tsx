@@ -464,7 +464,7 @@ export function CurriculumPlanner({
                   className={`mt-0.5 accent-amber-400 ${FOCUS_RING}`}
                 />
                 <span>
-                  I reviewed the selected pages and their robots/license notes. I understand policy status is not verified by Learn-Any-Instrument and will make sure I have permission to ingest them.
+                  I reviewed the selected pages and their robots/license notes. I understand policy status is not verified by ScaleUp and will make sure I have permission to ingest them.
                 </span>
               </label>
               <button

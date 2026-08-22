@@ -66,7 +66,7 @@ export default function SharePage() {
       className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-10 outline-none"
     >
       <Link href="/" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
-        ← Learn-Any-Instrument
+        ← ScaleUp
       </Link>
 
       {error && (

@@ -41,7 +41,7 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
       <section className="landing-hero" aria-labelledby="hero-title">
         <div className="landing-shell landing-hero__grid">
           <div className="landing-hero__copy">
-            <p className="landing-eyebrow">Learn Any Instrument</p>
+            <p className="landing-eyebrow">ScaleUp</p>
             <h1 id="hero-title" className="landing-h1">
               Nobody can hear themselves play.
             </h1>
@@ -258,7 +258,7 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
           </Reveal>
         </div>
         <footer className="landing-footer">
-          <p>Learn Any Instrument — practice that measures itself, and says so when it can&rsquo;t.</p>
+          <p>ScaleUp — practice that measures itself, and says so when it can&rsquo;t.</p>
         </footer>
       </section>
     </main>

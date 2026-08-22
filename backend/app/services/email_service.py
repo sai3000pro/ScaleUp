@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 async def send_password_reset_email(email: str, display_name: str, reset_url: str) -> None:
     settings = get_settings()
-    subject = "Reset your Learn-Any-Instrument password"
+    subject = "Reset your ScaleUp password"
     text = (
         f"Hi {display_name},\n\n"
-        f"Reset your Learn-Any-Instrument password here:\n{reset_url}\n\n"
+        f"Reset your ScaleUp password here:\n{reset_url}\n\n"
         "This link expires soon and can only be used once. If you did not request "
         "a reset, you can ignore this email."
     )

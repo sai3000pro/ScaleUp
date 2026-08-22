@@ -29,7 +29,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Learn-Any-Instrument",
+  title: "ScaleUp",
   description: "Pick a skill, play it, and get coached on what you actually played.",
   icons: {
     icon: "/icon.svg",

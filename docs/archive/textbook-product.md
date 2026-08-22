@@ -1,7 +1,7 @@
 # Learn-Anything (archived product description)
 
 > This is the original product framing, kept for provenance. The live product is
-> [Learn-Any-Instrument](../../README.md). The pipeline described here still
+> [ScaleUp](../../README.md). The pipeline described here still
 > runs — see [the archive note](README.md) for why.
 
 Turn a textbook, paper, or web page into an RPG-style skill tree you can explore,

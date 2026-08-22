@@ -12,7 +12,7 @@ import { LandingRoute } from "@/components/landing/LandingRoute";
  * @spec LAND-ROUTE-001
  */
 export const metadata: Metadata = {
-  title: "Learn Any Instrument — practice that measures itself",
+  title: "ScaleUp — practice that measures itself",
   description:
     "Pick a skill, play it, and get scored on pitch, rhythm, dynamics and posture — then coached about it. Unpractised technique fades and returns as a quest.",
 };

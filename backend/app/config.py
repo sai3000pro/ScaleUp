@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     # development-only reset link and never makes a network request.
     email_provider: str = "fake"
     resend_api_key: str = ""
-    email_from: str = "Learn-Any-Instrument <noreply@example.com>"
+    email_from: str = "ScaleUp <noreply@example.com>"
 
     # Google OAuth is opt-in until these credentials are configured.
     google_oauth_client_id: str = ""
@@ -266,7 +266,7 @@ class Settings(BaseSettings):
     # trust budget. Three covers http->https, bare->www, and one canonical
     # redirect, which is what real articles use.
     url_fetch_max_redirects: int = 3
-    url_fetch_user_agent: str = "Learn-Any-Instrument/0.1 (+https://github.com/; personal study tool)"
+    url_fetch_user_agent: str = "ScaleUp/0.1 (+https://github.com/; personal study tool)"
 
     # Turns OFF the SSRF address check. Local development only -- it exists so a
     # docs server on 127.0.0.1 can be ingested, and it is exactly the switch that

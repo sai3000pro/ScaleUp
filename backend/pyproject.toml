@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "learn-anything-api"
 version = "0.1.0"
-description = "Learn-Any-Instrument backend: curriculum graphs, performance evaluation, coaching, and spaced repetition."
+description = "ScaleUp backend: curriculum graphs, performance evaluation, coaching, and spaced repetition."
 requires-python = ">=3.12"
 dependencies = [
     # web

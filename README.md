@@ -1,4 +1,4 @@
-# Learn-Any-Instrument
+# ScaleUp
 
 An AI music tutor that listens while you play, watches how you hold the
 instrument, and tells you what to fix — in an examiner's voice, on the beat.

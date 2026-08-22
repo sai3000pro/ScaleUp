@@ -9,7 +9,7 @@ still running — not because it is dead.
 Learn-Anything ingested a PDF, a web page, or a URL, read the document's own
 table of contents, and built a prerequisite DAG of skills you could drill and
 forget on an SM-2 schedule. The product is now
-[Learn-Any-Instrument](../../README.md): the same DAG, the same decay, the same
+[ScaleUp](../../README.md): the same DAG, the same decay, the same
 EXP — applied to playing an instrument rather than reading a textbook.
 
 The ingestion pipeline was not retired in that move. It became the **curriculum

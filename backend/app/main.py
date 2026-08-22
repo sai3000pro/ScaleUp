@@ -31,7 +31,7 @@ def create_app() -> FastAPI:
     logging.basicConfig(level=settings.log_level)
 
     app = FastAPI(
-        title="Learn-Any-Instrument API",
+        title="ScaleUp API",
         version="0.1.0",
         summary="Scores instrument practice against digital scores, coaches it, and decays it.",
     )
