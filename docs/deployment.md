@@ -1,5 +1,9 @@
 # Managed-cloud deployment
 
+For a shared-account demo deployment with no third-party accounts, see
+`docs/deployment-render.md`. This document is the production shape: real
+user accounts, durable storage, and `DEPLOYED=true` enforcing both.
+
 The repository now has production images for the FastAPI API, the Celery worker
 (image override), and the Next.js frontend. The intended managed-cloud shape is:
 
