@@ -56,6 +56,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **COACH-VOICE-006**: During a take, the system shall synthesise a sentence at a time rather than waiting for a complete utterance.
 - [x] **COACH-VOICE-007**: The system shall use a latency-optimised model tier for live synthesis.
 - [x] **COACH-VOICE-008**: The system shall record voice synthesis spend in the same ledger as model calls.
+- [x] **COACH-VOICE-009**: A voice or live-coaching seam shall be reached only where its provider has been selected, not merely where a credential is present, so that a deployment running on the deterministic providers opens no connection and spends nothing.
 
 ## Live session
 

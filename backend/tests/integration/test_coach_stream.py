@@ -21,6 +21,7 @@ from starlette.testclient import TestClient
 
 from app.db.session import _async_engine, _async_session_factory, sync_session
 from app.evaluation.musicxml import parse_musicxml
+from app.evaluation.online import expected_events
 from app.evaluation.reference_scores import PIANO_STEPWISE_SCORE_XML
 from app.main import app
 from app.models import Base, CoachSession, CoachUtterance, Course, Exercise, ScoreAsset, SkillNode, User
@@ -119,6 +120,20 @@ def practice_session(coach_client):
     return {"exercise_id": exercise_id, "session_id": created.json()["id"]}
 
 
+def _expected_event_count() -> int:
+    """How many events a take expects, derived rather than written down.
+
+    A live take loops the drill, so this is the score's playable notes times the
+    loop -- not the note count of the score. Asserting the literal 4 was correct
+    until the coach started looping and then quietly wrong, which is the failure
+    a hard-coded number is for.
+    """
+    from app.services.coach_service import TAKE_REPEATS
+
+    score = parse_musicxml(PIANO_STEPWISE_SCORE_XML)
+    return len(expected_events(score, "piano", repeats=TAKE_REPEATS))
+
+
 def _perfect_notes() -> list[dict]:
     score = parse_musicxml(PIANO_STEPWISE_SCORE_XML)
     seconds_per_beat = 60.0 / score.tempo_bpm
@@ -180,7 +195,7 @@ class TestHandshake:
         with coach_client.websocket_connect("/api/practice/coach") as socket:
             ready = _open_take(socket, coach_client, practice_session, str(uuid.uuid4()))
         assert ready["protocol_version"] == PROTOCOL_VERSION
-        assert ready["exercise"]["expected_note_count"] == 4
+        assert ready["exercise"]["expected_note_count"] == _expected_event_count()
         assert ready["exercise"]["instrument"] == "piano"
         assert ready["resumed"] is False
 
@@ -208,7 +223,7 @@ class TestLiveCues:
                  "take_clock_seconds": 2.0, "notes": notes}
             )
             cue = _await_frame(socket, "cue")
-        assert cue["expected_note_count"] == 4
+        assert cue["expected_note_count"] == _expected_event_count()
         # Every note was played correctly, so the cursor should have advanced.
         assert cue["cursor"] > 0
 

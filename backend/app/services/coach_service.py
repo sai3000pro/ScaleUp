@@ -77,6 +77,14 @@ from app.services.voice import (
 
 logger = logging.getLogger(__name__)
 
+#: How many times a live take loops the drill.
+#:
+#: Named rather than written into the `expected_events` call, because the number
+#: is part of the take's contract: `session.ready` reports `expected_note_count`
+#: from it, and a test asserting the score's own note count was silently wrong
+#: from the moment looping arrived.
+TAKE_REPEATS = 4
+
 # Process-local fallback map and unique instance id for cross-instance safety
 _LIVE_TAKES: dict[uuid.UUID, str] = {}
 _INSTANCE_ID = str(uuid.uuid4())
@@ -269,7 +277,7 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
 
     instrument = _instrument_of(asset)
     score = parse_musicxml(asset.content)
-    expected = expected_events(score, instrument, repeats=4)
+    expected = expected_events(score, instrument, repeats=TAKE_REPEATS)
     seconds_per_beat = 60.0 / score.tempo_bpm
     tolerance = max(0.18, seconds_per_beat * 0.5)
 
@@ -306,7 +314,18 @@ async def _start_take(session, transport, user, frame) -> TakeState | None:
         instructions=exercise.instructions or "",
         voice_name=voice_name,
     )
-    if settings.gemini_api_key:
+    # A selector AND a credential, not a credential alone.
+    #
+    # Gating on the key by itself made this seam invisible to LLM_PROVIDER: any
+    # machine that merely *had* a Gemini key opened a live WebSocket to Google
+    # and streamed audio over it -- including the test suite, whose conftest
+    # pins every provider to `fake` precisely so a developer trying a feature
+    # does not start spending their own money on every run. Selectors are how an
+    # operator says what they want on; a credential lying around in `.env` is
+    # not consent to use it.
+    #
+    # @spec COACH-VOICE-009
+    if settings.llm_provider.lower() == "gemini" and settings.gemini_key_for("live"):
         asyncio.create_task(gemini_session.connect())
 
     await transport.send_json(
@@ -498,7 +517,12 @@ async def _speak(transport, state: TakeState, turn: CoachTurn) -> None:
 
     # Stream audio through ElevenLabs or Gemini depending on voice selection
     is_gemini_voice = state.voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"}
-    is_elevenlabs = not is_gemini_voice and (settings.voice_provider == "elevenlabs" or bool(settings.elevenlabs_api_key))
+    # The selector alone, never the key. `or bool(elevenlabs_api_key)` here meant
+    # a key sitting unused in someone's `.env` overrode VOICE_PROVIDER=fake and
+    # billed them for a take. `voice.stream_feedback` already reads the selector;
+    # this was the one place that went around it.
+    # @spec COACH-VOICE-009
+    is_elevenlabs = not is_gemini_voice and settings.voice_provider == "elevenlabs"
     voice_prov = (
         "gemini_live"
         if (state.gemini_session and state.gemini_session.is_active)
