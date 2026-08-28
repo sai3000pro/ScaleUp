@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
-import { MicRecorder } from "@/lib/pitchDetection";
+import { ANALYZER_ID, MicRecorder } from "@/lib/pitchDetection";
 import type { Exercise, PerformanceAttempt, PerformedNote } from "@/lib/types";
-import { CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_RECORDING, CARD, FOCUS_RING } from "@/lib/ui";
 
 interface PracticePanelProps {
   courseId: string;
@@ -103,7 +103,17 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
     setError(null);
     try {
       const session = await api.createPracticeSession(selectedExerciseId);
-      const attempt = await api.submitPerformanceAttempt(session.id, notes, crypto.randomUUID(), recordingId);
+      const attempt = await api.submitPerformanceAttempt(
+        session.id,
+        notes,
+        crypto.randomUUID(),
+        recordingId,
+        null,
+        // Which detector heard this. The fixture path replays the written score
+        // rather than hearing anything, so it says so instead of claiming a
+        // microphone was involved.
+        recordingId === null && label === "fixture" ? "score-fixture" : ANALYZER_ID,
+      );
       setResult(attempt);
       setRecordStatus(`Recorded ${label} · ${attempt.metrics.observed_note_count} notes detected`);
       onCompleted();
@@ -242,11 +252,12 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
             type="button"
             disabled={loading || selectedExerciseId === null || recordStatus === "requesting"}
             onClick={() => void toggleRecording()}
-            className={`mt-3 w-full rounded-md border px-3 py-2 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS_RING} ${
-              listening
-                ? "border-rose-800 bg-rose-950/40 text-rose-200 hover:bg-rose-900/50"
-                : "border-cyan-800 bg-cyan-950/40 text-cyan-200 hover:bg-cyan-900/50"
-            }`}
+            // Solid, not tinted. This is the panel's primary control and it is
+            // pressed by someone holding an instrument, so it has to be found
+            // without reading. It used to be a tinted outline drawn from the
+            // `cyan` ramp, which globals.css had never inverted -- pale ice
+            // lettering on a pale ice fill, on a white page.
+            className={`mt-3 w-full ${listening ? BUTTON_RECORDING : BUTTON_PRIMARY}`}
           >
             {listening ? "Stop and score recording" : "Record performance"}
           </button>

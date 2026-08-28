@@ -465,7 +465,7 @@ function CoachingStudioView() {
             <div className="flex items-center gap-3">
               <Link
                 href={`/courses/${courseId}`}
-                className="flex items-center gap-1.5 text-xs font-semibold text-red-400 hover:text-red-300 transition"
+                className="flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition"
               >
                 ← Back to Course
               </Link>
@@ -548,7 +548,7 @@ function CoachingStudioView() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-300">
+                          <span className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-300">
                             {tempoBpm} BPM
                           </span>
                           <span className="rounded-md border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
@@ -576,7 +576,7 @@ function CoachingStudioView() {
                         <h3 className="font-display text-base font-bold text-slate-100 flex items-center gap-2">
                           <span>⏱️ Drill Tempo & Metronome</span>
                           {customBpm !== null && customBpm !== selectedExercise.tempo_bpm && (
-                            <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-300 border border-red-500/30">
+                            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
                               Custom Tempo
                             </span>
                           )}
@@ -589,19 +589,19 @@ function CoachingStudioView() {
                         <button
                           type="button"
                           onClick={() => setCustomBpm(Math.max(30, tempoBpm - 5))}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-red-500/50 hover:bg-slate-800 transition active:scale-95"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-rose-500/50 hover:bg-slate-800 transition active:scale-95"
                           title="Decrease tempo by 5 BPM"
                         >
                           -5
                         </button>
-                        <div className="flex items-baseline gap-1 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-1 text-red-200 font-mono font-black text-lg shadow-inner">
+                        <div className="flex items-baseline gap-1 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-1 text-rose-200 font-mono font-black text-lg shadow-inner">
                           <span>{tempoBpm}</span>
-                          <span className="text-[10px] font-sans font-bold text-red-400">BPM</span>
+                          <span className="text-[10px] font-sans font-bold text-rose-400">BPM</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => setCustomBpm(Math.min(180, tempoBpm + 5))}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-red-500/50 hover:bg-slate-800 transition active:scale-95"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-rose-500/50 hover:bg-slate-800 transition active:scale-95"
                           title="Increase tempo by 5 BPM"
                         >
                           +5
@@ -624,7 +624,7 @@ function CoachingStudioView() {
                           step="5"
                           value={tempoBpm}
                           onChange={(e) => setCustomBpm(Number(e.target.value))}
-                          className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                          className="w-full h-2.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
                         />
                       </div>
 
@@ -645,7 +645,7 @@ function CoachingStudioView() {
                             onClick={() => setCustomBpm(preset.bpm)}
                             className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                               tempoBpm === preset.bpm
-                                ? "bg-red-600 text-white shadow-md shadow-red-600/30 ring-1 ring-red-400"
+                                ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-1 ring-rose-400"
                                 : "bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-slate-100"
                             }`}
                           >
@@ -656,7 +656,7 @@ function CoachingStudioView() {
                           <button
                             type="button"
                             onClick={() => setCustomBpm(null)}
-                            className="ml-auto text-[11px] font-semibold text-slate-400 hover:text-red-400 underline transition"
+                            className="ml-auto text-[11px] font-semibold text-slate-400 hover:text-rose-400 underline transition"
                           >
                             Reset ({selectedExercise.tempo_bpm} BPM)
                           </button>
@@ -695,8 +695,8 @@ function CoachingStudioView() {
                                 }}
                                 className={`group flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all hover:scale-105 active:scale-95 ${
                                   isSelected
-                                    ? "border-red-500 bg-red-500/20 text-red-100 shadow-lg shadow-red-500/40 ring-2 ring-red-500/60"
-                                    : "border-slate-800 bg-slate-950 text-slate-100 hover:border-red-500/50 hover:bg-slate-900"
+                                    ? "border-rose-500 bg-rose-500/20 text-rose-200 shadow-lg shadow-rose-500/40 ring-2 ring-rose-500/60"
+                                    : "border-slate-800 bg-slate-950 text-slate-100 hover:border-rose-500/50 hover:bg-slate-900"
                                 }`}
                                 title={
                                   note.pitch_midi
@@ -707,8 +707,8 @@ function CoachingStudioView() {
                                 <span
                                   className={`text-[10px] font-mono ${
                                     isSelected
-                                      ? "text-red-300 font-bold"
-                                      : "text-slate-500 group-hover:text-red-400"
+                                      ? "text-rose-300 font-bold"
+                                      : "text-slate-500 group-hover:text-rose-400"
                                   }`}
                                 >
                                   #{idx + 1}
@@ -716,8 +716,8 @@ function CoachingStudioView() {
                                 <span
                                   className={`my-1.5 font-display text-lg font-black ${
                                     isSelected
-                                      ? "text-red-200"
-                                      : "text-slate-100 group-hover:text-red-300"
+                                      ? "text-rose-200"
+                                      : "text-slate-100 group-hover:text-rose-300"
                                   }`}
                                 >
                                   {note.note_name}
@@ -726,7 +726,7 @@ function CoachingStudioView() {
                                   Beat {note.onset_beats + 1}
                                 </span>
                                 {note.fret !== null && (
-                                  <span className="mt-1 text-[9px] text-red-400 font-mono">
+                                  <span className="mt-1 text-[9px] text-rose-400 font-mono">
                                     Fret {note.fret}
                                   </span>
                                 )}
@@ -760,14 +760,14 @@ function CoachingStudioView() {
                 {/* Right Column: Pre-Flight Checklist, AI Live Tips & Start Take CTA */}
                 <div className="lg:col-span-4 space-y-6">
                   {/* AI Live Coach Card */}
-                  <div className={`${CARD} border-red-500/30 bg-slate-900/50 relative overflow-hidden space-y-4`}>
+                  <div className={`${CARD} border-rose-500/30 bg-slate-900/50 relative overflow-hidden space-y-4`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
                         </span>
-                        <h3 className="font-display text-sm font-bold uppercase tracking-wider text-red-300">
+                        <h3 className="font-display text-sm font-bold uppercase tracking-wider text-rose-300">
                           AI Live Coach Insights
                         </h3>
                       </div>
@@ -775,7 +775,7 @@ function CoachingStudioView() {
                         type="button"
                         onClick={() => void fetchLiveAiTip()}
                         disabled={isFetchingTip}
-                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-300 hover:bg-red-500/20 disabled:opacity-50 transition"
+                        className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-300 hover:bg-rose-500/20 disabled:opacity-50 transition"
                       >
                         {isFetchingTip ? "Thinking…" : "💡 Ask for AI Tip"}
                       </button>
@@ -793,7 +793,7 @@ function CoachingStudioView() {
                           const info = getVoiceInfo(e.target.value);
                           addStreamLog("out", `Switched coach voice to: ${info.name} (${info.provider})`);
                         }}
-                        className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-medium text-red-200 focus:outline-none focus:ring-1 focus:ring-red-500"
+                        className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-medium text-rose-200 focus:outline-none focus:ring-1 focus:ring-rose-500"
                       >
                         <optgroup label="ElevenLabs (Studio Primary)">
                           <option value="21m00Tcm4TlvDq8ikWAM">Rachel · ElevenLabs</option>
@@ -814,7 +814,7 @@ function CoachingStudioView() {
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-400">Focus Area:</span>
-                        <span className="font-bold text-red-300 rounded bg-red-500/10 px-2 py-0.5 border border-red-500/20">
+                        <span className="font-bold text-rose-300 rounded bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
                           {aiTip?.focus_area ?? "Ergonomics & Pacing"}
                         </span>
                       </div>
@@ -824,7 +824,7 @@ function CoachingStudioView() {
                       </p>
                       {aiTip?.suggested_action && (
                         <div className="rounded-lg bg-slate-900 p-2.5 border border-slate-800/80">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-red-400 block mb-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
                             Actionable Cue
                           </span>
                           <p className="text-xs font-medium text-slate-300">{aiTip.suggested_action}</p>
@@ -839,7 +839,7 @@ function CoachingStudioView() {
                     </h3>
                     <ul className="space-y-3 text-xs text-slate-300 mb-6">
                       <li className="flex items-start gap-2.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300 font-bold">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-rose-300 font-bold">
                           1
                         </span>
                         <div>
@@ -848,7 +848,7 @@ function CoachingStudioView() {
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300 font-bold">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-rose-300 font-bold">
                           2
                         </span>
                         <div>
@@ -857,12 +857,12 @@ function CoachingStudioView() {
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-300 font-bold">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-rose-300 font-bold">
                           3
                         </span>
                         <div>
                           <strong className="text-slate-100">Voice Selected:</strong> Speaking with{" "}
-                          <span className="text-red-400 font-semibold">{getVoiceInfo(geminiVoice).name}</span> voice via{" "}
+                          <span className="text-rose-400 font-semibold">{getVoiceInfo(geminiVoice).name}</span> voice via{" "}
                           <span className="text-slate-200">{getVoiceInfo(geminiVoice).provider}</span>.
                         </div>
                       </li>
@@ -871,7 +871,7 @@ function CoachingStudioView() {
                     <button
                       type="button"
                       onClick={triggerCountdown}
-                      className={`w-full py-3.5 text-base font-bold rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 ${FOCUS_RING}`}
+                      className={`w-full py-3.5 text-base font-bold rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2 ${FOCUS_RING}`}
                     >
                       <span>Start Coached Take ({tempoBpm} BPM)</span>
                       <span className="text-lg">🎙️</span>
@@ -890,7 +890,7 @@ function CoachingStudioView() {
                       <button
                         type="button"
                         onClick={() => setShowLogs((prev) => !prev)}
-                        className="text-xs text-red-400 hover:text-red-300 font-semibold transition"
+                        className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition"
                       >
                         {showLogs ? "Hide Terminal" : "Show Inspector"}
                       </button>
@@ -928,7 +928,7 @@ function CoachingStudioView() {
                 className={`${CARD} p-12 text-center space-y-6 flex flex-col items-center justify-center min-h-[460px]`}
               >
                 <div className="space-y-2">
-                  <span className="text-xs uppercase tracking-widest font-bold text-red-400">
+                  <span className="text-xs uppercase tracking-widest font-bold text-rose-400">
                     Count-In · Get Ready
                   </span>
                   <h2 className="text-3xl font-black text-slate-100">{selectedExercise.title}</h2>
@@ -941,19 +941,19 @@ function CoachingStudioView() {
                   {/* Outer Pulsing Glow Rings Synchronized to 1.2s */}
                   <div
                     key={`ring-ping-${countdownValue}`}
-                    className="absolute h-56 w-56 rounded-full bg-red-500/20 animate-ping pointer-events-none"
+                    className="absolute h-56 w-56 rounded-full bg-rose-500/20 animate-ping pointer-events-none"
                     style={{ animationDuration: "1.2s" }}
                   />
                   <div
                     key={`ring-pulse-${countdownValue}`}
-                    className="absolute h-48 w-48 rounded-full border-2 border-red-500/50 animate-pulse pointer-events-none"
+                    className="absolute h-48 w-48 rounded-full border-2 border-rose-500/50 animate-pulse pointer-events-none"
                     style={{ animationDuration: "1.2s" }}
                   />
 
                   {/* Main Center Countdown Dial */}
                   <div
                     key={`dial-${countdownValue}`}
-                    className="relative flex h-40 w-40 sm:h-44 sm:w-44 items-center justify-center rounded-full bg-gradient-to-br from-red-500 via-rose-600 to-red-700 text-white shadow-2xl shadow-red-500/60 transform transition-all duration-300 scale-100 hover:scale-105"
+                    className="relative flex h-40 w-40 sm:h-44 sm:w-44 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-rose-600 text-white shadow-2xl shadow-rose-500/60 transform transition-all duration-300 scale-100 hover:scale-105"
                   >
                     {countdownValue > 0 ? (
                       <span className="font-display text-6xl sm:text-7xl font-black tracking-tighter drop-shadow-md">
@@ -991,7 +991,7 @@ function CoachingStudioView() {
                 <div className={`${CARD} p-6 space-y-6`}>
                   <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
                     <div>
-                      <span className="text-xs uppercase tracking-wider text-red-400 font-semibold">
+                      <span className="text-xs uppercase tracking-wider text-rose-400 font-semibold">
                         Live Coached Take
                       </span>
                       <h2 className="text-2xl font-bold text-slate-100">{selectedExercise?.title}</h2>
@@ -1026,7 +1026,7 @@ function CoachingStudioView() {
                               key={m}
                               className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border transition-all ${
                                 isCurrentM
-                                  ? "border-red-500 bg-red-500/20 text-red-200 ring-1 ring-red-400"
+                                  ? "border-rose-500 bg-rose-500/20 text-rose-200 ring-1 ring-rose-400"
                                   : isPastM
                                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                                   : "border-slate-800 bg-slate-900 text-slate-500"
@@ -1051,7 +1051,7 @@ function CoachingStudioView() {
                             className={`flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl font-display text-xl sm:text-2xl font-black transition-all duration-100 ${
                               isActive
                                 ? isDownbeat
-                                  ? "bg-red-500 text-white scale-110 shadow-lg shadow-red-500/60 ring-2 ring-red-400/50"
+                                  ? "bg-rose-500 text-white scale-110 shadow-lg shadow-rose-500/60 ring-2 ring-rose-400/50"
                                   : "bg-rose-500 text-white scale-105 shadow-lg shadow-rose-500/50"
                                 : "bg-slate-900 border border-slate-800 text-slate-500"
                             }`}
@@ -1066,7 +1066,7 @@ function CoachingStudioView() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                         Drill Timeline
                       </p>
-                      <p className="text-xl font-black text-red-400 font-mono">
+                      <p className="text-xl font-black text-rose-400 font-mono">
                         Beat {Math.min(16, currentDrillBeat + 1)} <span className="text-slate-500 text-sm font-normal">/ 16</span>
                       </p>
                       <p className="text-[11px] text-slate-400 font-mono">
@@ -1086,14 +1086,14 @@ function CoachingStudioView() {
                   </div>
 
                   {/* Real-time AI Coach Live Guidance Section - Front and Center */}
-                  <div className="rounded-2xl border border-red-500/40 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 space-y-4 shadow-xl ring-1 ring-red-500/20">
+                  <div className="rounded-2xl border border-rose-500/40 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 space-y-4 shadow-xl ring-1 ring-rose-500/20">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5">
                         <span className="relative flex h-3 w-3">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
                         </span>
-                        <h3 className="font-display text-sm font-bold uppercase tracking-wider text-red-200 flex items-center gap-2">
+                        <h3 className="font-display text-sm font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2">
                           <span>🤖 Real-Time AI Coach Analysis</span>
                           <span className="text-[10px] font-normal text-slate-400 border border-slate-800 bg-slate-900 px-2 py-0.5 rounded-full">
                             Live Stream
@@ -1105,7 +1105,7 @@ function CoachingStudioView() {
                         type="button"
                         onClick={() => void fetchLiveAiTip()}
                         disabled={isFetchingTip}
-                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/20 disabled:opacity-50 transition flex items-center gap-1.5"
+                        className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/20 disabled:opacity-50 transition flex items-center gap-1.5"
                       >
                         <span>{isFetchingTip ? "Analyzing…" : "💡 Instant AI Tip"}</span>
                       </button>
@@ -1113,8 +1113,8 @@ function CoachingStudioView() {
 
                     {/* Live Streamed Verbal Utterance Bubble */}
                     {utterance !== null && utterance.streaming && (
-                      <div className="rounded-xl border border-red-500/50 bg-red-500/20 p-4 text-red-100 shadow-lg shadow-red-500/20 animate-pulse">
-                        <div className="flex items-center gap-2 text-xs font-bold text-red-300 mb-1">
+                      <div className="rounded-xl border border-rose-500/50 bg-rose-500/20 p-4 text-rose-200 shadow-lg shadow-rose-500/20 animate-pulse">
+                        <div className="flex items-center gap-2 text-xs font-bold text-rose-300 mb-1">
                           <span>🗣️ Live Coach Speaking:</span>
                         </div>
                         <p className="text-base font-semibold leading-relaxed">{utterance.text}▍</p>
@@ -1134,7 +1134,7 @@ function CoachingStudioView() {
                               : `Maintain a steady pulse lock with the ${tempoBpm} BPM downbeat.`)}
                         </p>
                         {aiTip?.suggested_action && (
-                          <p className="text-[11px] font-medium text-red-300 pt-1 border-t border-slate-800/80 mt-1">
+                          <p className="text-[11px] font-medium text-rose-300 pt-1 border-t border-slate-800/80 mt-1">
                             🎯 {aiTip.suggested_action}
                           </p>
                         )}
@@ -1253,7 +1253,7 @@ function CoachingStudioView() {
                       <button
                         type="button"
                         onClick={() => setShowLogs((prev) => !prev)}
-                        className="text-xs text-red-400 hover:text-red-300 font-semibold transition"
+                        className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition"
                       >
                         {showLogs ? "Hide Terminal" : "Show Stream Inspector"}
                       </button>
@@ -1309,9 +1309,9 @@ function CoachingStudioView() {
                         </p>
                       </div>
 
-                        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-6 py-3 text-center">
-                        <p className="text-xs uppercase font-bold tracking-wider text-red-400">Reward</p>
-                        <p className="font-display text-3xl font-black text-red-300">
+                        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-6 py-3 text-center">
+                        <p className="text-xs uppercase font-bold tracking-wider text-rose-400">Reward</p>
+                        <p className="font-display text-3xl font-black text-rose-300">
                           +{attempt.exp_awarded} EXP
                         </p>
                       </div>
@@ -1329,7 +1329,7 @@ function CoachingStudioView() {
                           <button
                             type="button"
                             onClick={stopDebriefVoice}
-                            className="flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-500 text-white px-3.5 py-1.5 text-xs font-bold transition shadow-lg shadow-red-600/30 cursor-pointer animate-pulse"
+                            className="flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-1.5 text-xs font-bold transition shadow-lg shadow-rose-600/30 cursor-pointer animate-pulse"
                           >
                             <span>⏹️ Stop Debrief</span>
                           </button>
@@ -1382,8 +1382,8 @@ function CoachingStudioView() {
                     </div>
 
                     {attempt.feedback.next_step && (
-                      <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
-                        <span className="font-bold text-red-300">Recommended Next Step: </span>
+                      <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+                        <span className="font-bold text-rose-300">Recommended Next Step: </span>
                         {attempt.feedback.next_step}
                       </div>
                     )}
@@ -1397,7 +1397,7 @@ function CoachingStudioView() {
                         stopDebriefVoice();
                         setStage("preview");
                       }}
-                      className={`px-6 py-3 font-bold rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition ${FOCUS_RING}`}
+                      className={`px-6 py-3 font-bold rounded-xl bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 transition ${FOCUS_RING}`}
                     >
                       Practice Again 🔄
                     </button>
@@ -1405,7 +1405,7 @@ function CoachingStudioView() {
                       <button
                         type="button"
                         onClick={stopDebriefVoice}
-                        className="px-6 py-3 font-bold rounded-xl border border-red-500/50 bg-red-500/20 hover:bg-red-500/30 text-red-200 transition shadow-lg shadow-red-500/20 flex items-center gap-2"
+                        className="px-6 py-3 font-bold rounded-xl border border-rose-500/50 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 transition shadow-lg shadow-rose-500/20 flex items-center gap-2"
                       >
                         <span>⏹️ Stop Debrief Voice</span>
                       </button>
@@ -1465,7 +1465,7 @@ const NoteHighway = memo(function NoteHighway({
               key={idx}
               className={`flex min-w-[70px] flex-col items-center justify-between rounded-xl border p-3 text-center transition-all duration-150 ${
                 isCurrent
-                  ? "border-red-500 bg-red-500/20 text-red-100 scale-110 shadow-lg shadow-red-500/50 ring-2 ring-red-400/60 font-bold"
+                  ? "border-rose-500 bg-rose-500/20 text-rose-200 scale-110 shadow-lg shadow-rose-500/50 ring-2 ring-rose-400/60 font-bold"
                   : isPast
                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
                   : "border-slate-800 bg-slate-950 text-slate-400 opacity-60"

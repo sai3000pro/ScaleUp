@@ -144,6 +144,18 @@ export interface RecordingTake {
  * `listening`, then `stop()` to get the notes.
  */
 // @spec CAP-MIC-001, CAP-MIC-002, CAP-MIC-003, CAP-MIC-004, CAP-MIC-005, CAP-MIC-006, CAP-MIC-007, CAP-MIC-008, CAP-PERM-001
+/**
+ * Which detector produced a take's notes, recorded on the attempt.
+ *
+ * `performance_attempts.analyzer` exists so a later change of detector is
+ * answerable -- "did accuracy move when the pitch tracker changed, or did the
+ * learners?" -- and it has been null on every row, because nothing ever sent it.
+ * A stored column no caller fills is a question that cannot be asked.
+ *
+ * @spec CAP-MIC-010
+ */
+export const ANALYZER_ID = "autocorrelation-v1";
+
 export class MicRecorder {
   private stream: MediaStream | null = null;
   private context: AudioContext | null = null;
@@ -210,10 +222,27 @@ export class MicRecorder {
 
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
+        // Every one of these is a voice-call feature, and each one destroys a
+        // measurement this app makes.
+        //
+        // Automatic gain control is the important one: it continuously
+        // normalises loudness, so a crescendo arrives flat and a note played
+        // softly arrives at the same level as one played hard. Dynamics is one
+        // of the four dimensions a take is scored on, and with AGC on it
+        // measures the browser's correction rather than the playing.
+        //
+        // Noise suppression is tuned to keep speech and discard steady tones,
+        // which is an exact description of a sustained note. Echo cancellation
+        // subtracts what the speakers are playing, and a metronome or a backing
+        // track is exactly that.
+        //
+        // Browsers only honour these as a request. Nothing here assumes they
+        // were granted -- the dynamics scorer is relative by construction, so a
+        // device that insists on gain control still scores, just less well.
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
           channelCount: 1,
         },
       });

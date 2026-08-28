@@ -51,7 +51,7 @@ export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
           <span className="text-base">🎙️</span>
           <h2 className="text-sm font-bold text-slate-100">Live Coaching Studio</h2>
         </div>
-        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-bold text-red-400 border border-red-500/20">
+        <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-400 border border-rose-500/20">
           Real-time AI
         </span>
       </header>
@@ -93,7 +93,7 @@ export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
                 <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-xs space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-slate-100 truncate">{selectedExercise.title}</span>
-                    <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-[10px] font-bold text-red-300 border border-red-500/20 shrink-0">
+                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/20 shrink-0">
                       {selectedExercise.tempo_bpm} BPM
                     </span>
                   </div>
@@ -112,20 +112,20 @@ export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
               {/* Studio Feature Checklist */}
               <ul className="space-y-1 text-[11px] text-slate-300 pt-1">
                 <li className="flex items-center gap-1.5">
-                  <span className="text-red-400 font-bold">✓</span> Fullscreen Fretboard & Keyboard
+                  <span className="text-rose-400 font-bold">✓</span> Fullscreen Fretboard & Keyboard
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <span className="text-red-400 font-bold">✓</span> Note Rehearsal & Audio Preview
+                  <span className="text-rose-400 font-bold">✓</span> Note Rehearsal & Audio Preview
                 </li>
                 <li className="flex items-center gap-1.5">
-                  <span className="text-red-400 font-bold">✓</span> Real-Time Pitch & Rhythm Cues
+                  <span className="text-rose-400 font-bold">✓</span> Real-Time Pitch & Rhythm Cues
                 </li>
               </ul>
 
               {/* Gateway Launch Button */}
               <Link
                 href={`/courses/${courseId}/coach?exercise=${selectedExerciseId ?? ""}`}
-                className={`w-full py-3 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-md shadow-red-600/25 transition-all flex items-center justify-center gap-2 group ${FOCUS_RING}`}
+                className={`w-full py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-md shadow-rose-600/25 transition-all flex items-center justify-center gap-2 group ${FOCUS_RING}`}
               >
                 <span>Launch Coaching Studio</span>
                 <span className="transition-transform group-hover:translate-x-0.5">🚀</span>

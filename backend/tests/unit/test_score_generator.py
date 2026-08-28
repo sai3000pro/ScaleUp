@@ -289,3 +289,99 @@ class TestComposedUpgrade:
         spec = spec_for_node(instrument="drums", node_slug="d", node_title="Groove", difficulty=2)
         with pytest.raises(ScoreGenerationError):
             notes_from_payload({"notes": [{"step": "C", "octave": 4, "beats": 1}]}, spec)
+
+
+# ---------------------------------------------------------------------------
+# Written dynamics.
+#
+# The column was built from both ends and never joined in the middle:
+# `musicxml.py` parsed `<dynamics>` and `<wedge>`, `dynamics.py` scored them,
+# `registry.py` weighted them -- and the generator wrote none, so every
+# generated exercise reported `dynamics=()`, `score_dynamics` correctly answered
+# "inapplicable", and one of the four dimensions the product advertises could
+# not fire on any take. These pin the join.
+# ---------------------------------------------------------------------------
+
+
+def _generated(instrument: str, slug: str, title: str, difficulty: int = 2) -> MusicXMLScore:
+    spec = spec_for_node(instrument=instrument, node_slug=slug, node_title=title, difficulty=difficulty)
+    return parse_musicxml(generate_score(spec).musicxml)
+
+
+# @spec EVAL-GEN-001
+def test_a_shaped_pattern_is_written_with_dynamics_that_survive_the_parser() -> None:
+    score = _generated("violin", "open-strings", "Open strings")
+    assert score.dynamics, "a scale carries no written dynamic, so nothing can be scored against it"
+    kinds = {mark.kind for mark in score.dynamics}
+    assert "level" in kinds and "hairpin_start" in kinds
+
+
+# @spec EVAL-GEN-001
+def test_a_written_shape_produces_a_ramp_rather_than_one_flat_level() -> None:
+    """A single mark parses fine and grades nothing: `score_dynamics` needs
+    spread before it will rank anything, so a score without it is decoration."""
+    score = _generated("violin", "open-strings", "Open strings")
+    levels = [score.expected_level_at(note.onset_beats) for note in score.pitched_notes]
+    assert all(level is not None for level in levels)
+    assert len(set(levels)) > 1, f"every note expects the same level: {levels}"
+    assert levels == sorted(levels), "an ascending scale should be written to grow"
+
+
+# @spec EVAL-GEN-001
+def test_a_steady_pattern_is_left_unmarked_on_purpose() -> None:
+    """Unmarked is a real answer. A drum groove and a strummed progression want
+    an even hand, and writing a crescendo into one would grade an instruction
+    nobody would give."""
+    assert _generated("drums", "basic-groove", "Basic groove").dynamics == ()
+    assert _generated("guitar", "open-chords", "Open chords").dynamics == ()
+
+
+# @spec EVAL-GEN-001
+@pytest.mark.parametrize(
+    ("instrument", "slug", "title"),
+    [
+        ("violin", "open-strings", "Open strings"),
+        ("piano", "major-scale", "Major scale"),
+        ("piano", "five-finger", "Five-finger position"),
+        ("trumpet", "first-notes", "First notes"),
+        ("guitar", "open-chords", "Open chords"),
+        ("drums", "basic-groove", "Basic groove"),
+    ],
+)
+def test_writing_dynamics_never_moves_a_note(instrument: str, slug: str, title: str) -> None:
+    """A `<direction>` sits between notes and must not disturb the beat grid.
+    If it did, every existing pitch and rhythm assertion would be scoring a
+    different piece of music than the one on the page."""
+    spec = spec_for_node(instrument=instrument, node_slug=slug, node_title=title, difficulty=2)
+    notes = _notes_of(spec)
+    with_dynamics = parse_musicxml(render_musicxml(spec, notes))
+    bare = parse_musicxml(_render_without_dynamics(spec, notes))
+
+    assert [(n.pitch_midi, n.onset_beats, n.duration_beats) for n in with_dynamics.notes] == [
+        (n.pitch_midi, n.onset_beats, n.duration_beats) for n in bare.notes
+    ]
+
+
+def _notes_of(spec: ScoreSpec):
+    from app.evaluation.score_generator import _notes_for
+
+    return _notes_for(spec)
+
+
+def _render_without_dynamics(spec: ScoreSpec, notes):
+    """The same score with the shape table emptied, as the control."""
+    from unittest.mock import patch
+
+    with patch("app.evaluation.score_generator._PATTERN_SHAPES", {}):
+        return render_musicxml(spec, notes)
+
+
+# @spec EVAL-GEN-001
+def test_a_score_too_short_to_grade_is_left_unmarked() -> None:
+    """`score_dynamics` reports nothing below four usable notes, so a shape
+    written across fewer is an instruction the learner is held to and can never
+    be credited for."""
+    from app.evaluation.score_generator import MIN_NOTES_FOR_DYNAMICS, dynamic_plan
+
+    assert dynamic_plan(PatternKind.SCALE_ASCENDING, MIN_NOTES_FOR_DYNAMICS - 1) == ()
+    assert dynamic_plan(PatternKind.SCALE_ASCENDING, MIN_NOTES_FOR_DYNAMICS) != ()

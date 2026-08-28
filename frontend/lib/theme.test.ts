@@ -10,7 +10,7 @@
  * is CSS, and the point is to assert on what actually ships.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
@@ -254,5 +254,127 @@ describe("graph palette", () => {
     expect(
       contrast(GRAPH_SELECTED, TOKENS["graph-ground"]),
     ).toBeGreaterThanOrEqual(AA_NON_TEXT);
+  });
+});
+
+/**
+ * The failure this file existed to catch and did not.
+ *
+ * globals.css inverts the Tailwind ramps rather than editing 30 component
+ * files, which works exactly as far as the list of ramps it inverts. `cyan` was
+ * never on that list, and neither were a dozen individual shades of ramps that
+ * were -- `rose-200`, `emerald-100`, `amber-500`. Tailwind still resolves them,
+ * to its own values, which are chosen to sit on a near-black page. So
+ * `text-cyan-200` rendered as #a5f3fc on white and the practice panel's Record
+ * button was pale ice on pale ice; `text-rose-200` made "Stop and score
+ * recording" pale pink on pale pink.
+ *
+ * Nothing threw, nothing failed to build, and the classes read correctly in
+ * source. The only way to see it was to look at the right screen in the right
+ * state -- so it is computed here instead.
+ */
+describe("ramp coverage", () => {
+  const COMPONENT_GLOBS = ["app", "components", "lib"];
+  /** Ramps globals.css takes ownership of by inverting any part of them. */
+  const THEMED = ["slate", "sky", "emerald", "amber", "violet", "rose", "cyan"];
+  /**
+   * `red` is deliberately NOT themed. It survives only in the two instrument
+   * drawings, where it paints a physical object -- an active piano key is the
+   * same red whichever way the page runs -- alongside literal `bg-white` and
+   * `bg-neutral-950`. Those files are the documented exception, so the rule is
+   * enforced everywhere else rather than weakened for them.
+   */
+  const LITERAL_COLOUR_FILES = [
+    "components/instrument/PianoKeyboard.tsx",
+    "components/instrument/GuitarFretboard.tsx",
+  ];
+
+  function sourceFiles(): string[] {
+    const found: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules") walk(full);
+        } else if (entry.name.endsWith(".test.ts") || entry.name.endsWith(".test.tsx")) {
+          // A test that names a class in prose is not a component using it --
+          // this very file quotes `text-cyan-200` while explaining the bug.
+        } else if (entry.name.endsWith(".tsx") || entry.name.endsWith(".ts")) {
+          found.push(full);
+        }
+      }
+    };
+    for (const root of COMPONENT_GLOBS) {
+      walk(fileURLToPath(new URL(`../${root}`, import.meta.url)));
+    }
+    return found;
+  }
+
+  // @spec UI-THEME-002
+  it("declares every shade a component actually names", () => {
+    const pattern = new RegExp(
+      String.raw`\b(?:text|bg|border|ring|from|to|via|fill|stroke|decoration|divide|shadow|outline|accent|caret)-((?:${THEMED.join("|")})-\d+)`,
+      "g",
+    );
+    const undeclared = new Map<string, string[]>();
+
+    for (const file of sourceFiles()) {
+      const posix = file.split("\\").join("/");
+      const exempt = LITERAL_COLOUR_FILES.some((allowed) => posix.endsWith(allowed));
+      if (exempt) {
+        // The instrument drawings paint a physical object; see above.
+      } else {
+        const source = readFileSync(file, "utf-8");
+        for (const match of source.matchAll(pattern)) {
+          const shade = match[1];
+          if (TOKENS[shade] === undefined) {
+            const seen = undeclared.get(shade) ?? [];
+            seen.push(posix.slice(posix.indexOf("/frontend/") + 1));
+            undeclared.set(shade, seen);
+          } else {
+            // Declared, so it carries this theme's value rather than Tailwind's.
+          }
+        }
+      }
+    }
+
+    const report = [...undeclared.entries()]
+      .map(([shade, files]) => `  ${shade} — ${files[0]}${files.length > 1 ? ` (+${files.length - 1} more)` : ""}`)
+      .join("\n");
+    expect(
+      undeclared.size,
+      `these shades keep Tailwind's dark-theme value on a light page:\n${report}`,
+    ).toBe(0);
+  });
+
+  // @spec UI-A11Y-007
+  it("keeps every accent ink readable on the page and on a card", () => {
+    // The -100..-400 end of an inverted accent ramp is ink; it has to clear AA
+    // on both surfaces, exactly as the neutral ramp does.
+    for (const ramp of THEMED.filter((name) => name !== "slate")) {
+      for (const step of [100, 200, 300, 400]) {
+        const hex = TOKENS[`${ramp}-${step}`];
+        if (hex === undefined) {
+          // Not every ramp spans every step; an absent one is not a failure.
+        } else {
+          expect(contrast(hex, PAGE()), `${ramp}-${step} on the page`).toBeGreaterThanOrEqual(AA_TEXT);
+          expect(contrast(hex, CARD()), `${ramp}-${step} on a card`).toBeGreaterThanOrEqual(AA_TEXT);
+        }
+      }
+    }
+  });
+
+  // @spec UI-A11Y-008
+  it("keeps a page-white label readable on every accent fill", () => {
+    for (const ramp of THEMED.filter((name) => name !== "slate")) {
+      for (const step of [500, 600]) {
+        const hex = TOKENS[`${ramp}-${step}`];
+        if (hex === undefined) {
+          // Not every ramp declares a solid fill.
+        } else {
+          expect(contrast(PAGE(), hex), `page white on ${ramp}-${step}`).toBeGreaterThanOrEqual(AA_TEXT);
+        }
+      }
+    }
   });
 });

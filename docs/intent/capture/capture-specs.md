@@ -19,8 +19,10 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-MIC-004**: The recorder shall classify a frame below the silence level threshold as a rest.
 - [x] **CAP-MIC-005**: The recorder shall capture the take's audio in parallel with analysis, so the preserved recording is independent of the analysis path.
 - [x] **CAP-MIC-006**: When the recorder is stopped, it shall return the take's completed notes and its recorded audio together.
-- [ ] **CAP-MIC-007**: The recorder shall request the microphone with automatic gain control, echo cancellation, and noise suppression disabled, so that measured loudness reflects the learner's playing rather than the browser's correction.
-- [ ] **CAP-MIC-008**: The recorder shall obtain note segments from the shared segmenter rather than reimplementing segmentation inline.
+- [x] **CAP-MIC-007**: The recorder shall request the microphone with automatic gain control, echo cancellation, and noise suppression disabled, so that measured loudness reflects the learner's playing rather than the browser's correction.
+- [x] **CAP-MIC-008**: The recorder shall obtain note segments from the shared segmenter rather than reimplementing segmentation inline.
+- [x] **CAP-MIC-009**: A completed note shall carry its measured level on the field the performance contract reads, so that a take recorded in the browser can be scored for dynamics.
+- [x] **CAP-MIC-010**: A submitted take shall name the detector that produced its notes, so a later change of detector is answerable against stored attempts.
 
 ## Pitch detection
 
@@ -31,7 +33,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-PITCH-005**: The detector shall refine its estimate by interpolation, guarded against a degenerate denominator.
 - [x] **CAP-PITCH-006**: The detector's pure functions shall be callable without acquiring an audio device.
 - [ ] **CAP-PITCH-007**: The detector shall resolve simultaneously sounding pitches, so that a chord is scored from what was played rather than from a fixture.
-- [ ] **CAP-PITCH-008**: The detector shall report each note's deviation in cents from equal temperament.
+- [x] **CAP-PITCH-008**: The detector shall report each note's deviation in cents from equal temperament.
 
 ## Camera capture
 

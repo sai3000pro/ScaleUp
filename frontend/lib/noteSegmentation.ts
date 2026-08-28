@@ -39,6 +39,8 @@ export interface NoteSegment extends PerformedNote {
   onset_seconds: number;
   duration_seconds: number;
   confidence: number;
+  /** Mean level, on the field `PerformedNote` declares. @spec CAP-MIC-009 */
+  level_db: number;
   peak_level_db: number;
   mean_level_db: number;
 }
@@ -120,14 +122,24 @@ function closeNote(
   // to change the reported semitone, and the whole note with it.
   const midiExact = median(open.midiValues);
   const rounded = Math.round(midiExact);
+  const meanLevelDb = Math.round((open.levelSum / Math.max(1, open.frames)) * 10) / 10;
   return {
     pitch_midi: rounded,
     cents_deviation: Math.round((midiExact - rounded) * 100 * 10) / 10,
     onset_seconds: Math.round(open.onsetSeconds * 1000) / 1000,
     duration_seconds: Math.round(duration * 1000) / 1000,
     confidence: Math.min(1, open.confidenceSum / Math.max(1, open.frames)),
+    // The same number as `mean_level_db`, under the name the performance
+    // contract reads. A NoteSegment IS a PerformedNote -- it says so in the type
+    // -- and until this line existed it quietly was not one: the browser
+    // measured a level for every note and the field the scorer reads was never
+    // set, so `evaluation/dynamics.py` saw `None` on every take and dynamics,
+    // one of the four scored dimensions, could not fire from a real recording.
+    // Both names are kept because the local ones carry peak as well as mean.
+    // @spec CAP-MIC-009
+    level_db: meanLevelDb,
     peak_level_db: Math.round(open.peakDb * 10) / 10,
-    mean_level_db: Math.round((open.levelSum / Math.max(1, open.frames)) * 10) / 10,
+    mean_level_db: meanLevelDb,
     string: null,
     fret: null,
   };

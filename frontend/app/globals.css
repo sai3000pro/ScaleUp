@@ -42,8 +42,16 @@
   --color-slate-100: #2c2629;
   --color-slate-50: #1c181a;
 
-  /* Accent ramps inverted the same way: the -200/-300/-400 shades were text on
-     dark, so they must read on white; the -800/-900/-950 shades were tints. */
+  /* Accent ramps inverted the same way: the -100/-200/-300/-400 shades were text
+     on dark, so they must read on white; the -800/-900/-950 shades were tints;
+     -500/-600 are saturated mids that the page white can sit on.
+     Every shade a component names has to be declared here. A shade that is used
+     but not declared silently keeps Tailwind's own value -- which is chosen for a
+     dark interface and is therefore the exact wrong end of the ramp. That is not
+     a hypothetical: it is why the practice panel's Record button rendered as pale
+     ice on white, and why "Stop and score recording" was pale pink on pale pink.
+     `theme.test.ts` now fails on an undeclared shade rather than leaving it to be
+     noticed. */
   --color-sky-950: #fdf2f6;
   --color-sky-900: #fbe6ee;
   --color-sky-800: #f6cddc;
@@ -53,27 +61,57 @@
   --color-sky-200: #8f3352;
   --color-sky-100: #7a2b46;
 
+  --color-emerald-100: #14523a;
+  --color-emerald-200: #1a6647;
   --color-emerald-300: #1f7a54;
   --color-emerald-400: #1f7a54;
+  --color-emerald-500: #1f7a54;
+  --color-emerald-800: #c6e6d6;
   --color-emerald-900: #dff2e8;
   --color-emerald-950: #eef9f3;
 
-  --color-amber-200: #8a6206;
-  --color-amber-300: #9a6d07;
-  --color-amber-400: #9a6d07;
+  --color-amber-100: #6d4d05;
+  --color-amber-200: #856006;
+  --color-amber-300: #916607;
+  --color-amber-400: #916607;
+  --color-amber-500: #8a6206;
+  --color-amber-800: #f2e0b4;
   --color-amber-900: #fbf0d6;
   --color-amber-950: #fdf7e9;
 
+  --color-violet-100: #4a3389;
   --color-violet-200: #5b3fa8;
   --color-violet-300: #6547b8;
   --color-violet-400: #6547b8;
+  --color-violet-500: #6547b8;
+  --color-violet-800: #d9cef2;
   --color-violet-900: #ece5f8;
   --color-violet-950: #f5f1fb;
 
+  --color-rose-200: #93304f;
   --color-rose-300: #a8395c;
   --color-rose-400: #b03a5f;
+  --color-rose-500: #b8496f;
+  --color-rose-600: #a83e63;
+  --color-rose-800: #f5cdda;
   --color-rose-900: #fbe4ec;
   --color-rose-950: #fdf1f5;
+
+  /* Cyan was missed when the ramps were inverted, and it is the one the practice
+     panel's primary control is built from -- so `text-cyan-200` stayed Tailwind's
+     #a5f3fc, a colour chosen to sit on near-black, and the Record button rendered
+     as pale ice on pale ice. Inverted here on the same rule as the rest: the
+     -100/-200/-300 shades were text on dark and must now read on white, the
+     -800/-900/-950 shades were tints, and -500 is a mid accent the page white can
+     sit on. Teal rather than a second green, so it stays distinct from emerald's
+     "you did this well". */
+  --color-cyan-100: #0a4f58;
+  --color-cyan-200: #0d5c66;
+  --color-cyan-300: #0e6873;
+  --color-cyan-500: #14808f;
+  --color-cyan-800: #cfe9ec;
+  --color-cyan-900: #e2f2f4;
+  --color-cyan-950: #eff8f9;
 
   /* Node states, deepened so they carry contrast on white. */
   --color-node-locked: #96898d;

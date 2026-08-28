@@ -9,6 +9,8 @@ scorer result, field for field, for every instrument.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from app.evaluation.drums import DrumHit, score_drums_performance
@@ -221,3 +223,79 @@ class TestPostureReduction:
         assert score_posture(seen_only, version="v1").posture_accuracy == pytest.approx(
             score_posture(with_blind_spot, version="v1").posture_accuracy
         )
+
+
+# ---------------------------------------------------------------------------
+# Dynamics, joined end to end.
+#
+# Three pieces had to line up before this dimension could produce a number, and
+# for a long time none of them met: the generator wrote no dynamic markings, the
+# browser measured a level per note but sent it under a name the contract does
+# not read, and so the scorer answered "inapplicable" on every take ever
+# submitted. This asserts the join, from a generated score to a graded take.
+# ---------------------------------------------------------------------------
+
+
+def _shaped_take(levels_db):
+    """A generated, dynamically-shaped score with one observation per note."""
+    from app.evaluation.musicxml import parse_musicxml
+    from app.evaluation.score_generator import generate_score, spec_for_node
+
+    spec = spec_for_node(instrument="violin", node_slug="open-strings", node_title="Open strings", difficulty=2)
+    generated = generate_score(spec)
+    score = parse_musicxml(generated.musicxml)
+    seconds_per_beat = 60.0 / score.tempo_bpm
+    notes = score.pitched_notes
+    observations = [
+        ObservationIn(
+            pitch_midi=note.pitch_midi,
+            onset_seconds=note.onset_beats * seconds_per_beat,
+            duration_seconds=note.duration_beats * seconds_per_beat,
+            confidence=1.0,
+            level_db=level,
+        )
+        for note, level in zip(notes, levels_db(len(notes)))
+    ]
+    return score, generated.evaluator_version, observations
+
+
+# @spec EVAL-DYN-001
+def test_a_take_that_makes_the_written_crescendo_is_scored_for_it() -> None:
+    score, version, observations = _shaped_take(lambda n: [-34.0 + index * 2.0 for index in range(n)])
+
+    result = evaluate("violin", version, score, observations)
+
+    assert result.dynamics_accuracy is not None, "dynamics did not fire on a shaped score with levels"
+    assert result.dynamics_contrast == 1.0
+    assert result.dynamic_range_db is not None and result.dynamic_range_db > 0
+
+
+# @spec EVAL-DYN-001
+def test_a_take_played_flat_against_a_written_crescendo_is_marked_down_for_it() -> None:
+    """The dimension is only worth having if it can distinguish. Contrast is
+    rank agreement on the written increases, so it is gain-invariant: this take
+    is not quiet, it is unshaped."""
+    score, version, rising = _shaped_take(lambda n: [-34.0 + index * 2.0 for index in range(n)])
+    _, _, flat = _shaped_take(lambda n: [-24.0] * n)
+
+    grew = evaluate("violin", version, score, rising)
+    unshaped = evaluate("violin", version, score, flat)
+
+    assert unshaped.dynamics_contrast == 0.0
+    assert unshaped.dynamics_accuracy < grew.dynamics_accuracy
+    assert unshaped.overall_score < grew.overall_score
+
+
+# @spec EVAL-DYN-001
+def test_a_take_that_sent_no_levels_scores_exactly_as_it_did_before_dynamics() -> None:
+    """The property that lets a new dimension ship against stored attempts: a
+    client that does not measure loudness is not penalised for it, and its
+    overall score is the instrument scorer's own number rather than a
+    recomputation that happens to agree."""
+    score, version, observations = _shaped_take(lambda n: [-30.0] * n)
+    without = [replace(observation, level_db=None) for observation in observations]
+
+    result = evaluate("violin", version, score, without)
+
+    assert result.dynamics_accuracy is None
+    assert result.overall_score == 1.0

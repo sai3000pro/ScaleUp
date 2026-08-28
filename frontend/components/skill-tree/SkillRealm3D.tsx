@@ -1097,9 +1097,14 @@ export function SkillRealm3D({
         </div>
       )}
 
-      {/* The lesson itself, in the realm rather than in a panel beside the tree. */}
+      {/* The lesson itself, in the realm rather than in a panel beside the tree.
+          Opaque, not a tint: this is a reading and recording surface, and at 85%
+          the lit nodes and their labels showed through the panel's own text.
+          The realm is still right behind it -- "Back to the realm" is the way
+          back, and a legible overlay is worth more than a glimpse of where you
+          are standing. */}
       {playing && (
-        <div className="absolute inset-0 overflow-y-auto bg-graph-ground/85 p-4">
+        <div className="absolute inset-0 overflow-y-auto bg-graph-ground p-4">
           <div className="mx-auto w-full max-w-md">
             <div className="mb-2 flex items-center justify-between gap-3">
               <p className="font-display text-sm font-semibold text-graph-ink">

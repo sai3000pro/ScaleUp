@@ -19,6 +19,15 @@ function midiName(midi: number): string {
   return `${PITCH_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
 }
 
+/*
+ * The keys are drawn in literal neutrals, never the themed `slate` ramp.
+ *
+ * This is a picture of a physical object: a white key is white and a black key
+ * is black whichever way the page theme runs. `slate` is inverted in
+ * globals.css, so `text-slate-800` resolved to #efe9ea -- every white key's
+ * lettering was near-white on white, and every black key's was dark grey on
+ * black. The accent reds stay: those read the same on any ground.
+ */
 export const PianoKeyboard = memo(function PianoKeyboard({
   activeMidi,
   highlightedMidis = [],
@@ -90,7 +99,7 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                     ? "z-10 border-red-500 bg-gradient-to-b from-red-400 to-red-600 text-white shadow-lg shadow-red-500/60 scale-[1.02]"
                     : isTarget
                       ? "border-red-300 bg-red-50 text-red-950 hover:bg-red-100 hover:border-red-400"
-                      : "border-slate-300 bg-white text-slate-800 hover:bg-red-50 hover:border-red-400 hover:text-red-600 active:bg-red-100"
+                      : "border-neutral-300 bg-white text-neutral-800 hover:bg-red-50 hover:border-red-400 hover:text-red-600 active:bg-red-100"
                     }`}
                   title={`${key.name} (MIDI ${key.midi})`}
                 >
@@ -100,7 +109,7 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                   )}
 
                   {/* Note Label */}
-                  <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-extrabold font-mono text-slate-900 group-hover:text-red-600">
+                  <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-extrabold font-mono text-neutral-700 group-hover:text-red-600">
                     {key.name}
                   </span>
                 </button>
@@ -132,11 +141,11 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                       ? "z-20 border-red-400 bg-red-500 text-white shadow-lg shadow-red-500/80 scale-105"
                       : isTarget
                         ? "border-red-500/80 bg-red-950 text-red-200 hover:bg-red-900 hover:border-red-400 hover:text-white"
-                        : "border-slate-900 bg-black text-slate-300 hover:bg-red-900 hover:border-red-500 hover:text-white active:bg-red-950"
+                        : "border-neutral-900 bg-neutral-950 text-neutral-200 hover:bg-red-900 hover:border-red-500 hover:text-white active:bg-red-950"
                   }`}
                   title={`${key.name} (MIDI ${key.midi})`}
                 >
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold font-mono text-slate-300 group-hover:text-white transition-colors">
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold font-mono text-neutral-300 group-hover:text-white transition-colors">
                     {key.name}
                   </span>
                 </button>

@@ -66,6 +66,101 @@ class PatternKind(StrEnum):
     MELODIC_PHRASE = "melodic_phrase"
 
 
+# ── written dynamics ──────────────────────────────────────────────────────────
+#
+# A generated score used to carry none at all, which quietly made dynamics an
+# advertised dimension that could not be scored. `musicxml.py` reads `<dynamics>`
+# and `<wedge>`, `dynamics.py` scores them, and `registry.py` weights them -- the
+# whole column was built and nothing ever wrote the instruction it grades against.
+#
+# Only shapes with real spread are written. A score marked at one level throughout
+# gives `score_dynamics` nothing to rank, so it correctly reports "inapplicable" --
+# and a single mark would therefore be decoration that changed no number.
+#
+# Which patterns get a shape is a pedagogical judgement, not a technical one: a
+# scale is where dynamic control is taught, so it is shaped, while a chord
+# progression and a drum groove want a steady hand and are left unmarked. Being
+# unmarked is a real answer here, not an omission.
+
+
+class DynamicShape(StrEnum):
+    SWELL_UP = "swell_up"      # soft, growing to loud across the line
+    SWELL_DOWN = "swell_down"  # loud, thinning to soft
+    ARCH = "arch"              # soft to loud at the turn, back to soft
+    TERRACED = "terraced"      # two flat levels, stepped rather than ramped
+
+
+_PATTERN_SHAPES: dict[PatternKind, DynamicShape] = {
+    PatternKind.SCALE_ASCENDING: DynamicShape.SWELL_UP,
+    PatternKind.SCALE_DESCENDING: DynamicShape.SWELL_DOWN,
+    PatternKind.SCALE_UP_DOWN: DynamicShape.ARCH,
+    PatternKind.MELODIC_PHRASE: DynamicShape.ARCH,
+    PatternKind.ARPEGGIO: DynamicShape.TERRACED,
+    PatternKind.FIVE_FINGER: DynamicShape.TERRACED,
+}
+
+#: `dynamics.score_dynamics` needs four usable notes before it will report
+#: anything, so a shape written across fewer is an instruction the learner is
+#: held to and never credited for.
+MIN_NOTES_FOR_DYNAMICS = 4
+
+
+@dataclass(frozen=True, slots=True)
+class DynamicEvent:
+    """One written instruction, positioned on the note it applies from."""
+
+    note_index: int
+    mark: str | None = None   # ppp..fff
+    wedge: str | None = None  # crescendo | diminuendo | stop
+
+
+def dynamic_plan(pattern: PatternKind, note_count: int) -> tuple[DynamicEvent, ...]:
+    """The written dynamics for one generated score, or none.
+
+    Positioned by note index rather than by measure so a shape reads the same at
+    one bar as at four -- `render_musicxml` emits each event immediately before
+    its note, and the parser positions a `<direction>` at the cursor it finds.
+    """
+    shape = _PATTERN_SHAPES.get(pattern)
+    if shape is None or note_count < MIN_NOTES_FOR_DYNAMICS:
+        return ()
+
+    last = note_count - 1
+    turn = note_count // 2
+
+    if shape is DynamicShape.SWELL_UP:
+        return (
+            DynamicEvent(0, mark="p", wedge="crescendo"),
+            DynamicEvent(last, mark="f", wedge="stop"),
+        )
+    if shape is DynamicShape.SWELL_DOWN:
+        return (
+            DynamicEvent(0, mark="f", wedge="diminuendo"),
+            DynamicEvent(last, mark="p", wedge="stop"),
+        )
+    if shape is DynamicShape.ARCH:
+        return (
+            DynamicEvent(0, mark="p", wedge="crescendo"),
+            DynamicEvent(turn, mark="f", wedge="stop"),
+            DynamicEvent(turn, wedge="diminuendo"),
+            DynamicEvent(last, mark="p", wedge="stop"),
+        )
+    return (
+        DynamicEvent(0, mark="mp"),
+        DynamicEvent(turn, mark="f"),
+    )
+
+
+def _direction_xml(event: DynamicEvent) -> str:
+    """One `<direction>`, carrying a level, a hairpin, or both."""
+    parts: list[str] = []
+    if event.mark is not None:
+        parts.append(f"<direction-type><dynamics><{event.mark}/></dynamics></direction-type>")
+    if event.wedge is not None:
+        parts.append(f'<direction-type><wedge type="{event.wedge}"/></direction-type>')
+    return f"<direction>{''.join(parts)}</direction>"
+
+
 # ── theory tables ─────────────────────────────────────────────────────────────
 
 _STEP_SEMITONES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
@@ -564,6 +659,13 @@ def render_musicxml(spec: ScoreSpec, notes: Sequence[GeneratedNote]) -> str:
     divisions = _divisions_for(notes)
     measures = _measures(spec, notes)
 
+    # Written dynamics, grouped by the note they are emitted before. Indexed over
+    # the flat note list rather than per measure, so a shape spans the line
+    # however the bars happen to fall.
+    directions: dict[int, list[str]] = {}
+    for event in dynamic_plan(spec.pattern, len(notes)):
+        directions.setdefault(event.note_index, []).append(_direction_xml(event))
+
     lines = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<score-partwise version="4.0">',
@@ -572,6 +674,7 @@ def render_musicxml(spec: ScoreSpec, notes: Sequence[GeneratedNote]) -> str:
         "</score-part></part-list>",
         '  <part id="P1">',
     ]
+    note_index = 0
     for index, measure in enumerate(measures, start=1):
         lines.append(f'    <measure number="{index}">')
         if index == 1:
@@ -585,7 +688,13 @@ def render_musicxml(spec: ScoreSpec, notes: Sequence[GeneratedNote]) -> str:
                          f"<per-minute>{spec.tempo_bpm}</per-minute>"
                          "</metronome></direction-type></direction>")
         for note in measure:
+            for direction in directions.get(note_index, ()):
+                lines.append(f"      {direction}")
             lines.append(f"      {_note_xml(note, divisions)}")
+            # Chord members share their onset with the note they follow, so they
+            # must not advance the index a dynamic is positioned against.
+            if not note.chord:
+                note_index += 1
         lines.append("    </measure>")
     lines.append("  </part>")
     lines.append("</score-partwise>")

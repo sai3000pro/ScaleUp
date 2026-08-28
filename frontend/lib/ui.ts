@@ -38,6 +38,22 @@ export const BUTTON_SECONDARY =
   "transition hover:border-slate-600 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 " +
   FOCUS_RING;
 
+/**
+ * A live, stoppable action: recording, a take in progress.
+ *
+ * Solid rather than tinted, because it is the primary control of the panel it
+ * sits in and it has to be findable at a glance while someone is holding an
+ * instrument. The rose fill is the same one `BUTTON_PRIMARY` uses inverted, so
+ * "start" and "stop" read as one control changing state rather than two
+ * different buttons.
+ *
+ * @spec UI-A11Y-008
+ */
+export const BUTTON_RECORDING =
+  "rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-slate-950 transition " +
+  "hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50 " +
+  FOCUS_RING;
+
 /** Text input / textarea. */
 export const INPUT =
   "w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 " +
