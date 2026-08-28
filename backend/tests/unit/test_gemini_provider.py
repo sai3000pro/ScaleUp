@@ -18,6 +18,7 @@ deterministic floor and nothing would look broken.
 from __future__ import annotations
 
 import json
+import time
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -28,7 +29,14 @@ from app.config import Settings
 from app.llm import factory, gemini_provider
 from app.llm.base import LLMRole, ProviderError
 from app.llm.gemini_provider import UNSUPPORTED_SCHEMA_KEYWORDS, GeminiLLMClient, _wire_schema
-from app.llm.registry import LANE_TIMEOUT_SECONDS, LANES, PRICES, ROLES, price_for
+from app.llm.registry import (
+    LANE_TIMEOUT_SECONDS,
+    LANES,
+    MIN_FALLBACK_SECONDS,
+    PRICES,
+    ROLES,
+    price_for,
+)
 
 
 def _settings(**overrides) -> Settings:
@@ -324,16 +332,16 @@ class _Overloaded(APIStatusError):
 def _stub_client(monkeypatch, answers):
     """A Gemini client whose transport pops one answer per call.
 
-    An entry that is an exception is raised; anything else is returned. The
-    models actually asked for are appended to `asked`, which is what the
-    fallback assertions are really about.
+    An entry that is an exception is raised; anything else is returned. Each
+    attempt appends `(model, timeout)` to `asked`, which is what the fallback and
+    budget assertions are really about.
     """
-    asked: list[str] = []
+    asked: list[tuple[str, float | None]] = []
     client = GeminiLLMClient.__new__(GeminiLLMClient)
 
-    async def _request(_self, _client, prompt_text, call, model):
+    async def _request(_self, _client, prompt_text, call, model, timeout=None):
         del prompt_text, call
-        asked.append(model)
+        asked.append((model, timeout))
         answer = answers.pop(0)
         if isinstance(answer, BaseException):
             raise ProviderError(f"gemini error {getattr(answer, 'status_code', '?')}") from answer
@@ -361,6 +369,8 @@ QUESTION_VARIABLES = {
     "requested_type": "short_answer",
 }
 
+CUE_PAYLOAD = {"utterance": "Ease off the bow."}
+
 QUESTION_PAYLOAD = {
     "question_type": "short_answer",
     "question": "Describe the thumb-under transition.",
@@ -382,7 +392,7 @@ async def test_an_overloaded_primary_is_re_attempted_on_the_role_s_fallback_mode
     result = await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
 
     config = ROLES[LLMRole.QUESTION_GEN]
-    assert asked == [config.gemini_model, config.gemini_fallback_model]
+    assert [model for model, _ in asked] == [config.gemini_model, config.gemini_fallback_model]
     assert result.data["question"] == "Describe the thumb-under transition."
 
 
@@ -409,7 +419,7 @@ async def test_a_terminal_status_is_raised_rather_than_re_attempted(monkeypatch)
     with pytest.raises(ProviderError):
         await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
 
-    assert asked == [ROLES[LLMRole.QUESTION_GEN].gemini_model]
+    assert [model for model, _ in asked] == [ROLES[LLMRole.QUESTION_GEN].gemini_model]
 
 
 # @spec LLM-PROV-011
@@ -421,7 +431,7 @@ async def test_a_role_with_no_fallback_model_does_not_re_attempt(monkeypatch) ->
     with pytest.raises(ProviderError):
         await client.structured(LLMRole.LIVE_COACH_CUE, CUE_VARIABLES)
 
-    assert asked == [ROLES[LLMRole.LIVE_COACH_CUE].gemini_model]
+    assert [model for model, _ in asked] == [ROLES[LLMRole.LIVE_COACH_CUE].gemini_model]
 
 
 # @spec LLM-PROV-011
@@ -478,7 +488,10 @@ async def test_a_timed_out_primary_falls_back_rather_than_failing(monkeypatch) -
 
     result = await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
 
-    assert asked == [ROLES[LLMRole.QUESTION_GEN].gemini_model, ROLES[LLMRole.QUESTION_GEN].gemini_fallback_model]
+    assert [model for model, _ in asked] == [
+        ROLES[LLMRole.QUESTION_GEN].gemini_model,
+        ROLES[LLMRole.QUESTION_GEN].gemini_fallback_model,
+    ]
     assert result.data["question"]
 
 
@@ -502,3 +515,61 @@ def test_the_lane_decides_which_alias_leads() -> None:
             assert config.gemini_fallback_model == strong, f"{role} should keep the stronger alias as its fallback"
         else:
             assert config.gemini_model == reachable
+
+
+# @spec LLM-PROV-015
+@pytest.mark.asyncio
+async def test_the_deadline_covers_the_whole_call_not_each_attempt(monkeypatch) -> None:
+    """Per-attempt, a role with a fallback silently costs twice its deadline the
+    moment both models are slow -- which is exactly when someone is waiting.
+
+    The clock is driven here rather than waited on: what is under test is how the
+    remaining budget is computed from time already spent, and a stub that fails
+    instantly would let the fallback claim a budget nothing had consumed.
+    """
+    budget = LANE_TIMEOUT_SECONDS[ROLES[LLMRole.QUESTION_GEN].lane]
+    primary_share = budget * gemini_provider.PRIMARY_ATTEMPT_SHARE
+
+    client, asked = _stub_client(monkeypatch, [_Overloaded(503), _ok_response(QUESTION_PAYLOAD)])
+    # Zero at the call's start, then the primary's full share once it has run.
+    monkeypatch.setattr(gemini_provider.time, "monotonic", lambda: primary_share if asked else 0.0)
+
+    await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    allowed = [timeout for _, timeout in asked]
+    assert allowed[0] == primary_share
+    # The fallback gets what the primary did not spend, and no more.
+    assert allowed[1] == budget - primary_share
+    assert sum(allowed) == budget
+    assert allowed[1] >= MIN_FALLBACK_SECONDS
+
+
+# @spec LLM-PROV-015
+@pytest.mark.asyncio
+async def test_a_role_with_no_fallback_gets_the_whole_budget(monkeypatch) -> None:
+    """Reserving a share for a fallback that does not exist would just make the
+    one attempt that can succeed give up early."""
+    client, asked = _stub_client(monkeypatch, [_ok_response(CUE_PAYLOAD)])
+
+    await client.structured(LLMRole.LIVE_COACH_CUE, CUE_VARIABLES)
+
+    assert asked[0][1] == LANE_TIMEOUT_SECONDS["live"]
+
+
+# @spec LLM-PROV-012, LLM-PROV-015
+@pytest.mark.asyncio
+async def test_a_primary_that_eats_the_budget_does_not_start_a_doomed_fallback(monkeypatch) -> None:
+    """A second attempt that cannot finish is pure added latency in front of the
+    deterministic floor, which was available instantly the whole time."""
+    slow = time.monotonic()
+    monkeypatch.setattr(
+        gemini_provider.time,
+        "monotonic",
+        lambda: slow + (0 if not asked else LANE_TIMEOUT_SECONDS["tutor"]),
+    )
+    client, asked = _stub_client(monkeypatch, [_Overloaded(503), _ok_response(QUESTION_PAYLOAD)])
+
+    with pytest.raises(ProviderError, match="budget"):
+        await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    assert len(asked) == 1

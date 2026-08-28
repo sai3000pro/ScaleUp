@@ -43,7 +43,7 @@ from __future__ import annotations
 import time
 from typing import Any, AsyncIterator, Mapping, Sequence
 
-from openai import APIConnectionError, APIStatusError, AsyncOpenAI, RateLimitError
+from openai import NOT_GIVEN, APIConnectionError, APIStatusError, AsyncOpenAI, RateLimitError
 
 from app.config import get_settings
 from app.llm.base import (
@@ -54,7 +54,15 @@ from app.llm.base import (
     StructuredResult,
     Usage,
 )
-from app.llm.registry import LANE_TIMEOUT_SECONDS, LANES, LANES_WITHOUT_SDK_RETRY, ROLES, price_for
+from app.llm.registry import (
+    LANE_TIMEOUT_SECONDS,
+    LANES,
+    LANES_WITHOUT_SDK_RETRY,
+    MIN_FALLBACK_SECONDS,
+    PRIMARY_ATTEMPT_SHARE,
+    ROLES,
+    price_for,
+)
 from app.llm.support import parse_json_or_raise, prepare, validate_or_raise
 
 #: Google's OpenAI-compatible surface. Overridable through GEMINI_BASE_URL so a
@@ -106,6 +114,16 @@ def _wire_schema(node):
     return node
 
 
+def _lane_budget(lane: str) -> float:
+    """How long one whole call in this lane may take.
+
+    The lane says who is waiting; GEMINI_TIMEOUT_SECONDS is an operator's ceiling
+    over all of them, so lowering it lowers every lane while raising it cannot make
+    an interactive path patient.
+    """
+    return min(get_settings().gemini_timeout_seconds, LANE_TIMEOUT_SECONDS[lane])
+
+
 def _client(lane: str = "tutor") -> AsyncOpenAI:
     """A client for one workload lane, on that lane's credential.
 
@@ -116,13 +134,9 @@ def _client(lane: str = "tutor") -> AsyncOpenAI:
     return AsyncOpenAI(
         api_key=settings.gemini_key_for(lane),
         base_url=settings.gemini_base_url or DEFAULT_BASE_URL,
-        # The deadline belongs to whoever is waiting, so it comes from the lane.
-        # Gemini answers 503 under load and takes its time doing it -- often more
-        # than a minute -- and a lane-blind timeout has to be set for the most
-        # patient caller. That is how an overloaded model turned a drill into an
-        # eighty-second wait that still ended on the deterministic question: the
-        # fallback was right and arrived far too late to matter.
-        timeout=min(settings.gemini_timeout_seconds, LANE_TIMEOUT_SECONDS[lane]),
+        # The lane's whole-call budget, as the client default. Individual requests
+        # override it with their slice of that budget -- see `_budget_for`.
+        timeout=_lane_budget(lane),
         # The fallback model is the retry, and it is a retry against something
         # different. Asking the overloaded alias twice only doubles the wait.
         max_retries=0 if lane in LANES_WITHOUT_SDK_RETRY else settings.gemini_max_retries,
@@ -229,12 +243,13 @@ class GeminiLLMClient:
         except APIStatusError as exc:
             raise ProviderError(f"gemini error {exc.status_code}: {exc}") from exc
 
-    async def _request(self, client: AsyncOpenAI, prompt_text: str, call, model: str):
+    async def _request(self, client: AsyncOpenAI, prompt_text: str, call, model: str, timeout: float | None = None):
         try:
             return await client.chat.completions.create(
                 model=model,
                 max_tokens=call.config.max_tokens,
                 messages=[{"role": "user", "content": prompt_text}],
+                timeout=timeout if timeout is not None else NOT_GIVEN,
                 response_format={
                     "type": "json_schema",
                     "json_schema": {
@@ -260,10 +275,13 @@ class GeminiLLMClient:
         config = ROLES[role]
         client = self._for(role)
         primary = config.gemini_model
+        budget = _lane_budget(config.lane)
+        started = time.monotonic()
 
         call = prepare(role, variables, primary)
+        first = budget * PRIMARY_ATTEMPT_SHARE if config.gemini_fallback_model else budget
         try:
-            return primary, call, await self._request(client, call.prompt_text, call, primary)
+            return primary, call, await self._request(client, call.prompt_text, call, primary, first)
         except ProviderError as exc:
             fallback = config.gemini_fallback_model
             if not fallback or not _is_retryable(exc):
@@ -271,8 +289,18 @@ class GeminiLLMClient:
             else:
                 pass
 
+        # Whatever the first attempt did not spend. Below MIN_FALLBACK_SECONDS a
+        # second attempt cannot finish, and the deterministic floor is already
+        # there and instant -- so failing now reaches a real answer sooner.
+        remaining = budget - (time.monotonic() - started)
+        if remaining < MIN_FALLBACK_SECONDS:
+            raise ProviderError(
+                f"gemini: {primary} used the {config.lane} lane's {budget:.0f}s budget; "
+                f"no room left to try {fallback}"
+            )
+
         call = prepare(role, variables, fallback)
-        return fallback, call, await self._request(client, call.prompt_text, call, fallback)
+        return fallback, call, await self._request(client, call.prompt_text, call, fallback, remaining)
 
 
 def _is_retryable(error: ProviderError) -> bool:

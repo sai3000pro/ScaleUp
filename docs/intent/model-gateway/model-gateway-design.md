@@ -86,7 +86,12 @@ those are configuration mistakes that a fallback would hide forever. And it is r
 so "how much of last week ran on the word matcher?" is a query rather than a guess.
 
 How long a call may wait before that ladder is walked is a property of the **lane**, not of
-the provider. The three lanes differ by who is waiting: an ingest runs unattended inside a
+the provider, and it budgets the **whole call** rather than each attempt. Per-attempt, a role
+with a fallback silently costs twice its stated deadline the moment both models are slow --
+which is precisely when someone is waiting. So the primary gets a share of the lane's budget
+and the fallback gets whatever is left; when too little is left for a second attempt to
+finish, none is started, because the deterministic floor was available instantly the whole
+time and reaching it sooner is the better answer. The three lanes differ by who is waiting: an ingest runs unattended inside a
 Celery task and can afford to be patient; a learner watching a drill spinner cannot; a
 learner mid-take has already started playing again. A single provider-wide timeout has to
 be set for the most patient of the three, which is how an overloaded model turned a drill
@@ -187,7 +192,7 @@ prompt in place, but it means the directory cannot be read without the registry 
 | An overloaded model | Re-attempt on the role's fallback model, then the deterministic floor | Fail the call; retry the same model with backoff | The stronger free-tier aliases are unavailable for minutes, not seconds, so backoff on the same model just spends the learner's patience. A cheaper reachable model is a worse answer; no answer is a broken product. |
 | A degraded call in the ledger | Recorded against the provider and model that actually served | Recorded against the role's nominal model | The cost table answers what a workload costs. A row naming a model that did not run makes it fiction, and hides how often the floor is carrying the product. |
 | Where the fallback ladder lives | Model fallback inside the provider; the deterministic floor as a wrapper in the factory | One try/except at each call site | A call site that handles provider outages is a call site that knows about providers, which is what role addressing exists to prevent. |
-| Call timeouts | Per workload lane | One provider-wide value | The value has to suit the most patient caller, so the impatient ones inherit it. A learner waiting on a drill and an unattended ingest are not the same deadline. |
+| Call timeouts | Per workload lane, budgeting the whole call | One provider-wide value; per attempt | A provider-wide value has to suit the most patient caller, so the impatient ones inherit it. A per-attempt value quietly doubles when a fallback runs, so the number does not mean what it says. |
 | Retrying a timed-out interactive call | Move to the fallback model | The SDK's own retry against the same model | Retrying the alias that is overloaded doubles the wait before reaching the answer the sibling had all along. |
 ## Open Questions & Future Decisions
 

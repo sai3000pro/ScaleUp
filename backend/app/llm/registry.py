@@ -81,22 +81,38 @@ class RoleConfig:
 LANES: tuple[str, ...] = ("ingest", "tutor", "live")
 
 
-#: How long a call in each lane may wait on the provider, in seconds.
+#: How long one call in each lane may take, in seconds -- the whole call, including
+#: any fallback attempt, not each attempt separately.
 #:
 #: A deadline belongs to whoever is waiting, and the three lanes differ in exactly
 #: that. An ingest runs unattended inside a Celery task and should be patient rather
 #: than abandon a book halfway. A learner watching a drill spinner will not wait a
 #: minute for a question. A learner mid-take has already started playing again by the
-#: time a cue arrives late, which is why `live` is tighter than a network round trip
-#: to a busy model usually needs -- a late cue is worse than the deterministic one.
+#: time a cue arrives late, which is why `live` is tighter than a round trip to a busy
+#: model usually needs -- a late cue is worse than the deterministic one.
+#:
+#: Budgeting the *call* rather than the attempt is what makes these numbers mean
+#: what they say. Per-attempt, a role with a fallback silently costs twice its
+#: deadline whenever both models are slow, which is exactly when someone is waiting.
 #:
 #: These are ceilings clamped by GEMINI_TIMEOUT_SECONDS, so lowering that setting
 #: still lowers every lane, while raising it cannot make an interactive path patient.
 LANE_TIMEOUT_SECONDS: dict[str, float] = {
     "ingest": 45.0,
-    "tutor": 25.0,
+    "tutor": 40.0,
     "live": 4.0,
 }
+
+#: The share of a lane's budget the first attempt may spend, leaving the rest for the
+#: fallback. Gemini's schema-constrained mode is slow and highly variable -- the same
+#: role on the same alias has been measured at 1.5s and at 20s -- so the primary needs
+#: most of the budget to be worth trying at all, while the fallback needs enough left
+#: to be more than a formality.
+PRIMARY_ATTEMPT_SHARE = 0.6
+
+#: Below this there is no point starting a second attempt: it cannot finish, and the
+#: deterministic floor is already there and instant.
+MIN_FALLBACK_SECONDS = 3.0
 
 #: Lanes that decline the SDK's own retry. Retrying the alias that is overloaded
 #: doubles the wait before reaching the answer the fallback model had all along, and
