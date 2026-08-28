@@ -116,6 +116,39 @@ def _llm_lanes() -> dict[str, str]:
     return lanes() if lanes is not None else {lane: client.provider for lane in LANES}
 
 
+#: Environment variables that name the commit being served, in the order they are
+#: trusted. Render sets the first for every deploy; the others are what the common
+#: alternatives set, so this does not need changing to move host.
+BUILD_REVISION_VARS: tuple[str, ...] = (
+    "RENDER_GIT_COMMIT",
+    "VERCEL_GIT_COMMIT_SHA",
+    "GIT_COMMIT",
+    "SOURCE_VERSION",
+)
+
+
+# @spec OPS-HEALTH-005
+def build_revision() -> str | None:
+    """The commit this process is serving, where the host says so.
+
+    Without this, "did my fix deploy?" is answered by watching behaviour change,
+    which is exactly the question you cannot answer when the behaviour you are
+    watching is the one that is broken. A commit sha is not a credential and not a
+    dependency, so it belongs on the liveness response where anything can read it.
+
+    `None` rather than "unknown" when nothing set it: a local run genuinely has no
+    build, and inventing a placeholder would put a string in the field that a
+    caller might reasonably compare against a real sha.
+    """
+    import os
+
+    for variable in BUILD_REVISION_VARS:
+        value = os.environ.get(variable, "").strip()
+        if value:
+            return value[:40]
+    return None
+
+
 def provider_report() -> dict[str, object]:
     """What is wired up, what is running on a fallback, and what is misconfigured.
 

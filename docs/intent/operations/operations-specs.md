@@ -37,6 +37,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **OPS-HEALTH-002**: The system shall probe each datastore for readiness with a bounded timeout.
 - [x] **OPS-HEALTH-003**: The readiness probe shall report a failing dependency rather than raising.
 - [x] **OPS-HEALTH-004**: No health response shall contain a credential value.
+- [x] **OPS-HEALTH-005**: The liveness response shall name the build it is serving, so which revision is live is observable rather than inferred from behaviour.
 
 ## The webhook boundary
 

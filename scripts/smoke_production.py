@@ -100,10 +100,13 @@ def main() -> int:
     # 1. Liveness, generously, because a cold start is not a failure.
     _step("waking the service")
     started = time.monotonic()
-    status, _ = _call(api, "/api/health/live", timeout=COLD_START_TIMEOUT)
-    if status != 200:
+    status, alive = _call(api, "/api/health/live", timeout=COLD_START_TIMEOUT)
+    if status != 200 or not isinstance(alive, dict):
         raise Failure(f"/api/health/live answered {status}")
-    print(f"up in {time.monotonic() - started:.0f}s")
+    # Which revision answered, so a green run cannot be credited to a build that
+    # is not the one you just pushed.
+    revision = alive.get("revision") or "unknown"
+    print(f"up in {time.monotonic() - started:.0f}s, serving {revision}")
 
     # 2. What is actually configured out there. Printed rather than asserted:
     #    the loop is required to work on the deterministic floor too, so a

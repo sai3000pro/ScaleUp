@@ -64,3 +64,27 @@ def test_providers_and_ready_routes_are_registered() -> None:
     assert "/api/health/providers" in OPENAPI["paths"]
     assert "/api/health/ready" in OPENAPI["paths"]
     assert "/api/health/live" in OPENAPI["paths"]
+
+
+# @spec OPS-HEALTH-005
+def test_liveness_names_the_build_it_is_serving(monkeypatch) -> None:
+    """"Did my fix deploy?" must not be answered by watching behaviour change --
+    that is precisely the question you cannot answer when the behaviour you are
+    watching is the broken one."""
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "a061554")
+    assert health_service.build_revision() == "a061554"
+
+
+# @spec OPS-HEALTH-005
+def test_a_build_with_no_revision_reports_none_rather_than_a_placeholder(monkeypatch) -> None:
+    """A local run genuinely has no build. A placeholder string is something a
+    caller could compare against a real sha and believe."""
+    for variable in health_service.BUILD_REVISION_VARS:
+        monkeypatch.delenv(variable, raising=False)
+    assert health_service.build_revision() is None
+
+
+# @spec OPS-HEALTH-004, OPS-HEALTH-005
+def test_the_revision_is_not_a_credential(monkeypatch) -> None:
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "b" * 200)
+    assert len(health_service.build_revision() or "") <= 40

@@ -18,10 +18,15 @@ from app.services import health_service
 router = APIRouter(prefix="/api/health", tags=["health"])
 
 
-# @spec OPS-HEALTH-001
+# @spec OPS-HEALTH-001, OPS-HEALTH-005
 @router.get("/live")
-async def live() -> dict[str, bool]:
-    return {"ok": True}
+async def live() -> dict[str, object]:
+    """Is the process up, and which build is it.
+
+    Touches nothing else on purpose: a liveness probe that fails when a datastore
+    is down gets the container restarted for someone else's outage.
+    """
+    return {"ok": True, "revision": health_service.build_revision()}
 
 
 # @spec OPS-INTEG-002
