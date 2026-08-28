@@ -20,6 +20,24 @@ The pro tier is unreachable on a free-tier key: `gemini-2.5-pro` is closed to ne
 keys and `gemini-3.1-pro-preview` answers 429 without a paid plan. Roles that want
 the strongest model point at the strongest *reachable* one.
 
+Which of the two reachable aliases leads is decided by the role's lane, because the
+lanes differ in what they can spend to get a better answer.
+
+`gemini-flash-latest` is the better model and the less available one: on a shared
+free tier it answers 503 for minutes at a time, and it does not refuse quickly --
+measured at 73 and 120 seconds before failing. `gemini-flash-lite-latest` answers in
+a few seconds and rarely refuses. So an **ingest** role leads with the stronger
+alias: it runs unattended in a Celery task, compiling a tree the learner will live
+inside for weeks, and a minute spent getting a better tree is a minute well spent.
+A **tutor** role leads with the reachable one, because a learner is watching a
+spinner and a good question in three seconds beats a better one in forty. Each keeps
+the other as its fallback, so neither model's bad hour removes the feature.
+
+Structured output is what makes this bite. Gemini's schema-constrained mode is far
+slower than plain generation -- a live cue streams in under a second on the same
+alias that takes eighteen to return a graded rubric -- so the roles that most need
+to be quick are exactly the roles paying that cost.
+
 Every role names one model per provider. A provider column that borrowed another
 provider's column would make this table -- the one that answers "what does an
 ingest cost" -- report the wrong price the moment the borrowed name is not what
@@ -76,7 +94,7 @@ LANES: tuple[str, ...] = ("ingest", "tutor", "live")
 #: still lowers every lane, while raising it cannot make an interactive path patient.
 LANE_TIMEOUT_SECONDS: dict[str, float] = {
     "ingest": 45.0,
-    "tutor": 10.0,
+    "tutor": 25.0,
     "live": 4.0,
 }
 
@@ -206,8 +224,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v1",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",
@@ -222,8 +240,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v1",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=3000,
         effort="medium",
@@ -235,8 +253,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v3",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o-mini",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",
@@ -249,8 +267,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v1",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=4000,
         effort="high",
@@ -271,8 +289,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v1",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=2000,
         effort="medium",
@@ -288,8 +306,8 @@ ROLES: dict[LLMRole, RoleConfig] = {
         schema_version="v1",
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
-        gemini_model="gemini-flash-latest",
-        gemini_fallback_model="gemini-flash-lite-latest",
+        gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="gemini-flash-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",

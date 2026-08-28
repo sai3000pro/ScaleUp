@@ -10,7 +10,8 @@ deterministic provider and the deterministic provider is never busy.
 So this talks to a real deployment over HTTPS, with real credentials configured,
 and asserts the four things a visitor actually does:
 
-    sign in  ->  see courses  ->  be asked a question  ->  be graded on it
+    sign in -> see courses -> be asked a question -> be graded on it
+    -> play a take -> be scored against the score -> be coached about it
 
 It is deliberately read-mostly and idempotent. It creates one drill attempt and
 grades it, which is what a learner does, and awards EXP exactly once because the
@@ -44,6 +45,10 @@ class Failure(Exception):
     """A deployment that did not serve the loop. Carries what to look at."""
 
 
+class Deploying(Exception):
+    """The platform is between versions. Not a verdict on the app."""
+
+
 def _call(
     api: str,
     path: str,
@@ -68,8 +73,14 @@ def _call(
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.status, json.loads(response.read() or b"null")
     except urllib.error.HTTPError as error:
-        detail = error.read().decode(errors="replace")[:400]
-        return error.code, detail
+        detail = error.read().decode(errors="replace")
+        # A 502 or 503 carrying the platform's own HTML is Render swapping the
+        # instance out, not the app answering. Reporting that as a failed loop
+        # would cry wolf on exactly the run that matters -- the one straight
+        # after a push.
+        if error.code in (502, 503) and "<html" in detail[:200].lower():
+            raise Deploying(f"the platform answered {error.code} for {path}") from error
+        return error.code, detail[:400]
     except urllib.error.URLError as error:
         raise Failure(f"could not reach {api}: {error.reason}") from error
 
@@ -174,13 +185,85 @@ def main() -> int:
     print(f"score={grade['score']} verdict={grade.get('verdict')}")
     print(f"      -> {str(grade.get('feedback', ''))[:150]}")
 
-    print("\nThe deployed loop serves: sign in -> courses -> question -> grade.\n")
+    # 8. The headline feature: a take, scored against a digital score, explained
+    #    by the examiner. Played perfectly from the exercise's own expected notes,
+    #    which is the same no-microphone fixture path the browser offers, so this
+    #    needs neither audio nor a real instrument.
+    _step("practice exercises")
+    status, exercises = _call(api, f"/api/courses/{course_id}/practice/exercises", token=token)
+    if status != 200 or not isinstance(exercises, list) or not exercises:
+        raise Failure(f"practice exercises answered {status}: {exercises}")
+    exercise = exercises[0]
+    expected = exercise.get("notes") or []
+    if not expected:
+        raise Failure(f"exercise {exercise['title']!r} carries no score notes")
+    print(f"{len(exercises)} exercise(s), using {exercise['title']!r} ({len(expected)} notes)")
+
+    _step("open a practice session")
+    status, practice = _call(api, "/api/practice/sessions", token=token, body={"exercise_id": exercise["id"]})
+    if status != 201 or not isinstance(practice, dict):
+        raise Failure(f"practice session answered {status}: {practice}")
+    print("ok")
+
+    _step("submit a perfect take")
+    seconds_per_beat = 60.0 / float(exercise["tempo_bpm"])
+    played = [
+        {
+            "pitch_midi": note["pitch_midi"],
+            "onset_seconds": note["onset_beats"] * seconds_per_beat,
+            "duration_seconds": note["duration_beats"] * seconds_per_beat,
+            "confidence": 1.0,
+            "string": note.get("string"),
+            "fret": note.get("fret"),
+        }
+        for note in expected
+    ]
+    status, attempt = _call(
+        api,
+        f"/api/practice/sessions/{practice['id']}/attempts",
+        token=token,
+        body={"observed_notes": played, "analyzer": "smoke-fixture"},
+        headers={"Idempotency-Key": f"{key}-take"},
+        timeout=90,
+    )
+    if status != 201 or not isinstance(attempt, dict):
+        raise Failure(f"attempt answered {status}: {attempt}")
+    score = attempt.get("overall_score")
+    if not isinstance(score, (int, float)):
+        raise Failure(f"attempt returned no score: {attempt}")
+    # A note-perfect replay of the score should not come back mediocre. This is
+    # the assertion that would catch an evaluator wired to the wrong instrument.
+    if score < 0.8:
+        raise Failure(f"a note-perfect take scored {score:.2f} -- the evaluator is not reading this score")
+    metrics = attempt.get("metrics") or {}
+    print(f"score={score:.2f} exp={attempt.get('exp_awarded')} confidence={attempt.get('alignment_confidence')}")
+    print(f"      -> pitch={metrics.get('pitch_accuracy')} rhythm={metrics.get('rhythm_accuracy')}")
+
+    feedback = attempt.get("feedback") or {}
+    if not str(feedback.get("summary", "")).strip():
+        raise Failure("the examiner said nothing about the take")
+    print(f"      -> examiner ({attempt.get('feedback_provider')}): {str(feedback['summary'])[:130]}")
+
+    print("\nThe deployed loop serves: sign in -> courses -> question -> grade -> take -> score -> examiner.\n")
     return 0
 
 
+#: A Render deploy swaps the instance out for a minute or two -- long enough to
+#: wait through, short enough that waiting forever would hide a broken release.
+DEPLOY_ATTEMPTS = 8
+DEPLOY_PAUSE_SECONDS = 30
+
+
 if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except Failure as failure:
-        print(f"\nFAILED: {failure}\n", file=sys.stderr)
-        raise SystemExit(1) from failure
+    for _remaining in range(DEPLOY_ATTEMPTS, 0, -1):
+        try:
+            raise SystemExit(main())
+        except Failure as failure:
+            print(f"\nFAILED: {failure}\n", file=sys.stderr)
+            raise SystemExit(1) from failure
+        except Deploying as deploying:
+            if _remaining == 1:
+                print(f"\nFAILED: {deploying}, still, after {DEPLOY_ATTEMPTS} attempts\n", file=sys.stderr)
+                raise SystemExit(1) from deploying
+            print(f"\n  ({deploying}; waiting {DEPLOY_PAUSE_SECONDS}s and starting over)\n")
+            time.sleep(DEPLOY_PAUSE_SECONDS)

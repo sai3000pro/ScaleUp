@@ -480,3 +480,25 @@ async def test_a_timed_out_primary_falls_back_rather_than_failing(monkeypatch) -
 
     assert asked == [ROLES[LLMRole.QUESTION_GEN].gemini_model, ROLES[LLMRole.QUESTION_GEN].gemini_fallback_model]
     assert result.data["question"]
+
+
+# @spec LLM-PROV-011
+def test_the_lane_decides_which_alias_leads() -> None:
+    """An unattended ingest can afford to wait for the better model. A learner cannot.
+
+    `gemini-flash-latest` is the stronger alias and the one that answers 503 for
+    minutes at a time without refusing quickly; `gemini-flash-lite-latest` is the
+    reachable one. Ingest leads with quality, tutor leads with availability, and
+    each keeps the other as its fallback so neither model's bad hour removes a
+    feature.
+    """
+    strong, reachable = "gemini-flash-latest", "gemini-flash-lite-latest"
+    for role, config in ROLES.items():
+        if config.gemini_model == strong:
+            assert config.lane == "ingest", f"{role} leads with the less available alias but is interactive"
+            assert config.gemini_fallback_model == reachable
+        elif config.lane == "tutor":
+            assert config.gemini_model == reachable, f"{role} is interactive and should lead with the reachable alias"
+            assert config.gemini_fallback_model == strong, f"{role} should keep the stronger alias as its fallback"
+        else:
+            assert config.gemini_model == reachable
