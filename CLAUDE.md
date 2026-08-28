@@ -116,6 +116,16 @@ cd backend
 .\.venv\Scripts\python.exe ..\scripts\check_arrow.py
 .\.venv\Scripts\python.exe ..\scripts\check_arrow.py --coverage --segment evaluation
 
+# Rebuild a course's exercises with the CURRENT generator. `ensure_lesson_set_for_node`
+# never regenerates a score under a stable exercise id -- attempt history is grouped by
+# exercise -- so a database seeded before a generator change keeps the older music
+# forever. Right for a learner's database, wrong for a demo one: written dynamics only
+# reach exercises generated after the generator learned to write them. Dry-run by
+# default; --yes DELETES the attempts belonging to the exercises it replaces, rather
+# than leaving them attached to different music.
+.\.venv\Scripts\python.exe ..\scripts\refresh_exercises.py
+.\.venv\Scripts\python.exe ..\scripts\refresh_exercises.py --course Piano --yes
+
 # The time machine. Everything the SRS does is a function of elapsed time, so
 # without this the only way to watch a node decay is to wait days.
 .\.venv\Scripts\python.exe ..\scripts\timewarp.py --days 45
