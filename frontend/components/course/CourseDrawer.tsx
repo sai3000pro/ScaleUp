@@ -25,9 +25,7 @@ import { CampaignBriefing } from "@/components/course/CampaignBriefing";
 import { CurriculumPlanner } from "@/components/course/CurriculumPlanner";
 import { LeaderboardPanel } from "@/components/course/LeaderboardPanel";
 import { SharePanel } from "@/components/course/SharePanel";
-import { SourceList } from "@/components/course/SourceList";
 import { AskPanel } from "@/components/explore/AskPanel";
-import { UploadCard } from "@/components/ingest/UploadCard";
 import type { CourseDetail, CoursePath, ProgressAnalytics } from "@/lib/types";
 import { FOCUS_RING } from "@/lib/ui";
 
@@ -110,8 +108,6 @@ export function CourseDrawer({
           />
           <CurriculumPlanner courseId={courseId} initialGoal={campaignGoal} onComplete={onRefresh} />
           <AskPanel courseId={courseId} documents={course?.documents ?? []} />
-          <SourceList documents={course?.documents ?? []} />
-          <UploadCard courseId={courseId} onComplete={onRefresh} />
           <SharePanel courseId={courseId} shareable={course?.status === "ready"} />
           <LeaderboardPanel courseId={courseId} refreshKey={refreshKey} />
         </div>

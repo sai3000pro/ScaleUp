@@ -431,7 +431,7 @@ function CourseView() {
             <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
               <p className="text-sm text-slate-400">No skills yet.</p>
               <p className="text-xs text-slate-400">
-                Upload a PDF and the tree will build itself.
+                Name an instrument you want to learn and the tree builds itself.
               </p>
             </div>
           )}
@@ -497,7 +497,7 @@ function CourseView() {
             <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950 p-6 text-center">
               <p className="text-sm text-slate-400">No skills yet.</p>
               <p className="mt-1 text-xs text-slate-400">
-                Upload a PDF and the tree will build itself.
+                Name an instrument you want to learn and the tree builds itself.
               </p>
             </div>
           )}

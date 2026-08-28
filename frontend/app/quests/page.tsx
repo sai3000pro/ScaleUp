@@ -62,7 +62,7 @@ export default function QuestsPage() {
         <div className="mt-8 rounded-xl border border-dashed border-slate-800 p-10 text-center">
           <p className="text-sm text-slate-400">Nothing due.</p>
           <p className="mt-1 text-xs text-slate-400">
-            Ingest a course and drill a few skills — they will start showing up here as they fade.
+            Practise a few skills — they will start showing up here as they fade.
           </p>
         </div>
       )}

@@ -166,6 +166,13 @@ adding an instrument does not mean writing Python.
 That compiler's source path is the document ingestion engine this project began
 as. See [`docs/archive/`](docs/archive/) for what it was and why it stayed.
 
+It is not something a learner touches. ScaleUp asks for an instrument, not for a
+textbook, so no learner surface offers an upload or a source browser: compiling a
+tree from source material is an authoring capability, reached through the API and
+`scripts/smoke_ingest.py`. Turning that engine back into a product — point it at
+any material, get a tree — is a later and more general thing, and it deserves its
+own surface rather than the one a music tutor inherited from its own history.
+
 ---
 
 ## Getting started

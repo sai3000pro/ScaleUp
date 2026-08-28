@@ -19,6 +19,14 @@ curriculum compiler's source path, which is how the violin tree is generated
 with no violin-specific code. Its docs live in `docs/archive/`; the pipeline
 itself is live and load-bearing.
 
+It is, however, **not a learner-facing feature**. ScaleUp asks someone to name an
+instrument, not to supply a textbook, so there is no upload control and no source
+browser on any learner surface — see `UI-PAGE-008`. Compiling a tree from source
+material is an authoring capability, reached through the API and
+`scripts/smoke_ingest.py`. A general "point it at any material" product is a
+later thing, and when it arrives it wants its own surface rather than the one a
+music tutor happened to inherit.
+
 ## Getting started
 
 Docker Desktop must be running first.

@@ -133,6 +133,7 @@ system itself.
 - [x] **UI-PAGE-005**: A panel moved out of a surface shall remain reachable from it, and the control that reveals it shall name what it holds.
 - [x] **UI-PAGE-006**: A container and the component it frames shall not both declare the frame; the container shall own chrome and size, and the component shall fill it.
 - [ ] **UI-PAGE-007**: No two panels visible at once shall report the same figure.
+- [x] **UI-PAGE-008**: The learner's surfaces shall offer no way to supply source documents, and shall describe no skill tree as something a document builds. Compiling a tree from source material is an authoring capability, not a step this product asks a learner to perform.
 
 ## The shell
 
