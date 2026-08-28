@@ -1,5 +1,7 @@
 # ScaleUp
 
+[![CI](https://github.com/sai3000pro/ScaleUp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/sai3000pro/ScaleUp/actions/workflows/ci.yml)
+
 An AI music tutor that listens while you play, watches how you hold the
 instrument, and tells you what to fix — in an examiner's voice, on the beat.
 
