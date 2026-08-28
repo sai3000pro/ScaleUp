@@ -47,11 +47,24 @@ from it.
 
 ### Browser model hosts
 
-Video technique analysis has two credential-free browser dependencies that are not backend
-providers: `cdn.jsdelivr.net` serves the pinned MediaPipe Tasks Vision WebAssembly runtime, and
-`storage.googleapis.com` serves the pinned hand and pose model assets. The selected MP4 is decoded
-locally and is never sent to either host. If either host is unavailable, the interface reports a
-model-loading failure and audio practice remains usable.
+The camera path has two credential-free browser dependencies that are not backend providers:
+`cdn.jsdelivr.net` serves the pinned MediaPipe Tasks Vision WebAssembly runtime, and
+`storage.googleapis.com` serves the pinned hand and pose model assets. Video is decoded locally and
+is never sent to either host. If either is unavailable, the interface reports a model-loading
+failure and audio practice remains usable — pitch, rhythm and dynamics all still score, and the
+posture weight redistributes so a take is not marked down for a camera nobody used.
+
+These are declared in `app/integrations.BROWSER_DEPENDENCIES` and reported by
+`GET /api/health/providers` under `browser_dependencies`, beside the credentialed integrations
+rather than among them: that table means "a service an operator turns on by setting a key", and
+every row in it is off by default and names its credentials. A CDN the page fetches from is
+neither. Keeping it out of the table preserves what the table means; declaring it here and in the
+register is what stops it being the one dependency this product's own honesty surface cannot answer
+for.
+
+Set `NEXT_PUBLIC_MEDIAPIPE_WASM_BASE` and `NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE` to serve both from
+your own host — an offline demo, or a network that blocks these. They are `NEXT_PUBLIC_*`, so they
+are compiled into the bundle: changing one needs a rebuild, not a restart.
 
 The exact pinned URLs and the morning verification procedure are documented in
 [`video-analysis.md`](video-analysis.md).

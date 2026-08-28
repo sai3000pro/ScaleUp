@@ -20,8 +20,15 @@ from app.config import Settings
 from app.integrations import INTEGRATIONS
 
 ENV_EXAMPLE = Path(__file__).resolve().parents[3] / ".env.example"
-# Read by the Next.js app, not by pydantic, so it has no Settings field.
-FRONTEND_KEYS = {"NEXT_PUBLIC_API_BASE_URL"}
+# Read by the Next.js app, not by pydantic, so these have no Settings field.
+FRONTEND_KEYS = {
+    "NEXT_PUBLIC_API_BASE_URL",
+    # Repoint the browser's MediaPipe fetches at self-hosted copies. Declared in
+    # `integrations.BROWSER_DEPENDENCIES` rather than in INTEGRATIONS, because no
+    # credential controls them -- see that dataclass.
+    "NEXT_PUBLIC_MEDIAPIPE_WASM_BASE",
+    "NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE",
+}
 
 
 def _documented() -> set[str]:

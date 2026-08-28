@@ -171,3 +171,52 @@ class TestOutboundN8n:
 
         assert await n8n_service.emit("attempt.completed", {}) is True
         assert "X-Webhook-Signature" not in captured["headers"]
+
+
+class TestBrowserDependencies:
+    """The hosts the page reaches, which no credential controls.
+
+    `INTEGRATIONS` means "a service an operator turns on by setting a key": every
+    row is off by default and names its credentials, and the tests above enforce
+    both. MediaPipe is neither -- there is no key, and it is reached whenever the
+    camera is used -- so putting it in that table would have cost the table its
+    meaning, while leaving it out left this product with one third-party
+    dependency its own honesty surface could not answer for.
+    """
+
+    # @spec OPS-INTEG-007
+    def test_every_host_the_browser_reaches_is_declared(self) -> None:
+        from app.integrations import BROWSER_DEPENDENCIES
+
+        assert BROWSER_DEPENDENCIES, "the camera path fetches from public CDNs; say so"
+        for dependency in BROWSER_DEPENDENCIES:
+            assert dependency.hosts, f"{dependency.title} names no host"
+            assert dependency.fallback, f"{dependency.title} does not say what happens without it"
+            assert dependency.reached_when, f"{dependency.title} does not say when it is contacted"
+            assert dependency.provider_url.startswith("https://")
+
+    # @spec OPS-INTEG-007
+    def test_the_declared_hosts_are_the_ones_the_code_actually_fetches(self) -> None:
+        """A register that drifts from the source is worse than none: it answers
+        the audit question confidently and wrongly."""
+        from pathlib import Path
+
+        from app.integrations import BROWSER_DEPENDENCIES
+
+        source = (
+            Path(__file__).resolve().parents[3] / "frontend" / "lib" / "visualTracking.ts"
+        ).read_text(encoding="utf-8")
+        declared = {host for dependency in BROWSER_DEPENDENCIES for host in dependency.hosts}
+        for host in declared:
+            assert host in source, f"{host} is declared but visualTracking.ts no longer fetches from it"
+
+    # @spec OPS-INTEG-005, OPS-INTEG-007
+    def test_a_browser_dependency_names_no_credential(self) -> None:
+        """If one ever needs a key it belongs in INTEGRATIONS, under the rules
+        that table enforces -- off by default, and named credentials."""
+        from app.integrations import BROWSER_DEPENDENCIES
+
+        for dependency in BROWSER_DEPENDENCIES:
+            assert all(
+                option.startswith("NEXT_PUBLIC_") for option in dependency.options
+            ), f"{dependency.title} names a server-side variable; it is an integration, not a browser dependency"

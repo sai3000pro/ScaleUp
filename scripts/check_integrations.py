@@ -20,7 +20,11 @@ BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
 from app.config import get_settings  # noqa: E402
-from app.integrations import integration_statuses, missing_for_deployment  # noqa: E402
+from app.integrations import (  # noqa: E402
+    BROWSER_DEPENDENCIES,
+    integration_statuses,
+    missing_for_deployment,
+)
 
 MARK = {"live": "[LIVE]", "off": "[ off]", "misconfigured": "[  ! ]"}
 
@@ -56,6 +60,20 @@ def main() -> int:
         print("\nRunning on fallbacks. Each of these is a supported state:\n")
         for status in off:
             print(f"  {status.title:<24} {status.fallback}")
+
+    # The hosts the browser reaches. No credential controls these, so they are
+    # not integrations -- but leaving them off this report would make it answer
+    # "what does this product talk to?" incompletely, which is the one question
+    # it exists to answer. See app.integrations.BrowserDependency.
+    if BROWSER_DEPENDENCIES:
+        print("\nReached from the browser, with no credential:\n")
+        for dependency in BROWSER_DEPENDENCIES:
+            print(f"  {dependency.title:<24} {', '.join(dependency.hosts)}")
+            print(f"  {'':24} {dependency.reached_when}")
+            print(f"  {'':24} without it: {dependency.fallback}")
+            print(f"  {'':24} self-host with {', '.join(dependency.options)}")
+    else:
+        pass
 
     print("\nTo turn one on: set the variables above in .env and restart the API")
     print("(and the Celery worker, which reads the same file).")

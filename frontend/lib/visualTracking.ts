@@ -22,11 +22,33 @@ import {
 // mismatched WASM bundle can compile successfully and fail only when the first
 // landmarker is constructed in the browser.
 const VISION_VERSION = "1.0.1";
-const WASM_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VISION_VERSION}/wasm`;
+
+/**
+ * Where the runtime and the two landmark models are fetched from.
+ *
+ * Public CDNs by default, and overridable, because this is the one external
+ * dependency in `app/integrations.py` that no credential controls: the browser
+ * reaches jsDelivr and Google's model bucket the moment a learner grants camera
+ * access. A deployment that cannot rely on those hosts -- an offline demo, a
+ * network that blocks them -- can self-host the files and point these at them,
+ * which keeps that table's promise that turning something on is configuration
+ * rather than a code change.
+ *
+ * Read at module scope, not per call: `NEXT_PUBLIC_*` is inlined at build time,
+ * so these are constants in the bundle either way.
+ *
+ * @spec CAP-CAM-007
+ */
+const WASM_BASE =
+  process.env.NEXT_PUBLIC_MEDIAPIPE_WASM_BASE
+  ?? `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VISION_VERSION}/wasm`;
+const MODEL_BASE =
+  process.env.NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE
+  ?? "https://storage.googleapis.com/mediapipe-models";
 const HAND_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+  `${MODEL_BASE}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`;
 const POSE_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+  `${MODEL_BASE}/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`;
 const SAMPLE_INTERVAL_MS = 200;
 
 export type VisualTrackingStatus = "idle" | "loading" | "tracking" | "unavailable";

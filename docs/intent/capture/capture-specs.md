@@ -43,7 +43,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-CAM-004**: The camera path shall share one video element and one media stream across all landmark models.
 - [D] **CAP-CAM-005**: No video frame or image buffer shall leave the browser.
 - [x] **CAP-CAM-006**: The camera path shall construct a body-pose landmarker and emit its landmark arrays.
-- [ ] **CAP-CAM-007**: Where the landmark model and its runtime are fetched from an external host, that dependency shall be declared in the integration register alongside every other external service.
+- [x] **CAP-CAM-007**: Where the landmark model and its runtime are fetched from an external host, that dependency shall be declared in the integration register alongside every other external service.
 - [x] **CAP-CAM-008**: The technique panel shall sample metrics from the live camera stream, not only from its fixture source.
 
 ## Take persistence

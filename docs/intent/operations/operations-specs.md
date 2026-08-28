@@ -28,7 +28,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **OPS-INTEG-004**: The system shall report each service's fallback behaviour while it is off.
 - [x] **OPS-INTEG-005**: The system shall name the variables an operator must set, and shall never report a credential's value.
 - [x] **OPS-INTEG-006**: The report shall exit non-zero when any service is misconfigured.
-- [ ] **OPS-INTEG-007**: Every external host the product depends on at runtime shall appear in the register, including those reached from the browser.
+- [x] **OPS-INTEG-007**: Every external host the product depends on at runtime shall appear in the register, including those reached from the browser.
 - [ ] **OPS-INTEG-008**: The integration report shall gate continuous integration, as it advertises.
 
 ## Health

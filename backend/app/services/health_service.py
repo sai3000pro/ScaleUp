@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from app.config import get_settings
-from app.integrations import integration_statuses, missing_for_deployment
+from app.integrations import BROWSER_DEPENDENCIES, integration_statuses, missing_for_deployment
 from app.llm.factory import get_llm_client
 
 DATASTORE_PROBE_TIMEOUT_SECONDS = 2.0
@@ -163,6 +163,22 @@ def provider_report() -> dict[str, object]:
     settings = get_settings()
     statuses = integration_statuses(settings)
     return {
+        # Reached by the page rather than by this process, and controlled by no
+        # credential -- so reported beside the integrations rather than as one.
+        # See `app.integrations.BrowserDependency`.
+        "browser_dependencies": [
+            {
+                "key": dependency.key,
+                "title": dependency.title,
+                "purpose": dependency.purpose,
+                "fallback": dependency.fallback,
+                "hosts": list(dependency.hosts),
+                "options": list(dependency.options),
+                "provider_url": dependency.provider_url,
+                "reached_when": dependency.reached_when,
+            }
+            for dependency in BROWSER_DEPENDENCIES
+        ],
         "selected": {
             "llm": settings.llm_provider,
             "embedding": settings.embedding_provider,

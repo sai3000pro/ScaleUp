@@ -31,6 +31,8 @@ from typing import Callable
 from app.config import Settings, get_settings
 
 __all__ = [
+    "BROWSER_DEPENDENCIES",
+    "BrowserDependency",
     "INTEGRATIONS",
     "Integration",
     "IntegrationStatus",
@@ -227,6 +229,54 @@ INTEGRATIONS: tuple[Integration, ...] = (
         selected=lambda s: bool(s.n8n_webhook_url),
         present=lambda s: _pairs(s, ("N8N_WEBHOOK_URL",)),
         enable_hint="N8N_WEBHOOK_URL=https://<your n8n>/webhook/learn-any-instrument",
+    ),
+)
+
+
+@dataclass(frozen=True, slots=True)
+# @spec OPS-INTEG-007
+class BrowserDependency:
+    """An external host the *page* reaches, which no credential controls.
+
+    Kept out of `INTEGRATIONS` on purpose. That table means "a service an
+    operator turns on by setting a key", and every row in it is off by default
+    and names the credentials that enable it. A CDN the browser fetches from is
+    neither: there is no key, and it cannot be switched off any more than it can
+    be switched on -- it is reached whenever the feature that needs it is used.
+
+    Forcing it into that shape would have cost the table the two properties that
+    make it worth having. But leaving it out entirely left this product with one
+    third-party dependency its own honesty surface could not answer for, which is
+    worse. So it is reported beside the integrations, as its own kind of thing.
+    """
+
+    key: str
+    title: str
+    purpose: str
+    #: What the learner still gets when these hosts are unreachable.
+    fallback: str
+    #: Hosts the browser contacts, for anyone auditing egress or a CSP.
+    hosts: tuple[str, ...]
+    #: Build-time variables that repoint it at self-hosted copies.
+    options: tuple[str, ...]
+    provider_url: str
+    #: What has to happen before the browser reaches these hosts at all.
+    reached_when: str
+
+
+BROWSER_DEPENDENCIES: tuple[BrowserDependency, ...] = (
+    BrowserDependency(
+        key="mediapipe",
+        title="MediaPipe (in the browser)",
+        purpose="Hand and body landmarks, for technique and posture scoring.",
+        fallback=(
+            "Audio-only practice. Pitch, rhythm and dynamics score exactly as they would otherwise; "
+            "the posture weight redistributes, so a take is not marked down for a camera nobody used."
+        ),
+        hosts=("cdn.jsdelivr.net", "storage.googleapis.com"),
+        options=("NEXT_PUBLIC_MEDIAPIPE_WASM_BASE", "NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE"),
+        provider_url="https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker",
+        reached_when="The learner grants camera access. Never otherwise.",
     ),
 )
 
