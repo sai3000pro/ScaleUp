@@ -30,6 +30,10 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-PROV-009**: Where a workload lane has no credential for the selected provider, that lane shall run on the deterministic provider rather than refusing, so a deployment can pay for one lane at a time.
 - [x] **LLM-PROV-010**: Every recorded call shall name the provider that actually served it, including where a lane fell back to the deterministic provider.
 - [x] **LLM-PROV-008**: A caller shall name neither a provider credential nor a workload lane; the lane shall be a property of the role.
+- [x] **LLM-PROV-011**: Where a provider reports that a role's model is overloaded or rate-limited, the system shall re-attempt the call on that role's declared fallback model before treating the call as failed.
+- [x] **LLM-PROV-012**: Where every model a provider declares for a role is unavailable, the system shall serve that call from the deterministic provider rather than failing it, so a provider outage degrades the answer instead of removing the feature.
+- [x] **LLM-PROV-013**: A call that a provider outage sent to the deterministic provider shall be recorded as served by the deterministic provider, so the ledger distinguishes a degraded answer from a paid one.
+- [x] **LLM-PROV-014**: Where a call fails for a reason no fallback covers, the system shall answer the request as an upstream-provider failure rather than as an internal error, so the browser receives it with the response headers every other answer carries.
 
 ## Prompt versioning
 

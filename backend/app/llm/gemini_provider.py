@@ -27,6 +27,15 @@ selecting Gemini is what lets the live coach speak from a model rather than from
 its deterministic floor. Deltas carry text only; the ledger row for a stream is
 written by `services.llm_gateway`, which is where a cancelled stream still gets
 recorded as cancelled.
+
+**Availability.** Google's shared free tier answers 503 UNAVAILABLE on its stronger
+aliases for minutes at a time while the cheaper alias beside it stays healthy, so a
+role that names one model is only as available as that model's busiest hour. Every
+role therefore names a fallback model too, and an overloaded or rate-limited primary
+is re-attempted on it rather than failed. Backoff against the same alias would only
+spend the learner's patience: the outage outlasts any wait worth making someone sit
+through. The result names the model that actually answered, so the ledger prices the
+call at what ran.
 """
 
 from __future__ import annotations
@@ -76,6 +85,12 @@ UNSUPPORTED_SCHEMA_KEYWORDS = frozenset(
         "title",
     }
 )
+
+
+#: Statuses that mean "this model, right now" rather than "this request, ever". They
+#: are the ones a different model can answer, so they are the ones that fall back;
+#: a 400 or a 404 would fail identically on the sibling and is raised as it arrives.
+RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
 def _wire_schema(node):
@@ -139,11 +154,8 @@ class GeminiLLMClient:
         *,
         course_id: str | None = None,
     ) -> StructuredResult:
-        model = ROLES[role].gemini_model
-        call = prepare(role, variables, model)
         started = time.monotonic()
-
-        response = await self._request(self._for(role), call.prompt_text, call, model)
+        model, call, response = await self._request_with_fallback(role, variables)
         text = response.choices[0].message.content or ""
 
         # Accumulated across turns -- a repair turn is a second billed call, and
@@ -231,6 +243,42 @@ class GeminiLLMClient:
             raise ProviderError(f"gemini transient failure: {exc}") from exc
         except APIStatusError as exc:
             raise ProviderError(f"gemini error {exc.status_code}: {exc}") from exc
+
+    # @spec LLM-PROV-011
+    async def _request_with_fallback(self, role: LLMRole, variables: Mapping[str, Any]):
+        """The first of the role's models that answers, with the call it answered.
+
+        `prepare` is re-run for the fallback rather than reused, because the model
+        identifier is part of what it fingerprints -- a request recorded under the
+        primary's name when the sibling served it is the fiction the ledger exists
+        to avoid.
+        """
+        config = ROLES[role]
+        client = self._for(role)
+        primary = config.gemini_model
+
+        call = prepare(role, variables, primary)
+        try:
+            return primary, call, await self._request(client, call.prompt_text, call, primary)
+        except ProviderError as exc:
+            fallback = config.gemini_fallback_model
+            if not fallback or not _is_retryable(exc):
+                raise
+            else:
+                pass
+
+        call = prepare(role, variables, fallback)
+        return fallback, call, await self._request(client, call.prompt_text, call, fallback)
+
+
+def _is_retryable(error: ProviderError) -> bool:
+    """Whether a sibling model could plausibly answer what this one would not."""
+    cause = error.__cause__
+    if isinstance(cause, (RateLimitError, APIConnectionError)):
+        return True
+    if isinstance(cause, APIStatusError):
+        return cause.status_code in RETRYABLE_STATUS
+    return False
 
 
 class GeminiEmbeddingProvider:

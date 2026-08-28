@@ -44,6 +44,12 @@ class RoleConfig:
     anthropic_model: str
     openai_model: str
     gemini_model: str
+    #: Where the Gemini primary above answers "overloaded" or "rate limited",
+    #: the model the call is re-attempted on. Empty means this role has no
+    #: cheaper reachable sibling and drops straight to the deterministic floor.
+    #: Priced in the same table as the primary, because a fallen-back call is
+    #: billed at the model that answered it.
+    gemini_fallback_model: str
     #: Which workload this role belongs to: "ingest" (compiling a curriculum),
     #: "tutor" (drilling, grading and feedback) or "live" (the streaming coach).
     #: A provider credential can be set per lane, so a quota exhausted while
@@ -67,6 +73,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="ingest",
         max_tokens=8000,
         effort="medium",
@@ -81,6 +88,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-opus-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="ingest",
         max_tokens=8000,
         effort="high",
@@ -95,6 +103,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-opus-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="ingest",
         max_tokens=16000,
         effort="high",
@@ -109,6 +118,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="ingest",
         max_tokens=4000,
         effort="medium",
@@ -125,6 +135,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="ingest",
         max_tokens=4000,
         effort="medium",
@@ -140,6 +151,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="ingest",
         max_tokens=8000,
         effort="medium",
@@ -155,6 +167,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="ingest",
         max_tokens=4000,
         effort="medium",
@@ -170,6 +183,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",
@@ -185,6 +199,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=3000,
         effort="medium",
@@ -197,6 +212,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",
@@ -210,6 +226,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=4000,
         effort="high",
@@ -231,6 +248,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=2000,
         effort="medium",
@@ -247,6 +265,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-sonnet-5",
         openai_model="gpt-4o",
         gemini_model="gemini-flash-latest",
+        gemini_fallback_model="gemini-flash-lite-latest",
         lane="tutor",
         max_tokens=4000,
         effort="medium",
@@ -263,6 +282,7 @@ ROLES: dict[LLMRole, RoleConfig] = {
         anthropic_model="claude-haiku-4-5",
         openai_model="gpt-4o-mini",
         gemini_model="gemini-flash-lite-latest",
+        gemini_fallback_model="",
         lane="live",
         max_tokens=120,
         effort="low",

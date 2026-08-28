@@ -11,6 +11,7 @@ from functools import lru_cache
 from app.config import get_settings
 from app.llm.base import EmbeddingProvider, LLMClient
 from app.llm.fake_provider import FakeEmbeddingProvider, FakeLLMClient
+from app.llm.resilient import FloorFallbackLLMClient
 
 #: Every provider `get_llm_client` implements. Declared here because the factory
 #: is the only place that reads LLM_PROVIDER, so it is the only place that can
@@ -19,8 +20,23 @@ LLM_PROVIDERS: tuple[str, ...] = ("fake", "anthropic", "openai", "gemini")
 
 
 @lru_cache(maxsize=1)
-# @spec LLM-FAKE-001, LLM-FAKE-002, LLM-PROV-001, LLM-PROV-002
+# @spec LLM-FAKE-001, LLM-FAKE-002, LLM-PROV-001, LLM-PROV-002, LLM-PROV-012
 def get_llm_client() -> LLMClient:
+    """The configured provider, with the deterministic one underneath it.
+
+    Selection still refuses: an unimplemented name and a missing credential are
+    configuration mistakes, and a startup that quietly answered them with the word
+    matcher would hide them for the life of the deployment. The floor beneath a
+    *successfully selected* provider is a different question -- that one is an
+    outage, and it is answered rather than raised. See `app.llm.resilient`.
+    """
+    selected = _select_llm_client()
+    if isinstance(selected, FakeLLMClient):
+        return selected
+    return FloorFallbackLLMClient(selected, FakeLLMClient())
+
+
+def _select_llm_client() -> LLMClient:
     settings = get_settings()
     provider = settings.llm_provider.lower()
 

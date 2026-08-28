@@ -22,12 +22,13 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from openai import APIStatusError
 
 from app.config import Settings
 from app.llm import factory, gemini_provider
-from app.llm.base import LLMRole
+from app.llm.base import LLMRole, ProviderError
 from app.llm.gemini_provider import UNSUPPORTED_SCHEMA_KEYWORDS, GeminiLLMClient, _wire_schema
-from app.llm.registry import LANES, PRICES, ROLES
+from app.llm.registry import LANES, PRICES, ROLES, price_for
 
 
 def _settings(**overrides) -> Settings:
@@ -305,3 +306,129 @@ def test_every_role_declares_a_known_lane() -> None:
     assert ROLES[LLMRole.LIVE_COACH_CUE].lane == "live"
     assert ROLES[LLMRole.CURRICULUM_PLAN].lane == "ingest"
     assert ROLES[LLMRole.GRADE].lane == "tutor"
+
+
+# ---------------------------------------------------------------------------
+# Availability: a model identifier is not a promise that the model will answer.
+# ---------------------------------------------------------------------------
+
+
+class _Overloaded(APIStatusError):
+    """A 503 shaped like the one Google's shared free tier actually returns."""
+
+    def __init__(self, status_code: int = 503) -> None:
+        self.status_code = status_code
+        Exception.__init__(self, f"error code: {status_code}")
+
+
+def _stub_client(monkeypatch, answers):
+    """A Gemini client whose transport pops one answer per call.
+
+    An entry that is an exception is raised; anything else is returned. The
+    models actually asked for are appended to `asked`, which is what the
+    fallback assertions are really about.
+    """
+    asked: list[str] = []
+    client = GeminiLLMClient.__new__(GeminiLLMClient)
+
+    async def _request(_self, _client, prompt_text, call, model):
+        del prompt_text, call
+        asked.append(model)
+        answer = answers.pop(0)
+        if isinstance(answer, BaseException):
+            raise ProviderError(f"gemini error {getattr(answer, 'status_code', '?')}") from answer
+        return answer
+
+    monkeypatch.setattr(GeminiLLMClient, "_request", _request, raising=True)
+    monkeypatch.setattr(GeminiLLMClient, "_for", lambda _self, _role: object(), raising=True)
+    return client, asked
+
+
+def _ok_response(payload: dict):
+    return SimpleNamespace(
+        choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(payload)))],
+        usage=SimpleNamespace(prompt_tokens=100, completion_tokens=50),
+    )
+
+
+#: `live_coach_cue/v1`'s schema is the smallest in the registry, but it is also the
+#: one role with no fallback model. QUESTION_GEN is the role the learner actually
+#: waits on, so the fallback assertions use it.
+QUESTION_VARIABLES = {
+    "node_title": "Thumb-under",
+    "node_summary": "Passing the thumb under the hand mid-scale.",
+    "context": "(no source material available)",
+    "requested_type": "short_answer",
+}
+
+QUESTION_PAYLOAD = {
+    "question_type": "short_answer",
+    "question": "Describe the thumb-under transition.",
+    "options": [],
+    "correct_option_id": None,
+    "accepted_answers": [],
+    "code_language": None,
+    "code_requirements": [],
+    "rubric": [{"id": "kp1", "point": "Names the thumb passing under.", "weight": 1.0}],
+    "difficulty": 2,
+}
+
+
+# @spec LLM-PROV-011
+@pytest.mark.asyncio
+async def test_an_overloaded_primary_is_re_attempted_on_the_role_s_fallback_model(monkeypatch) -> None:
+    client, asked = _stub_client(monkeypatch, [_Overloaded(503), _ok_response(QUESTION_PAYLOAD)])
+
+    result = await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    config = ROLES[LLMRole.QUESTION_GEN]
+    assert asked == [config.gemini_model, config.gemini_fallback_model]
+    assert result.data["question"] == "Describe the thumb-under transition."
+
+
+# @spec LLM-PROV-003, LLM-PROV-011
+@pytest.mark.asyncio
+async def test_a_fallen_back_call_is_priced_at_the_model_that_answered(monkeypatch) -> None:
+    """The whole point of the cost table is that it is not fiction."""
+    client, _ = _stub_client(monkeypatch, [_Overloaded(503), _ok_response(QUESTION_PAYLOAD)])
+
+    result = await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    fallback = ROLES[LLMRole.QUESTION_GEN].gemini_fallback_model
+    assert result.model == fallback
+    assert result.usage.cost_usd == price_for(fallback, 100, 50)
+    assert result.usage.cost_usd != price_for(ROLES[LLMRole.QUESTION_GEN].gemini_model, 100, 50)
+
+
+# @spec LLM-PROV-011
+@pytest.mark.asyncio
+async def test_a_terminal_status_is_raised_rather_than_re_attempted(monkeypatch) -> None:
+    """A 400 fails identically on the sibling; asking it twice only doubles the wait."""
+    client, asked = _stub_client(monkeypatch, [_Overloaded(400)])
+
+    with pytest.raises(ProviderError):
+        await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    assert asked == [ROLES[LLMRole.QUESTION_GEN].gemini_model]
+
+
+# @spec LLM-PROV-011
+@pytest.mark.asyncio
+async def test_a_role_with_no_fallback_model_does_not_re_attempt(monkeypatch) -> None:
+    client, asked = _stub_client(monkeypatch, [_Overloaded(503)])
+    assert not ROLES[LLMRole.LIVE_COACH_CUE].gemini_fallback_model
+
+    with pytest.raises(ProviderError):
+        await client.structured(LLMRole.LIVE_COACH_CUE, CUE_VARIABLES)
+
+    assert asked == [ROLES[LLMRole.LIVE_COACH_CUE].gemini_model]
+
+
+# @spec LLM-PROV-011
+def test_every_fallback_model_is_a_different_model_and_is_priced() -> None:
+    for role, config in ROLES.items():
+        if not config.gemini_fallback_model:
+            assert config.gemini_model in PRICES
+        else:
+            assert config.gemini_fallback_model != config.gemini_model, f"{role} falls back to itself"
+            assert config.gemini_fallback_model in PRICES, f"{role}'s fallback is unpriced"

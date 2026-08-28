@@ -10,6 +10,7 @@ always reference the exact misses, extras, and tempo drift the scorer found.
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 
 from app.evaluation.piano import PianoPerformanceScore
@@ -176,8 +177,6 @@ def merge_feedback(deterministic: ExaminerFeedback, upgraded: dict[str, object] 
         next_step=str(upgraded.get("next_step") or deterministic.next_step),
     )
 
-
-import random
 
 # ── live coaching ────────────────────────────────────────────────────────────
 #

@@ -23,7 +23,7 @@ from app.api.routers import (
     webhooks,
 )
 from app.config import get_settings
-from app.llm.base import BudgetExceededError
+from app.llm.base import BudgetExceededError, ProviderError
 
 
 def create_app() -> FastAPI:
@@ -47,6 +47,25 @@ def create_app() -> FastAPI:
     @app.exception_handler(BudgetExceededError)
     async def budget_exceeded_handler(_request: Request, exc: BudgetExceededError) -> JSONResponse:
         return JSONResponse(status_code=429, content={"detail": str(exc)})
+
+    # @spec LLM-PROV-014
+    @app.exception_handler(ProviderError)
+    async def provider_error_handler(_request: Request, exc: ProviderError) -> JSONResponse:
+        """An upstream model failure, answered as one.
+
+        Almost nothing should reach here: a role with a fallback model re-attempts
+        on it, and a credentialed provider sits on the deterministic floor, so the
+        paths a learner touches degrade rather than raise. What is left is worth
+        answering deliberately anyway, because an unhandled exception escapes
+        *outside* CORSMiddleware -- the response carries no CORS headers, and the
+        browser reports the generic "Failed to fetch" that says nothing about a
+        provider. A 502 through the middleware is a diagnosable answer.
+        """
+        logging.getLogger(__name__).warning("provider failure reached the request boundary: %s", exc)
+        return JSONResponse(
+            status_code=502,
+            content={"detail": "The language-model provider is unavailable. Try again shortly."},
+        )
 
     app.include_router(health.router)
     app.include_router(auth.router)

@@ -13,11 +13,13 @@ import base64
 import contextlib
 import json
 import logging
-from typing import Any, AsyncIterator
+from typing import AsyncIterator
 
 import websockets
 
 from app.config import get_settings
+from app.llm.base import LLMRole
+from app.llm.registry import ROLES
 
 logger = logging.getLogger("gemini.live")
 
@@ -78,7 +80,8 @@ class GeminiLiveCoachSession:
 
         ws_url = f"{GEMINI_LIVE_WS_BASE}?key={api_key}"
         logger.info(
-            "🚀 [GEMINI LIVE CONNECT] Opening bidi WebSocket stream to Gemini Live (model=%s, voice=%s, instrument=%s, tempo=%d BPM)",
+            "🚀 [GEMINI LIVE CONNECT] Opening bidi WebSocket stream to Gemini Live "
+            "(model=%s, voice=%s, instrument=%s, tempo=%d BPM)",
             model_name,
             self.voice_name,
             self.instrument,
@@ -98,7 +101,8 @@ class GeminiLiveCoachSession:
                 f"You are an ultra-responsive, expressive real-time music coach for the {self.instrument} "
                 f"practicing '{self.exercise_title}' at {self.tempo_bpm} BPM. "
                 "Speed and low latency are critical. When you receive a cue or note event, immediately speak a 3 to 6 word "
-                "actionable, dynamic vocal cue (e.g. 'Steady the tempo', 'Right on the beat', 'Crisp articulation', 'Breathe and reset', 'Super clean groove'). "
+                "actionable, dynamic vocal cue (e.g. 'Steady the tempo', 'Right on the beat', "
+                "'Crisp articulation', 'Breathe and reset', 'Super clean groove'). "
                 "Never speak long paragraphs or give conversational intros. Maximum 6 words per utterance. "
                 "Vary your phrasing each time so feedback feels dynamic, lively, and never repetitive."
             )
@@ -247,24 +251,40 @@ async def generate_gemini_tip(
     signed_timing_bias_seconds: float | None = None,
     mean_pitch_error_semitones: float | None = None,
 ) -> dict[str, str] | None:
-    """Query Gemini 2.0 Flash via REST for a fast, structured pedagogical tip."""
+    """A fast, structured pedagogical tip, over REST rather than the bidi socket.
+
+    The model and the credential both come from the registry's `live` lane rather
+    than from a literal here. A model id written into a URL is a build that stops
+    working on a date nobody chose -- this one named `gemini-2.0-flash`, which
+    answers 404 for a key issued today, so the request failed on every call and
+    the deterministic cue served every time with nothing saying so. Reading the
+    lane's own model means the id moves when the registry moves, and reading the
+    lane's own key means a deployment that pays for live coaching separately gets
+    what it paid for.
+
+    Still returns `None` rather than raising: the caller's floor is the
+    deterministic sentence, which is a better answer than a late one.
+    """
     settings = get_settings()
-    api_key = settings.gemini_api_key.strip()
+    api_key = settings.gemini_key_for("live").strip()
     if not api_key:
         return None
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    model = ROLES[LLMRole.LIVE_COACH_CUE].gemini_model
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     prompt = (
         f"You are an expert {instrument} coach. The student is practicing '{exercise_title}' at {tempo_bpm} BPM.\n"
         f"Context:\n"
         f"- Current target note: {current_note or 'steady phrase'}\n"
         f"- Timing bias: {f'{signed_timing_bias_seconds:+.3f}s' if signed_timing_bias_seconds is not None else 'balanced'}\n"
-        f"- Pitch deviation: {f'{mean_pitch_error_semitones:+.2f} semitones' if mean_pitch_error_semitones is not None else 'on pitch'}\n\n"
+        f"- Pitch deviation: "
+        f"{f'{mean_pitch_error_semitones:+.2f} semitones' if mean_pitch_error_semitones is not None else 'on pitch'}"
+        "\n\n"
         "Return ONLY a JSON object with keys: 'tip' (1-2 sentences of encouraging, actionable guidance), "
         "'focus_area' (e.g. 'Rhythm & Pacing' or 'Finger Posture'), and 'suggested_action' (brief 4-8 word direct instruction)."
     )
 
-    logger.info("📤 [GEMINI TIP REQUEST] Prompting Gemini 2.0 Flash for instant tip (%s at %d BPM)", instrument, tempo_bpm)
+    logger.info("📤 [GEMINI TIP REQUEST] Prompting %s for instant tip (%s at %d BPM)", model, instrument, tempo_bpm)
     try:
         import httpx
 

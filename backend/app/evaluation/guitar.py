@@ -10,9 +10,10 @@ emit position, and this scorer degrades cleanly when it does not.
 
 from __future__ import annotations
 
+import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import isfinite
-import math
 
 from app.evaluation.dtw import DTWAlignment, align
 from app.evaluation.musicxml import MusicXMLScore

@@ -146,9 +146,14 @@ class GeminiVoiceProvider:
             raise RuntimeError("GEMINI_API_KEY is not configured.")
         import base64
         import json
+
         import websockets
 
-        voice_name = voice_key if voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"} else (get_settings().gemini_live_voice or "Puck")
+        voice_name = (
+            voice_key
+            if voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"}
+            else (get_settings().gemini_live_voice or "Puck")
+        )
         url = f"wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key={self._api_key}"
         async with websockets.connect(url, ping_interval=10, ping_timeout=10) as ws:
             setup_payload = {

@@ -198,7 +198,12 @@ def test_drums_missing_and_extra_hits_are_reported() -> None:
     spb = 60.0 / score.tempo_bpm / 2
     missing = score_drums_performance(
         score,
-        [DrumHit(0 * spb, drum="kick"), DrumHit(2 * spb, drum="snare"), DrumHit(4 * spb, drum="kick"), DrumHit(6 * spb, drum="snare")],
+        [
+            DrumHit(0 * spb, drum="kick"),
+            DrumHit(2 * spb, drum="snare"),
+            DrumHit(4 * spb, drum="kick"),
+            DrumHit(6 * spb, drum="snare"),
+        ],
     )
     extra = score_drums_performance(
         score,

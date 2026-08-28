@@ -70,11 +70,6 @@ from app.services import performance_service
 from app.services.gemini_live_service import GeminiLiveCoachSession, generate_gemini_tip
 from app.services.llm_gateway import recording_llm_client
 from app.services.voice import (
-    ElevenLabsStreamingVoiceProvider,
-    ElevenLabsVoiceProvider,
-    GeminiVoiceProvider,
-    VoiceArtifact,
-    stream_feedback,
     streaming_audio_format,
     streaming_provider_for,
     synthesize_feedback,
@@ -432,11 +427,22 @@ async def _flush_and_cue(transport, state: TakeState) -> None:
 
     last_spoken = state.history.last_utterance_at_seconds
     cooldown_ok = last_spoken is None or (state.clock_seconds - last_spoken >= 3.5)
-    has_cue = turn.cue is not None and turn.cue in {CueKind.GOOD_STREAK, CueKind.EXTRA_NOTES, CueKind.MISSED_RUN, CueKind.RUSHING, CueKind.DRAGGING, CueKind.LOST_PLACE}
+    has_cue = turn.cue is not None and turn.cue in {
+        CueKind.GOOD_STREAK,
+        CueKind.EXTRA_NOTES,
+        CueKind.MISSED_RUN,
+        CueKind.RUSHING,
+        CueKind.DRAGGING,
+        CueKind.LOST_PLACE,
+    }
     is_early_streak = window.matched_count >= 3 and window.missed_count == 0 and window.extra_count == 0
 
     if state.utterance_task is None and (turn.should_speak or (cooldown_ok and (has_cue or is_early_streak))):
-        active_turn = turn if turn.cue is not None else replace(turn, cue=CueKind.GOOD_STREAK, severity="info", reason="Early groove encouragement.")
+        active_turn = (
+            turn
+            if turn.cue is not None
+            else replace(turn, cue=CueKind.GOOD_STREAK, severity="info", reason="Early groove encouragement.")
+        )
         state.utterance_task = asyncio.create_task(_speak(transport, state, active_turn))
     elif turn.suppressed_by is not None:
         state.suppressed += 1
@@ -463,7 +469,11 @@ async def _speak(transport, state: TakeState, turn: CoachTurn) -> None:
             "cue": str(cue),
             "severity": turn.severity,
             "provider": "gemini_live" if (state.gemini_session and state.gemini_session.is_active) else settings.llm_provider,
-            "audio_format": "audio/pcm;rate=24000" if (state.gemini_session and state.gemini_session.is_active) else f"audio/{streaming_audio_format(settings.voice_provider)}",
+            "audio_format": (
+                "audio/pcm;rate=24000"
+                if (state.gemini_session and state.gemini_session.is_active)
+                else f"audio/{streaming_audio_format(settings.voice_provider)}"
+            ),
         }
     )
 
@@ -489,7 +499,11 @@ async def _speak(transport, state: TakeState, turn: CoachTurn) -> None:
     # Stream audio through ElevenLabs or Gemini depending on voice selection
     is_gemini_voice = state.voice_key in {"Puck", "Charon", "Kore", "Fenrir", "Aoede"}
     is_elevenlabs = not is_gemini_voice and (settings.voice_provider == "elevenlabs" or bool(settings.elevenlabs_api_key))
-    voice_prov = "gemini_live" if (state.gemini_session and state.gemini_session.is_active) else ("elevenlabs" if is_elevenlabs else settings.voice_provider)
+    voice_prov = (
+        "gemini_live"
+        if (state.gemini_session and state.gemini_session.is_active)
+        else ("elevenlabs" if is_elevenlabs else settings.voice_provider)
+    )
 
     if is_elevenlabs and provider_used != "gemini_live":
         try:
@@ -718,7 +732,9 @@ async def _handle_barge_in(transport, state: TakeState, frame) -> None:
     await _cancel_utterance(state, "barge_in", transport)
 
 
-async def _record_utterance_if_persisted(session: AsyncSession, state: TakeState, utterance_id: uuid.UUID, cue: CueKind, text: str) -> None:
+async def _record_utterance_if_persisted(
+    session: AsyncSession, state: TakeState, utterance_id: uuid.UUID, cue: CueKind, text: str
+) -> None:
     try:
         coach_session = await session.get(CoachSession, state.take_id)
         if coach_session is not None:
@@ -787,7 +803,6 @@ async def _finalize(session, transport, user, state: TakeState, frame) -> None:
         }
     )
 
-    settings = get_settings()
     try:
         score_pct = round(attempt.overall_score * 100)
         ex_title = state.exercise.title if (state.exercise and hasattr(state.exercise, "title")) else "this drill"
@@ -817,7 +832,11 @@ async def _finalize(session, transport, user, state: TakeState, frame) -> None:
         summary = random.choice(intros)
         strengths = attempt.feedback.strengths if attempt.feedback else ()
         corrections = attempt.feedback.corrections if attempt.feedback else ()
-        next_step = attempt.feedback.next_step if (attempt.feedback and attempt.feedback.next_step) else "Run through the drill once more to lock in the groove."
+        next_step = (
+            attempt.feedback.next_step
+            if (attempt.feedback and attempt.feedback.next_step)
+            else "Run through the drill once more to lock in the groove."
+        )
 
         detail_clause = ""
         if strengths and score_pct >= 75:
@@ -921,11 +940,17 @@ async def generate_live_tip(course_id: uuid.UUID, req: CoachLiveTipRequest) -> C
 
     if timing is not None and timing < -0.05:
         focus = "Rhythm: Rushing"
-        tip = f"You are striking slightly ahead of the beat by {abs(round(timing * 1000))}ms. Relax into the pulse and let {current_note} land directly on the metronome click."
+        tip = (
+            f"You are striking slightly ahead of the beat by {abs(round(timing * 1000))}ms. "
+            f"Relax into the pulse and let {current_note} land directly on the metronome click."
+        )
         action = "Breathe and lock in with Beat 1 downbeat."
     elif timing is not None and timing > 0.05:
         focus = "Rhythm: Dragging"
-        tip = f"You are landing {abs(round(timing * 1000))}ms behind the beat. Pre-position your finger for {current_note} ahead of time so the attack is crisp."
+        tip = (
+            f"You are landing {abs(round(timing * 1000))}ms behind the beat. "
+            f"Pre-position your finger for {current_note} ahead of time so the attack is crisp."
+        )
         action = "Prepare your finger above the key/fret before the beat strikes."
     elif pitch_err is not None and abs(pitch_err) > 0.4:
         focus = "Pitch Accuracy"
@@ -935,17 +960,20 @@ async def generate_live_tip(course_id: uuid.UUID, req: CoachLiveTipRequest) -> C
         instrument_tips: dict[str, tuple[str, str, str]] = {
             "piano": (
                 "Hand Posture & Touch",
-                f"Keep your wrists relaxed and fingers naturally curved over the keys. For {current_note} at {bpm} BPM, aim for even weight across all fingers.",
+                f"Keep your wrists relaxed and fingers naturally curved over the keys. "
+                f"For {current_note} at {bpm} BPM, aim for even weight across all fingers.",
                 "Maintain curved hand shape and press through the keybed smoothly.",
             ),
             "guitar": (
                 "Fret Placement & Clarity",
-                f"Fret right up against the fret wire for {current_note} to prevent fret buzz, keeping your thumb anchored comfortably behind the neck.",
+                f"Fret right up against the fret wire for {current_note} to prevent fret buzz, "
+                f"keeping your thumb anchored comfortably behind the neck.",
                 "Ensure fingertips strike perpendicular to the fretboard.",
             ),
             "violin": (
                 "Bow Contact & Tone",
-                f"Keep your bow parallel to the bridge with steady pressure for {current_note}. Listen for a rich, resonant acoustic tone.",
+                f"Keep your bow parallel to the bridge with steady pressure for {current_note}. "
+                f"Listen for a rich, resonant acoustic tone.",
                 "Maintain consistent bow speed from frog to tip.",
             ),
             "trumpet": (
@@ -961,7 +989,11 @@ async def generate_live_tip(course_id: uuid.UUID, req: CoachLiveTipRequest) -> C
         }
         focus, tip, action = instrument_tips.get(
             instrument,
-            ("Practice Technique", f"Play {current_note} smoothly at {bpm} BPM with steady pulse.", "Focus on rhythm and clarity.")
+            (
+                "Practice Technique",
+                f"Play {current_note} smoothly at {bpm} BPM with steady pulse.",
+                "Focus on rhythm and clarity.",
+            )
         )
 
     return CoachLiveTipResponse(tip=tip, focus_area=focus, suggested_action=action)

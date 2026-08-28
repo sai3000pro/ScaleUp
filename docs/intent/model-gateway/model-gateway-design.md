@@ -59,6 +59,32 @@ and every one of those models is priced in the same table. Borrowing a sibling's
 would be cheaper and would make the cost endpoint quote one vendor's rates for another
 vendor's calls -- in a table whose purpose is answering what an ingest costs.
 
+### Availability
+
+A model identifier is not a guarantee that the model will answer. Google's shared free
+tier answers `503 UNAVAILABLE` on its stronger aliases for minutes at a time while the
+cheaper alias beside it stays healthy, so a role that names one model has an availability
+no better than that model's busiest hour.
+
+The role table therefore names a **fallback model** per provider alongside the primary one,
+and the answer to an overloaded or rate-limited primary is to re-attempt on the fallback
+rather than to fail. The fallback is a real, priced, reachable model, and the ledger records
+whichever one actually served -- a call that fell back is billed at the model that answered
+it, not at the one the caller would have preferred.
+
+Below the fallback is the deterministic provider, which is the floor the whole product
+already runs on with no credentials at all. A provider outage therefore costs the learner
+answer *quality*, never the feature: a drill still issues a question, a take is still
+graded, an examiner still speaks. The ledger names the deterministic provider on those
+rows, so a degraded answer is distinguishable from a paid one after the fact rather than
+being invisible.
+
+Two boundaries keep that from becoming the silent downgrade this segment otherwise refuses.
+It is a **runtime** response to an outage, never a **startup** response to a missing
+credential -- an unimplemented provider name and an absent key are still refusals, because
+those are configuration mistakes that a fallback would hide forever. And it is recorded,
+so "how much of last week ran on the word matcher?" is a query rather than a guess.
+
 Each role also declares a **workload lane** -- `ingest` for compiling a curriculum,
 `tutor` for drilling, grading and feedback, `live` for the streaming coach -- and a
 provider credential may be set per lane. Compiling a curriculum is bursty and can
@@ -146,6 +172,9 @@ prompt in place, but it means the directory cannot be read without the registry 
 | Reaching Gemini | Google's OpenAI-compatible endpoint | The `google-genai` SDK | The compatible endpoint reaches both structured output and streaming through a dependency already present and error types already mapped. The SDK's extra surface serves no role here. |
 | Gemini schema strictness | The shared schema, unmodified | The OpenAI strict-mode rewrite | Strict mode's requirement that `required` name every property is OpenAI's rule; a compatibility layer may reject what it implies. Validation and one repair turn are the guarantee for every provider anyway. || Credential granularity | One per workload lane, falling back to a shared key | One key per provider; one key per role | One key makes a bursty ingest able to rate-limit a live take. One per role is fourteen settings to answer a question with three real answers. |
 | Where the lane is declared | On the role, in the registry table | Passed by the caller; inferred from the call stack | A caller that picks a credential is a caller that knows about providers, which is the thing role addressing exists to prevent. || An unserved lane | Runs on the deterministic provider | Refuse to start; route it to a served lane | Refusing makes turning on one lane an all-or-nothing choice. Borrowing another lane's key spends money the operator declined to spend there. |
+| An overloaded model | Re-attempt on the role's fallback model, then the deterministic floor | Fail the call; retry the same model with backoff | The stronger free-tier aliases are unavailable for minutes, not seconds, so backoff on the same model just spends the learner's patience. A cheaper reachable model is a worse answer; no answer is a broken product. |
+| A degraded call in the ledger | Recorded against the provider and model that actually served | Recorded against the role's nominal model | The cost table answers what a workload costs. A row naming a model that did not run makes it fiction, and hides how often the floor is carrying the product. |
+| Where the fallback ladder lives | Model fallback inside the provider; the deterministic floor as a wrapper in the factory | One try/except at each call site | A call site that handles provider outages is a call site that knows about providers, which is what role addressing exists to prevent. |
 ## Open Questions & Future Decisions
 
 ### Deferred

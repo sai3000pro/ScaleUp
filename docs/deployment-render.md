@@ -196,7 +196,7 @@ Everything else keeps its default, and every default is a working fallback:
 
 | Setting | Default | What that means here |
 |---|---|---|
-| `LLM_PROVIDER` | `fake` | Coaching text is deterministic. Scores are unaffected — a model never touches a number. |
+| `LLM_PROVIDER` | `fake` | Coaching text is deterministic. Scores are unaffected — a model never touches a number. Set to `gemini` with a `GEMINI_API_KEY` for model-written questions, grading and coaching; an overloaded model falls back to a cheaper one and then to the deterministic floor, so a busy free tier degrades the wording rather than failing the request. |
 | `EMBEDDING_PROVIDER` | `fake` | No embedding spend. Only retrieval paths care. |
 | `VOICE_PROVIDER` | `fake` | No spoken audio; `spoken_text` still returned. |
 | `EMAIL_PROVIDER` | `fake` | Password reset logs a link instead of sending one. |
@@ -328,6 +328,7 @@ WebSocket. This is the step that fails on hosts without WebSocket support.
 | Signed in, but no courses | The seed did not run. Re-run `python -m app.seed`. |
 | First request of the day hangs for ~a minute | Free-instance cold start. Not an error. |
 | An upload sits at 0% forever | No Celery worker. Expected; see below. |
+| Every drill answers 500, the browser says only "Failed to fetch" | A Gemini role whose model is overloaded. Roles carry a fallback model and the deterministic floor beneath it, so this should no longer happen; if it does, `GET /api/health/providers` names the lanes and `llm_calls` names the model that ran. |
 
 ## Known rough edges
 
