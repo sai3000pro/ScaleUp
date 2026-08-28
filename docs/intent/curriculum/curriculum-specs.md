@@ -115,6 +115,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-PROJ-004**: The system shall remain able to serve traversal and retrieval while a projection is stale.
 - [x] **CURR-PROJ-005**: The system shall answer questions with citations to the chunks that support them.
 - [x] **CURR-PROJ-006**: Where no vector store is reachable, retrieval shall fall back to lexical search rather than failing.
+- [x] **CURR-PROJ-007**: Where a course holds no source material, the system shall not perform a retrieval round trip for it, so a course compiled from a curriculum rather than ingested from a document does not wait on a search that cannot return anything.
 
 ## Background work
 

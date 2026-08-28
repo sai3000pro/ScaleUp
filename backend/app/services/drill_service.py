@@ -96,6 +96,7 @@ async def _prerequisite_masteries(session: AsyncSession, node: SkillNode, user_i
     return gating_masteries(node.id, prereqs, mastery, assessable)
 
 
+# @spec CURR-PROJ-007
 async def _retrieve_context(session: AsyncSession, node: SkillNode) -> list[Chunk]:
     """Chunks the question should be drawn from.
 
@@ -103,12 +104,21 @@ async def _retrieve_context(session: AsyncSession, node: SkillNode) -> list[Chun
     tops up with semantic neighbours. Provenance first matters: a question
     generated from loosely-related passages tests something the node does not
     claim to teach.
+
+    A course compiled from a curriculum rather than ingested from a document has
+    no chunks at all, and six of the courses this project ships are exactly that.
+    The top-up below cannot return anything for one of them, but it still costs an
+    embedding, a ledger row, and a round trip to the vector store -- on the
+    request a learner is watching, and on a host where the vector store may not be
+    deployed and the round trip is a connection that has to time out before the
+    `except` can swallow it. So the cheap question is asked first: does this
+    course have any source material?
     """
     chunks: list[Chunk] = []
     if node.source_chunk_ids:
         chunks = list(await session.scalars(select(Chunk).where(Chunk.id.in_(node.source_chunk_ids))))
 
-    if len(chunks) < RETRIEVAL_K:
+    if len(chunks) < RETRIEVAL_K and await _course_has_source_material(session, node.course_id):
         try:
             # Off the event loop: both the embedding call and the ledger write it
             # now performs are blocking, and this runs inside `POST /drill`.
@@ -125,6 +135,17 @@ async def _retrieve_context(session: AsyncSession, node: SkillNode) -> list[Chun
             pass
 
     return chunks[:RETRIEVAL_K]
+
+
+async def _course_has_source_material(session: AsyncSession, course_id: uuid.UUID) -> bool:
+    """Whether anything was ever ingested for this course.
+
+    One indexed existence check against Postgres, which is already open, in place
+    of an embedding and a network round trip to a store that would answer empty.
+    """
+    return bool(
+        await session.scalar(select(Chunk.id).where(Chunk.course_id == course_id).limit(1))
+    )
 
 
 def _render_context(chunks: list[Chunk]) -> str:
