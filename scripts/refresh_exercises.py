@@ -89,10 +89,29 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true", help="Actually delete and rebuild. Without it, nothing changes.")
     args = parser.parse_args()
 
+    # Which database, before anything else. This deletes rows, and the only thing
+    # standing between "the demo" and "the one someone is using" is an environment
+    # variable that is easy to forget you did not set. The password is never printed.
+    from app.db.session import _sync_engine
+
+    target = _sync_engine().url.render_as_string(hide_password=True)
+    print(f"\ndatabase   {target}")
+
     with sync_session() as session:
         courses = _courses(session, args.course)
         if not courses:
-            print(f"No course matches {args.course!r}.")
+            total = len(list(session.scalars(select(Course.id))))
+            if total == 0:
+                print(
+                    "\nThis database has no courses at all.\n"
+                    "\n  A local one that pytest has run against is empty by design -- it"
+                    " truncates every table. Run `python -m app.seed` first.\n"
+                    "\n  A deployed one is not what this points at unless you say so:\n"
+                    "    $env:SYNC_DATABASE_URL = 'postgresql+psycopg://...'\n"
+                )
+            else:
+                titles = ", ".join(sorted(c.title for c in session.scalars(select(Course))))
+                print(f"\nNo course matches {args.course!r}. This database has: {titles}\n")
             return 1
 
         print(f"\n{'COURSE':<28} {'EXERCISES':>9} {'SHAPED':>7} {'ATTEMPTS':>9}")
