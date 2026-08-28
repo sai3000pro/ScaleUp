@@ -54,7 +54,7 @@ from app.llm.base import (
     StructuredResult,
     Usage,
 )
-from app.llm.registry import LANES, ROLES, price_for
+from app.llm.registry import LANE_TIMEOUT_SECONDS, LANES, LANES_WITHOUT_SDK_RETRY, ROLES, price_for
 from app.llm.support import parse_json_or_raise, prepare, validate_or_raise
 
 #: Google's OpenAI-compatible surface. Overridable through GEMINI_BASE_URL so a
@@ -116,12 +116,16 @@ def _client(lane: str = "tutor") -> AsyncOpenAI:
     return AsyncOpenAI(
         api_key=settings.gemini_key_for(lane),
         base_url=settings.gemini_base_url or DEFAULT_BASE_URL,
-        # Goal-first construction is a synchronous request a learner is watching.
-        # Gemini answers 503 under load, and it takes its time doing it -- an
-        # unbounded wait turns "the model is busy" into "the page is broken", when
-        # the deterministic tree behind the fallback was available all along.
-        timeout=settings.gemini_timeout_seconds,
-        max_retries=settings.gemini_max_retries,
+        # The deadline belongs to whoever is waiting, so it comes from the lane.
+        # Gemini answers 503 under load and takes its time doing it -- often more
+        # than a minute -- and a lane-blind timeout has to be set for the most
+        # patient caller. That is how an overloaded model turned a drill into an
+        # eighty-second wait that still ended on the deterministic question: the
+        # fallback was right and arrived far too late to matter.
+        timeout=min(settings.gemini_timeout_seconds, LANE_TIMEOUT_SECONDS[lane]),
+        # The fallback model is the retry, and it is a retry against something
+        # different. Asking the overloaded alias twice only doubles the wait.
+        max_retries=0 if lane in LANES_WITHOUT_SDK_RETRY else settings.gemini_max_retries,
     )
 
 

@@ -34,6 +34,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-PROV-012**: Where every model a provider declares for a role is unavailable, the system shall serve that call from the deterministic provider rather than failing it, so a provider outage degrades the answer instead of removing the feature.
 - [x] **LLM-PROV-013**: A call that a provider outage sent to the deterministic provider shall be recorded as served by the deterministic provider, so the ledger distinguishes a degraded answer from a paid one.
 - [x] **LLM-PROV-014**: Where a call fails for a reason no fallback covers, the system shall answer the request as an upstream-provider failure rather than as an internal error, so the browser receives it with the response headers every other answer carries.
+- [x] **LLM-PROV-015**: The system shall bound how long a call may wait on its provider by the workload lane the role belongs to, so a learner waiting on a drill is not held for the timeout an unattended ingest is allowed.
 
 ## Prompt versioning
 

@@ -63,6 +63,30 @@ class RoleConfig:
 LANES: tuple[str, ...] = ("ingest", "tutor", "live")
 
 
+#: How long a call in each lane may wait on the provider, in seconds.
+#:
+#: A deadline belongs to whoever is waiting, and the three lanes differ in exactly
+#: that. An ingest runs unattended inside a Celery task and should be patient rather
+#: than abandon a book halfway. A learner watching a drill spinner will not wait a
+#: minute for a question. A learner mid-take has already started playing again by the
+#: time a cue arrives late, which is why `live` is tighter than a network round trip
+#: to a busy model usually needs -- a late cue is worse than the deterministic one.
+#:
+#: These are ceilings clamped by GEMINI_TIMEOUT_SECONDS, so lowering that setting
+#: still lowers every lane, while raising it cannot make an interactive path patient.
+LANE_TIMEOUT_SECONDS: dict[str, float] = {
+    "ingest": 45.0,
+    "tutor": 10.0,
+    "live": 4.0,
+}
+
+#: Lanes that decline the SDK's own retry. Retrying the alias that is overloaded
+#: doubles the wait before reaching the answer the fallback model had all along, and
+#: for these two lanes that wait is the product. `ingest` keeps its retry: nobody is
+#: watching, and a transient blip mid-book is worth absorbing quietly.
+LANES_WITHOUT_SDK_RETRY: frozenset[str] = frozenset({"tutor", "live"})
+
+
 ROLES: dict[LLMRole, RoleConfig] = {
     # High volume. Cheap model, modest effort.
     LLMRole.GRAPH_EXTRACT_MAP: RoleConfig(

@@ -28,7 +28,7 @@ from app.config import Settings
 from app.llm import factory, gemini_provider
 from app.llm.base import LLMRole, ProviderError
 from app.llm.gemini_provider import UNSUPPORTED_SCHEMA_KEYWORDS, GeminiLLMClient, _wire_schema
-from app.llm.registry import LANES, PRICES, ROLES, price_for
+from app.llm.registry import LANE_TIMEOUT_SECONDS, LANES, PRICES, ROLES, price_for
 
 
 def _settings(**overrides) -> Settings:
@@ -432,3 +432,51 @@ def test_every_fallback_model_is_a_different_model_and_is_priced() -> None:
         else:
             assert config.gemini_fallback_model != config.gemini_model, f"{role} falls back to itself"
             assert config.gemini_fallback_model in PRICES, f"{role}'s fallback is unpriced"
+
+
+# @spec LLM-PROV-015
+def test_the_deadline_belongs_to_the_lane_not_to_the_provider() -> None:
+    """An unattended ingest and a learner mid-take are not the same deadline."""
+    assert set(LANE_TIMEOUT_SECONDS) == set(LANES)
+    assert LANE_TIMEOUT_SECONDS["live"] < LANE_TIMEOUT_SECONDS["tutor"] < LANE_TIMEOUT_SECONDS["ingest"]
+
+
+# @spec LLM-PROV-015
+def test_a_lane_deadline_is_a_ceiling_that_the_setting_can_lower(monkeypatch) -> None:
+    """Lowering GEMINI_TIMEOUT_SECONDS lowers every lane; raising it cannot make
+    an interactive path patient again."""
+    monkeypatch.setattr(
+        gemini_provider, "get_settings", lambda: _settings(gemini_api_key="k", gemini_timeout_seconds=2.0)
+    )
+    assert gemini_provider._client("ingest").timeout == 2.0
+
+    monkeypatch.setattr(
+        gemini_provider, "get_settings", lambda: _settings(gemini_api_key="k", gemini_timeout_seconds=600.0)
+    )
+    assert gemini_provider._client("tutor").timeout == LANE_TIMEOUT_SECONDS["tutor"]
+
+
+# @spec LLM-PROV-011, LLM-PROV-015
+def test_the_interactive_lanes_decline_the_sdk_retry_because_the_fallback_is_the_retry(monkeypatch) -> None:
+    monkeypatch.setattr(
+        gemini_provider, "get_settings", lambda: _settings(gemini_api_key="k", gemini_max_retries=3)
+    )
+    assert gemini_provider._client("tutor").max_retries == 0
+    assert gemini_provider._client("live").max_retries == 0
+    assert gemini_provider._client("ingest").max_retries == 3
+
+
+# @spec LLM-PROV-011
+@pytest.mark.asyncio
+async def test_a_timed_out_primary_falls_back_rather_than_failing(monkeypatch) -> None:
+    """A timeout is `this model, right now`, which is exactly what a sibling answers."""
+    from openai import APITimeoutError
+
+    timeout = APITimeoutError.__new__(APITimeoutError)
+    Exception.__init__(timeout, "timed out")
+    client, asked = _stub_client(monkeypatch, [timeout, _ok_response(QUESTION_PAYLOAD)])
+
+    result = await client.structured(LLMRole.QUESTION_GEN, QUESTION_VARIABLES)
+
+    assert asked == [ROLES[LLMRole.QUESTION_GEN].gemini_model, ROLES[LLMRole.QUESTION_GEN].gemini_fallback_model]
+    assert result.data["question"]
