@@ -11,11 +11,30 @@ interface LiveCoachPanelProps {
   courseId: string;
   refreshKey: number;
   onCompleted?: () => void;
+  /**
+   * The exercise the learner chose elsewhere -- in a lesson workspace, where
+   * the lesson run actually lives. Null leaves the panel on its own selection,
+   * so the dropdown still works when nobody has picked a lesson.
+   */
+  exerciseId?: string | null;
+  /**
+   * The exercise is not the learner's to choose here -- they picked a lesson
+   * and this is that lesson. Hides the picker, so the panel cannot silently
+   * become a different exercise than the one they clicked.
+   */
+  pinned?: boolean;
 }
 
-export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
+// @spec UI-PAGE-009
+export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = false }: LiveCoachPanelProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(exerciseId ?? null);
+
+  // A lesson choosing an exercise wins over whatever the dropdown was showing:
+  // the learner just clicked the thing they want to play.
+  useEffect(() => {
+    if (exerciseId) setSelectedExerciseId(exerciseId);
+  }, [exerciseId]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +89,9 @@ export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
         <div className="space-y-3.5">
           {exercises.length > 0 ? (
             <>
-              {/* Exercise Selector Dropdown */}
+              {/* Exercise Selector Dropdown -- hidden inside a lesson, where
+                  the exercise is the lesson the learner already picked. */}
+              {pinned ? null : (
               <div>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
                   Select Drill / Exercise
@@ -87,6 +108,7 @@ export function LiveCoachPanel({ courseId, refreshKey }: LiveCoachPanelProps) {
                   ))}
                 </select>
               </div>
+              )}
 
               {/* Selected Drill Snapshot */}
               {selectedExercise && (
