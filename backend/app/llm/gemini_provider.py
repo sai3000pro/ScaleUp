@@ -231,11 +231,25 @@ class GeminiLLMClient:
                 max_tokens=call.config.max_tokens,
                 messages=[{"role": "user", "content": call.prompt_text}],
                 stream=True,
+                stream_options={"include_usage": True},
             )
             async for chunk in stream:
+                usage = getattr(chunk, "usage", None)
                 text = chunk.choices[0].delta.content if chunk.choices else None
                 if text:
                     yield StreamDelta(text=text)
+                elif usage is not None:
+                    input_tokens = getattr(usage, "prompt_tokens", 0) or 0
+                    output_tokens = getattr(usage, "completion_tokens", 0) or 0
+                    # @spec LLM-PROV-006
+                    yield StreamDelta(
+                        text="",
+                        usage=Usage(
+                            input_tokens=input_tokens,
+                            output_tokens=output_tokens,
+                            cost_usd=price_for(model, input_tokens, output_tokens),
+                        ),
+                    )
                 else:
                     pass
         except (RateLimitError, APIConnectionError) as exc:

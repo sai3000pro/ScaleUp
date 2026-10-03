@@ -719,16 +719,20 @@ async def _stream_text(
                     if cancel.is_set():
                         cancelled = True
                         break
-                    chunks.append(delta.text)
-                    await transport.send_json(
-                        {
-                            "v": 1,
-                            "type": "coach.delta",
-                            "seq": 0,
-                            "utterance_id": str(utterance_id),
-                            "text": delta.text,
-                        }
-                    )
+                    if delta.text:
+                        chunks.append(delta.text)
+                        await transport.send_json(
+                            {
+                                "v": 1,
+                                "type": "coach.delta",
+                                "seq": 0,
+                                "utterance_id": str(utterance_id),
+                                "text": delta.text,
+                            }
+                        )
+                    else:
+                        # A final usage-only delta carries no text for the listener.
+                        pass
     except Exception as exc:  # noqa: BLE001 - LLM outage degrades to deterministic floor
         logger.warning("live coach LLM stream failed (%s); falling back to deterministic cue", exc)
         if not chunks:

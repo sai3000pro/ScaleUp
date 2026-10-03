@@ -157,6 +157,8 @@ def _fold_exact(raw: Iterable[RawConcept]) -> dict[str, RawConcept]:
 
 # @spec LLM-EMBED-004
 def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
+    """A bare dot product IS cosine similarity: the gateway normalises every
+    provider vector to unit length at the seam. (LLM-EMBED-004)"""
     return sum(x * y for x, y in zip(a, b))
 
 
