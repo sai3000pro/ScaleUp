@@ -71,6 +71,7 @@ from dataclasses import dataclass, field
 
 from app.core.sync_bridge import run_sync
 from app.domain.dag import CandidateEdge
+from app.domain.wire_formats import candidate_head, skill_line
 from app.llm.base import LLMClient, LLMRole, RefusalError, SchemaValidationError
 
 logger = logging.getLogger(__name__)
@@ -227,7 +228,7 @@ def _render_skill_list(skills: list[SkillRef]) -> str:
     reads as ordinary markdown to a real model.
     """
     return "\n".join(
-        f"- `{s.slug}` — **{s.title.replace('*', '')}** — {s.summary[:SUMMARY_CHARS]}"
+        skill_line(s.slug, s.title.replace("*", ""), s.summary[:SUMMARY_CHARS])
         for s in skills[:MAX_SKILLS_LISTED]
     )
 
@@ -259,7 +260,7 @@ def _excerpt(text: str, budget: int, windows: int) -> str:
 def _render_candidates(batch: list[SkillRef], section_texts: dict[str, str]) -> str:
     """One block per candidate. The excerpt is what the model must quote from."""
     return "\n\n".join(
-        f"### `{s.slug}` — {s.title}\n"
+        f"{candidate_head(s.slug, s.title)}\n"
         f"{_excerpt(section_texts.get(s.slug, ''), REVERSE_EXCERPT_CHARS, REVERSE_EXCERPT_WINDOWS)}"
         for s in batch
     )
