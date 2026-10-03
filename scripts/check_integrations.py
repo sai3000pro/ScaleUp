@@ -20,6 +20,7 @@ BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
 from app.config import get_settings  # noqa: E402
+from app.llm.registry import superseded_prompt_versions  # noqa: E402
 from app.integrations import (  # noqa: E402
     BROWSER_DEPENDENCIES,
     integration_statuses,
@@ -74,6 +75,10 @@ def main() -> int:
             print(f"  {'':24} self-host with {', '.join(dependency.options)}")
     else:
         pass
+
+    superseded = superseded_prompt_versions()
+    if superseded:
+        print(f"\nSuperseded prompt versions kept on disk: {', '.join(f'{p}/{v}' for p, v in superseded)}")
 
     print("\nTo turn one on: set the variables above in .env and restart the API")
     print("(and the Celery worker, which reads the same file).")
