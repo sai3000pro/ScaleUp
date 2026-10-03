@@ -148,27 +148,38 @@ similarity behaves directionally like the real thing and retrieval tests mean so
 
 ## Current state versus intent
 
-**The fake provider is the most tightly coupled component in the system.** It reverse-parses
-the wire format of at least four renderers that live in other segments — the drill rubric
-renderer, the ingestion fragment renderer, the skill-list renderer, and the passage
-renderer. Two of those carry explicit "these must change together" comments. The coupling is
-real, load-bearing, and enforced only by comment: no shared constant, no shared parser, no
-test that fails when one side moves.
+**Wire formats are shared mechanically.** Every prompt that shows the model a
+machine-readable listing is defined once in `app/domain/wire_formats.py` — the
+render function and the parse regex side by side, each pair documented as one
+that must round-trip. The drill rubric, ingestion fragment, skill-list,
+candidate-head, and passage renderers call the domain functions; the
+deterministic provider imports the same module's regexes. A format that drifts
+breaks a test rather than silently degrading the fake's answer.
 
-**An unstated invariant holds up similarity scoring.** `ingestion/extract.py:157` defines
-`_cosine` as a bare dot product with no normalisation. It is correct only because every
-embedding provider currently returns unit vectors. Nothing states that requirement — not a
-type, not a docstring, not a test — so a provider that returns unnormalised vectors would
-silently change what the concept-merge thresholds mean rather than fail.
+**Embedding vectors are unit length at the seam.** Similarity thresholds carry
+the same meaning for every provider because `embed_texts_recorded` normalises
+each provider vector through `domain.vectors.unit_normalise` before returning.
+`_cosine` is then an honest dot product, and a provider returning unnormalised
+vectors cannot change what the concept-merge thresholds mean.
 
-**Budget enforcement can be skipped.** `_enforce_budget` returns without checking when
-prompt rendering raises, so a rendering failure bypasses the ceiling rather than refusing
-the call.
+**A prompt that will not render is refused.** `_enforce_budget` lets a render
+failure propagate after recording exactly one failure row — the call is refused
+before any provider spend rather than bypassing the ceiling.
 
-**Superseded prompts are retained with no marker.** Several prompt versions and schemas
-remain in the tree with nothing indicating they are superseded; only the registry's silence
-about them distinguishes live from dead. That is a deliberate consequence of never editing a
-prompt in place, but it means the directory cannot be read without the registry beside it.
+**Streamed calls record the provider's token counts.** A provider that reports
+usage yields one final `StreamDelta` with empty text and `usage` set; the
+recording client prefers those counts and falls back to the character estimate
+only when nothing was reported.
+
+**Superseded prompts are derivable from the store.** `superseded_prompts`
+returns every `(prompt_id, version)` on disk that no live role references —
+which is what lets the prompts directory be read without the registry's silence
+doing the marking. `check_integrations.py` prints the list for operators.
+
+**Outcomes are comparable across prompt versions.** `GET /courses/{id}/cost`
+groups the ledger by `(role, prompt_id, prompt_version)` into
+`by_prompt_version`, answering "did the edit help?" from the rows the ledger
+was always designed to feed.
 
 ## Decisions & Alternatives
 
@@ -183,7 +194,7 @@ prompt in place, but it means the directory cannot be read without the registry 
 | Budget timing | Checked before the call | Reconciled afterwards | A ceiling enforced after the spend is not a ceiling. |
 | Structured output | Schema-validated at the tool-call layer | Parse and hope; schema embedded in prompt text | Validation at the boundary lets the model retry on mismatch. |
 | Streaming | A separate protocol | Extend the structured client | Structured callers must keep their schema guarantee. |
-| Embedding vectors | Normalised by the fake provider | Return raw magnitudes | `[inferred]` — normalisation is implemented but not stated as a contract. It is what makes the dot-product similarity correct. Confirm and record as a provider requirement. |
+| Embedding vectors | Normalised at the gateway seam | Require each provider to normalise | The seam is the one place every embedding passes through; normalising there makes the dot-product similarity correct regardless of what a provider ships. |
 | Provider selection | Configuration, refusing on an unknown name or a missing credential | Fall back to the deterministic provider | A silent downgrade means a deployment runs on a word matcher and nothing says so. |
 | Per-provider models | Each provider names its own model per role, priced in the same table | Share one model column; map names at the provider | The cost table would quote one vendor's rates for another vendor's calls. |
 | Reaching Gemini | Google's OpenAI-compatible endpoint | The `google-genai` SDK | The compatible endpoint reaches both structured output and streaming through a dependency already present and error types already mapped. The SDK's extra surface serves no role here. |
@@ -198,16 +209,7 @@ prompt in place, but it means the directory cannot be read without the registry 
 
 ### Deferred
 
-1. **The fake-provider coupling has no mechanical guard.** Four renderers in other segments
-   must stay in step with the fake's parser, enforced only by comment.
-2. **The unit-vector requirement should be a stated contract**, a type, or a test — currently
-   it is an accident that holds.
-3. **The budget bypass on render failure** should refuse rather than proceed.
-4. **No evaluation harness reads the ledger.** Prompt version and hash are recorded on every
-   call specifically to make prompt changes measurable, and nothing measures them.
-5. **Superseded prompt files carry no marker**, so the prompts directory cannot be read
-   independently of the registry.
-6. **Voice spend is recorded under a pseudo-role.** Whether synthesis belongs in the same
+1. **Voice spend is recorded under a pseudo-role.** Whether synthesis belongs in the same
    ledger as model calls is unresolved.
 
 ## References
