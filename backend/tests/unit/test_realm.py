@@ -79,3 +79,11 @@ def test_a_finished_run_leaves_every_lesson_open() -> None:
     run = (lesson(1, 0.9), lesson(2, 0.9))
     assert open_lesson_step(run) is None
     assert is_lesson_open(run, 1) and is_lesson_open(run, 2)
+
+
+# @spec PROG-REALM-005
+def test_the_test_is_derived_from_lesson_scores_and_nothing_else() -> None:
+    """No stored flag: call it twice on the same facts and get the same answer."""
+    run = (lesson(1, 0.9), lesson(2, 0.9))
+    assert is_test_open(run) is True
+    assert is_test_open(run) is True

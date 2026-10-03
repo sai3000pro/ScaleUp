@@ -139,7 +139,7 @@ Without it, players rationally ignore review, which defeats the product.
 Node levels cap at 5:
 
 ```
-exp_for_node_level(L) = round(100 * L ** 1.6)     # 0, 100, 303, 623, 1057
+exp_for_node_level(L) = round(100 * L ** 1.6)     # 0, 100, 303, 580, 919
 NODE_LEVEL_CAP = 5
 ```
 

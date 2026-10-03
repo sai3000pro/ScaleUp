@@ -22,6 +22,11 @@
 
 import type { GraphNode, KnownNodeState, NodeState } from "@/lib/types";
 
+// The one mastery threshold, mirroring MASTERED_MASTERY in
+// backend/app/domain/states.py. Strings below derive from it, never restate it.
+// @spec PROG-STATE-007
+export const MASTERED_MASTERY = 0.85;
+
 export interface StateStyle {
   label: string;
   /** Literal hex, for SVG and React Flow, which take colour values not classes. */
@@ -54,7 +59,7 @@ export const STATE_STYLES: Record<KnownNodeState, StateStyle> = {
   mastered: {
     label: "Mastered",
     accent: "#2b6f9e",
-    hint: "Mastered — level 5 with mastery above 85%",
+    hint: `Mastered — level 5 with mastery above ${Math.round(MASTERED_MASTERY * 100)}%`,
   },
 };
 

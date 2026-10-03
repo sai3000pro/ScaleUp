@@ -21,12 +21,15 @@ __all__ = [
     "derive_state",
     "overdue_days",
     "gating_masteries",
+    "gating_prerequisite_ids",
 ]
 
 # A prerequisite counts as cleared at half mastery. Requiring full mastery to
 # unlock anything downstream makes the tree feel like a wall; requiring nothing
 # makes the prerequisite structure decorative.
 PREREQ_MASTERY_THRESHOLD = 0.5
+
+# @spec PROG-STATE-007
 MASTERED_MASTERY = 0.85
 MASTERED_LEVEL = 5
 
@@ -37,6 +40,37 @@ class NodeState(StrEnum):
     LEARNING = "learning"
     DECAYING = "decaying"
     MASTERED = "mastered"
+
+
+# @spec PROG-DAG-008
+def gating_prerequisite_ids(
+    node_id: Hashable,
+    prereqs: Mapping[Hashable, Sequence[Hashable]],
+    assessable: Mapping[Hashable, bool],
+) -> list[Hashable]:
+    """The ids whose masteries should gate `node_id`, seeing *through* structural nodes.
+
+    The one walk that answers "which prerequisites hold this node":
+    `gating_masteries` is this function's output read through a mastery map,
+    and every caller that needs ids -- "blocked by X" labels, path ordering --
+    uses it directly so the transparent-structural rule lives exactly once.
+    """
+    resolved: list[Hashable] = []
+    seen: set[Hashable] = set()
+
+    def walk(current: Hashable) -> None:
+        for prereq in prereqs.get(current, ()):
+            if prereq in seen:
+                pass
+            else:
+                seen.add(prereq)
+                if assessable.get(prereq, True):
+                    resolved.append(prereq)
+                else:
+                    walk(prereq)
+
+    walk(node_id)
+    return resolved
 
 
 # @spec PROG-STATE-002, PROG-STATE-005, PROG-DAG-008
@@ -65,22 +99,7 @@ def gating_masteries(
     the recursion anyway: this runs on data from the database, and a corrupt row
     should degrade rather than hang the request.
     """
-    resolved: list[float] = []
-    seen: set[Hashable] = set()
-
-    def walk(current: Hashable) -> None:
-        for prereq in prereqs.get(current, ()):  # noqa: B007
-            if prereq in seen:
-                pass
-            else:
-                seen.add(prereq)
-                if assessable.get(prereq, True):
-                    resolved.append(mastery.get(prereq, 0.0))
-                else:
-                    walk(prereq)
-
-    walk(node_id)
-    return resolved
+    return [mastery.get(prereq, 0.0) for prereq in gating_prerequisite_ids(node_id, prereqs, assessable)]
 
 
 def overdue_days(state: ReviewState, now: datetime) -> float:

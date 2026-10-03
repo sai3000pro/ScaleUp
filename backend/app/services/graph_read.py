@@ -21,6 +21,7 @@ from app.domain.states import (
     NodeState,
     derive_state,
     gating_masteries,
+    gating_prerequisite_ids,
     overdue_days,
 )
 from app.models import Chunk, Course, NodeProgress, SkillEdge, SkillNode
@@ -95,26 +96,14 @@ def _blocking_prereqs(
 ) -> list[uuid.UUID]:
     """Which drillable prerequisites are actually holding this node back.
 
-    Mirrors `gating_masteries` but keeps the ids, so "Needs X" names something
-    the user can go and drill rather than a structural heading they cannot.
+    Keeps the ids so "Needs X" names something the user can go and drill
+    rather than a structural heading they cannot.
     """
-    blocking: list[uuid.UUID] = []
-    seen: set[uuid.UUID] = set()
-
-    def walk(current: uuid.UUID) -> None:
-        for prereq in prereqs.get(current, ()):
-            if prereq in seen:
-                pass
-            else:
-                seen.add(prereq)
-                if assessable.get(prereq, True):
-                    if mastery.get(prereq, 0.0) < PREREQ_MASTERY_THRESHOLD:
-                        blocking.append(prereq)
-                else:
-                    walk(prereq)
-
-    walk(node_id)
-    return blocking
+    return [
+        prereq
+        for prereq in gating_prerequisite_ids(node_id, prereqs, assessable)
+        if mastery.get(prereq, 0.0) < PREREQ_MASTERY_THRESHOLD
+    ]
 
 
 # @spec PROG-STATE-001, PROG-EXP-007

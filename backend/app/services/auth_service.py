@@ -29,7 +29,8 @@ from app.core.security import (
     verify_password,
 )
 from app.domain.exp import level_progress
-from app.models import Attempt, OAuthAccount, OAuthExchangeCode, OAuthState, PasswordResetToken, RefreshSession, User
+from app.domain.streak import streak_days as _consecutive_days
+from app.models import Attempt, OAuthAccount, OAuthExchangeCode, OAuthState, PasswordResetToken, PerformanceAttempt, RefreshSession, User
 from app.schemas.auth import PasswordResetConsume, PasswordResetRequest, RegisterRequest, TokenResponse, UserOut
 from app.services import email_service
 
@@ -406,28 +407,20 @@ async def revoke_refresh_token(session: AsyncSession, raw_refresh_token: str | N
 
 # @spec PROG-META-006, PROG-META-007
 async def streak_days(session: AsyncSession, user_id: uuid.UUID, today: date | None = None) -> int:
-    """Consecutive days, walking back from today, with at least one attempt."""
+    """Consecutive days with at least one attempt or instrument take."""
     anchor = today or datetime.now(timezone.utc).date()
 
-    rows = await session.execute(
-        select(func.date(Attempt.created_at))
-        .where(Attempt.user_id == user_id)
-        .group_by(func.date(Attempt.created_at))
-        .order_by(func.date(Attempt.created_at).desc())
-        .limit(400)
-    )
-    active = {row[0] for row in rows}
-    if not active:
-        return 0
-
-    # A streak may legitimately end yesterday -- today's drilling has not
-    # happened yet, and zeroing the counter at midnight would be punishing.
-    cursor = anchor if anchor in active else anchor - timedelta(days=1)
-    count = 0
-    while cursor in active:
-        count += 1
-        cursor -= timedelta(days=1)
-    return count
+    active: set[date] = set()
+    for model in (Attempt, PerformanceAttempt):
+        rows = await session.execute(
+            select(func.date(model.created_at))
+            .where(model.user_id == user_id)
+            .group_by(func.date(model.created_at))
+            .order_by(func.date(model.created_at).desc())
+            .limit(400)
+        )
+        active.update(row[0] for row in rows)
+    return _consecutive_days(active, anchor)
 
 
 async def project_user(session: AsyncSession, user: User) -> UserOut:

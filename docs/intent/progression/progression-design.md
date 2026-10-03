@@ -63,35 +63,34 @@ chain and every chapter becomes a root.
 
 ## Current state versus intent
 
-**Two attempt lineages exist and never join.** `Attempt` drives drill grading, account
-progress and leaderboard streaks. `PerformanceAttempt` drives instrument practice, its
-metric bundles and its webhooks. They share the `schemas.progress` namespace and no join.
-The visible consequence: **leaderboard streaks count only drill attempts, so a learner who
-practises an instrument daily has a streak of zero.**
+**Two attempt lineages exist and never join.** `Attempt` drives drill grading and account
+progress. `PerformanceAttempt` drives instrument practice, its metric bundles and its
+webhooks. They share the `schemas.progress` namespace and no join. Where a question spans
+both lineages — the streak — the query unions the two tables rather than joining them.
 
-**Three streak computations are reachable** — one inline over `Attempt` in the social
-service, one in the auth service consumed by the quest board, and one in the interface
-header. Nothing reconciles them.
+**The streak is computed in exactly one place.** `domain/streak.py` walks consecutive
+active days; the services only decide which days count — drill attempts and instrument
+takes unioned per user, so a day of playing counts equally with a day of drilling.
 
-**Two definitions of "mastered" disagree.** `domain/states.py:31` sets the mastery threshold
-at 0.85 and the course service imports it. `character_service.py:34` hardcodes `0.8`. A
-learner at mastery 0.82 and level 5 is mastered on their character sheet and not mastered on
-their skill tree at the same instant.
+**"Mastered" is defined once.** `domain/states.py` sets the mastery threshold at 0.85 and
+the level cap at 5, and every surface that reports mastery reads those constants.
 
-**Three prerequisite walks disagree on a default.** The graph read service, the campaign
-service and the domain state module each implement the "are this node's prerequisites
-satisfied?" traversal independently, and they differ on what to assume when a node's
-assessability is unknown. Note that the *pure* module owns graph construction; the traversal
-that decides unlocking lives in the service layer, in triplicate.
+**The prerequisite-satisfaction traversal has exactly one implementation.**
+`domain/states.py` owns `gating_prerequisite_ids`, the walk that sees through structural
+nodes; `gating_masteries` is that same walk read through a mastery map, and services that
+need ids call it directly.
 
-**Two experience counters have no database linkage.** Per-node experience and account-wide
-total are kept consistent entirely by service code.
+**Account experience is reconcilable from stored data.** `users.total_exp` is the running
+counter the award paths maintain; `progress_service.reconcile_total_exp` re-derives it as
+the sum of `attempts.exp_awarded` plus `performance_attempts.exp_awarded` — the two
+lineages, summed.
 
 **Read endpoints write.** `ensure_progress_rows` is called on the path and quest read paths,
 so two GET-shaped endpoints create rows.
 
-**The documented level curve is wrong.** `exp.py:58` states thresholds of 0, 100, 303, 623,
-1057; the implementation yields 0, 100, 303, 580, 919.
+**The level curve is published.** `exp_for_node_level(L) = round(100 * L ** 1.6)` yields
+thresholds of 0, 100, 303, 580, 919 for node levels 0–4, capped at 5; the account curve is
+the same formula at 10× scale, uncapped.
 
 ## Decisions & Alternatives
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from app.domain.srs import ReviewState
-from app.domain.states import NodeState, derive_state, gating_masteries, overdue_days
+from app.domain.states import NodeState, derive_state, gating_masteries, gating_prerequisite_ids, overdue_days
 
 NOW = datetime(2026, 8, 8, 12, 0, tzinfo=timezone.utc)
 
@@ -122,3 +122,17 @@ def test_a_cyclic_edge_set_terminates_rather_than_hanging() -> None:
     prereqs = {"a": ["b"], "b": ["a"]}
     assessable = {"a": False, "b": False}
     assert gating_masteries("a", prereqs, {}, assessable) == []
+
+
+# @spec PROG-DAG-008
+def test_the_id_walk_and_the_mastery_walk_cover_the_same_prerequisites() -> None:
+    """One traversal, two readers: ids and masteries must name the same set."""
+    prereqs = {SECTION: [CHAPTER, INTRO], CHAPTER: ["basics"]}
+    mastery = {"basics": 0.7, INTRO: 0.4, CHAPTER: 0.0}
+    assessable = {CHAPTER: False, SECTION: True, INTRO: True, "basics": True}
+
+    ids = gating_prerequisite_ids(SECTION, prereqs, assessable)
+    gating = gating_masteries(SECTION, prereqs, mastery, assessable)
+
+    assert set(ids) == {"basics", INTRO}
+    assert gating == [mastery[i] for i in ids]

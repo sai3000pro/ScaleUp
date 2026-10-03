@@ -67,17 +67,9 @@ export const CARD = "rounded-xl border border-slate-800 bg-slate-900/50 p-4";
 export const NAV_LINK = "rounded-sm hover:text-slate-200 " + FOCUS_RING;
 
 /**
- * Muted body copy.
- *
- * `slate-400` is the quietest ink that clears 4.5:1 against BOTH the page and a
- * raised card -- and the card is the one that matters, since that is where most
- * muted text in the app sits. `slate-500` clears it on both too, but only just,
- * so it is the floor rather than the default; `slate-600` and lighter are
- * surface colours, not ink.
- *
- * This constant is currently used nowhere, while `text-slate-500` appears
- * directly in 58 places. Tracked as UI-SYS-004.
- *
- * @spec UI-A11Y-007
+ * Muted body copy belongs at `slate-400` -- the quietest ink that clears 4.5:1
+ * against BOTH the page and a raised card, and the card is the one that
+ * matters, since that is where most muted text in the app sits. `slate-500`
+ * clears it on both too, but only just, so it is the floor rather than the
+ * default; `slate-600` and lighter are surface colours, not ink.
  */
-export const MUTED = "text-slate-400";

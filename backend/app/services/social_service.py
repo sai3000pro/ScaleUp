@@ -25,36 +25,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.exp import level_progress
 from app.domain.states import MASTERED_LEVEL, MASTERED_MASTERY
-from app.models import Attempt, Course, NodeProgress, SkillNode, User
+from app.domain.streak import streak_days as _consecutive_days
+from app.models import Attempt, Course, NodeProgress, PerformanceAttempt, SkillNode, User
 from app.schemas.social import CourseLeaderboard, LeaderboardEntry
 
 
 async def _streaks_for_users(session: AsyncSession, user_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
     """Compute all cohort streaks from one grouped attempt query."""
     active_by_user: defaultdict[uuid.UUID, set[object]] = defaultdict(set)
-    if user_ids:
+    for model in (Attempt, PerformanceAttempt):
         rows = await session.execute(
-            select(Attempt.user_id, func.date(Attempt.created_at))
-            .where(Attempt.user_id.in_(user_ids))
-            .group_by(Attempt.user_id, func.date(Attempt.created_at))
+            select(model.user_id, func.date(model.created_at))
+            .where(model.user_id.in_(user_ids))
+            .group_by(model.user_id, func.date(model.created_at))
         )
         for row in rows:
             active_by_user[row[0]].add(row[1])
 
     today = datetime.now(timezone.utc).date()
-    streaks: dict[uuid.UUID, int] = {}
-    for user_id in user_ids:
-        active = active_by_user.get(user_id, set())
-        if not active:
-            streaks[user_id] = 0
-        else:
-            cursor = today if today in active else today - timedelta(days=1)
-            count = 0
-            while cursor in active:
-                count += 1
-                cursor -= timedelta(days=1)
-            streaks[user_id] = count
-    return streaks
+    return {user_id: _consecutive_days(active_by_user.get(user_id, set()), today) for user_id in user_ids}
 
 
 # @spec PROG-META-003, PROG-META-007

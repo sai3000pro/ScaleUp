@@ -44,7 +44,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.dag import CandidateEdge, topological_depths
 from app.domain.exp import node_level_for_exp
-from app.domain.states import PREREQ_MASTERY_THRESHOLD, derive_state, gating_masteries
+from app.domain.states import (
+    PREREQ_MASTERY_THRESHOLD,
+    derive_state,
+    gating_masteries,
+    gating_prerequisite_ids,
+)
 from app.models import Course, NodeProgress, SkillEdge, SkillNode
 from app.schemas.explore import CoursePath, PathStep
 from app.services.graph_read import ensure_progress_rows, review_state_of
@@ -56,10 +61,8 @@ def contracted_prereqs(
 ) -> dict[uuid.UUID, set[uuid.UUID]]:
     """Prerequisites among drillable nodes only, seeing through containers.
 
-    The id-returning twin of `domain.states.gating_masteries`, which returns
-    their masteries. `seen` guards the walk for the same reason it does there:
-    the graph is a DAG by construction, but this reads rows from a database and
-    a corrupt one should degrade rather than hang the request.
+    `domain.states.gating_prerequisite_ids` does the see-through walk; this
+    keeps only the id set per drillable node for `topological_depths`.
     """
     resolved: dict[uuid.UUID, set[uuid.UUID]] = {}
 
@@ -67,19 +70,7 @@ def contracted_prereqs(
         if not drillable:
             pass
         else:
-            found: set[uuid.UUID] = set()
-            seen: set[uuid.UUID] = set()
-            frontier = list(prereqs.get(node_id, ()))
-            while frontier:
-                current = frontier.pop()
-                if current in seen:
-                    pass
-                elif assessable.get(current, True):
-                    seen.add(current)
-                    found.add(current)
-                else:
-                    seen.add(current)
-                    frontier.extend(prereqs.get(current, ()))
+            found = set(gating_prerequisite_ids(node_id, prereqs, assessable))
             # A node is never its own prerequisite. Unreachable on a DAG, but a
             # corrupt row that made one would become a self-edge, and
             # `topological_depths` cannot settle a node whose indegree includes

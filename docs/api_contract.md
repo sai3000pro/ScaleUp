@@ -1166,6 +1166,8 @@ type GraphNode = {
     due_at: string | null;
     overdue_days: number;      // 0 when not overdue
   };
+  // "mastered" is defined once: level 5 AND mastery >= 0.85
+  // (MASTERED_MASTERY in backend/app/domain/states.py).
   blocked_by: { id: string; title: string }[];   // unmet prerequisites, for locked nodes
   sources: SourceEvidence[];                      // exact passages that support this skill
 };
