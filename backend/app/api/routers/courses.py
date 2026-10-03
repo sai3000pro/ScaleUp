@@ -154,7 +154,9 @@ async def get_cost(course_id: uuid.UUID, user: CurrentUser, session: DbSession) 
     still burned output tokens.
     """
     course = await course_service.get_owned(session, course_id, user.id)
-    return CourseCost(**await llm_calls.cost_summary(session, course.id, get_settings().course_llm_budget_usd))
+    summary = await llm_calls.cost_summary(session, course.id, get_settings().course_llm_budget_usd)
+    summary["by_prompt_version"] = await llm_calls.prompt_version_outcomes(session, course.id)
+    return CourseCost(**summary)
 
 
 @router.post(

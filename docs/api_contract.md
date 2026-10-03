@@ -1622,6 +1622,21 @@ type RoleCost = {
   avg_latency_ms: number | null;
 };
 
+type PromptVersionOutcome = {
+  // @spec LLM-LEDGER-006
+  // Grouped by (role, prompt_id, prompt_version), ordered by role then version,
+  // so the same role before and after a prompt edit lands in different rows.
+  role: string;
+  prompt_id: string;
+  prompt_version: string;
+  calls: number;
+  ok: number;
+  failed: number;        // calls with status that is neither "ok" nor "cancelled"
+  cancelled: number;
+  avg_latency_ms: number | null;
+  cost_usd: number;
+};
+
 type CourseCost = {
   course_id: string;
   total_calls: number;
@@ -1633,6 +1648,7 @@ type CourseCost = {
   budget_remaining_usd: number;
   budget_exceeded: boolean;
   by_role: RoleCost[];
+  by_prompt_version: PromptVersionOutcome[];
 };
 ```
 

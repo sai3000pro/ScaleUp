@@ -852,6 +852,20 @@ export interface RoleCost {
   avg_latency_ms: number | null;
 }
 
+// @spec LLM-LEDGER-006
+export interface PromptVersionOutcome {
+  role: string;
+  prompt_id: string;
+  prompt_version: string;
+  calls: number;
+  ok: number;
+  /** Anything that is neither `ok` nor `cancelled`. */
+  failed: number;
+  cancelled: number;
+  avg_latency_ms: number | null;
+  cost_usd: number;
+}
+
 export interface CourseCost {
   course_id: string;
   total_calls: number;
@@ -863,6 +877,7 @@ export interface CourseCost {
   budget_remaining_usd: number;
   budget_exceeded: boolean;
   by_role: RoleCost[];
+  by_prompt_version: PromptVersionOutcome[];
 }
 
 // ── admin surface ──────────────────────────────────────────────────────────
