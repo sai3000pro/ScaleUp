@@ -30,7 +30,16 @@ from app.core.security import (
 )
 from app.domain.exp import level_progress
 from app.domain.streak import streak_days as _consecutive_days
-from app.models import Attempt, OAuthAccount, OAuthExchangeCode, OAuthState, PasswordResetToken, PerformanceAttempt, RefreshSession, User
+from app.models import (
+    Attempt,
+    OAuthAccount,
+    OAuthExchangeCode,
+    OAuthState,
+    PasswordResetToken,
+    PerformanceAttempt,
+    RefreshSession,
+    User,
+)
 from app.schemas.auth import PasswordResetConsume, PasswordResetRequest, RegisterRequest, TokenResponse, UserOut
 from app.services import email_service
 
