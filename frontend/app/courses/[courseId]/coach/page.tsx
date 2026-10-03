@@ -381,7 +381,7 @@ function CoachingStudioView() {
       socketRef.current?.close();
       socketRef.current = null;
     }
-  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice]);
+  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice, refreshUser]);
 
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -455,7 +455,7 @@ function CoachingStudioView() {
       }
     }
     recorderRef.current = null;
-  }, [selectedExerciseId, stopDebriefVoice]);
+  }, [selectedExerciseId, stopDebriefVoice, refreshUser]);
 
   stopTakeRef.current = stopTake;
 
