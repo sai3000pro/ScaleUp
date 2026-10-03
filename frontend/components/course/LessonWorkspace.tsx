@@ -22,7 +22,7 @@
  * lesson's exercises over HTTP and no more. The socket and the microphone are
  * claimed when a take starts, which is what keeps the rule below honest.
  *
- * @spec PROG-REALM-006, UI-PAGE-003
+ * @spec PROG-REALM-006, UI-PAGE-003, UI-PAGE-009
  */
 import { useState } from "react";
 
@@ -95,7 +95,13 @@ export function LessonWorkspace({ courseId, exerciseId, refreshKey, onCompleted 
           />
         )}
         {view === "live" && (
-          <LiveCoachPanel courseId={courseId} refreshKey={refreshKey} onCompleted={onCompleted} />
+          <LiveCoachPanel
+            courseId={courseId}
+            refreshKey={refreshKey}
+            exerciseId={exerciseId}
+            pinned
+            onCompleted={onCompleted}
+          />
         )}
         {view === "technique" && <TechniquePanel />}
       </div>

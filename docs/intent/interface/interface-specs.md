@@ -134,6 +134,7 @@ system itself.
 - [x] **UI-PAGE-006**: A container and the component it frames shall not both declare the frame; the container shall own chrome and size, and the component shall fill it.
 - [ ] **UI-PAGE-007**: No two panels visible at once shall report the same figure.
 - [x] **UI-PAGE-008**: The learner's surfaces shall offer no way to supply source documents, and shall describe no skill tree as something a document builds. Compiling a tree from source material is an authoring capability, not a step this product asks a learner to perform.
+- [x] **UI-PAGE-009**: Every view inside a lesson workspace shall be pinned to the lesson's exercise, so switching between ways to play never silently changes what is being played.
 
 ## The shell
 
@@ -144,3 +145,4 @@ system itself.
 - [x] **UI-SHELL-005**: Ambient page decoration shall be painted in CSS rather than loaded as an image.
 - [x] **UI-SHELL-006**: Ambient decoration shall be non-interactive and shall sit behind all content.
 - [ ] **UI-SHELL-007**: Wide content shall scroll within its own container, so the page body never scrolls sideways.
+- [x] **UI-SHELL-008**: When a take or drill is graded, the header shall re-read the account figures from the server rather than keep the values from sign-in.
