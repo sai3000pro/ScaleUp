@@ -264,8 +264,7 @@ class RecordingLLMClient:
             prepared = prepare(role, variables, model)
         except Exception as error:
             # A prompt that will not render is refused before any provider
-            # spend -- bypassing the ceiling was the bug this fixes -- and the
-            # refusal still gets its one ledger row via the failure recorder.
+            # spend; the refusal still gets its one ledger row.
             self._record_failure(role, variables, error, started, course_id)
             raise
         estimated_input = max(1, (len(prepared.prompt_text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN)
