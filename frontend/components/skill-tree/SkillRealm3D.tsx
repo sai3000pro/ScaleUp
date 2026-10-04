@@ -159,6 +159,8 @@ export function SkillRealm3D({
   const mountRef = useRef<HTMLDivElement | null>(null);
   const prefersReducedMotion = usePrefersReducedMotion();
   const [realmCards, setRealmCards] = useState<RealmCard[]>([]);
+  // No WebGL: the lesson run renders as a visible list instead of a canvas.
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
   const [traversalNotice, setTraversalNotice] =
     useState<RealmTraversalNotice | null>(null);
   // The imperative handles the cards call into the canvas: a card click walks
@@ -215,6 +217,8 @@ export function SkillRealm3D({
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true });
     } catch {
+      // @spec UI-GRAPH3D-009
+      setWebglUnavailable(true);
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1129,8 +1133,14 @@ export function SkillRealm3D({
         </div>
       )}
 
-      {/* A canvas is one focusable element, so the run is also a list. */}
-      <ul className="sr-only">
+      {/* A canvas is one focusable element, so the run is also a list.
+          No WebGL: this list IS the realm, so it shows rather than hides. */}
+      <ul className={webglUnavailable ? "absolute inset-0 space-y-2 overflow-y-auto p-4" : "sr-only"}>
+        {webglUnavailable && (
+          <li className="list-none text-xs text-graph-ink-quiet">
+            3D view unavailable in this browser — lessons are listed instead.
+          </li>
+        )}
         {realm.lessons.map((lesson) => (
           <li
             key={lesson.exercise_id}

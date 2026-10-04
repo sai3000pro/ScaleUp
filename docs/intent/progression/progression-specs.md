@@ -18,7 +18,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-DAG-005**: The system shall present a transitively reduced edge set.
 - [x] **PROG-DAG-006**: The system shall reject a graph containing a duplicate slug or an edge naming an unknown node.
 - [x] **PROG-DAG-007**: Given identical candidates, graph construction shall produce an identical graph.
-- [ ] **PROG-DAG-008**: The prerequisite-satisfaction traversal shall have exactly one implementation.
+- [x] **PROG-DAG-008**: The prerequisite-satisfaction traversal shall have exactly one implementation.
 
 ## Scheduling
 
@@ -36,8 +36,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-EXP-003**: The system shall derive node level and account level from accumulated experience on a published curve.
 - [x] **PROG-EXP-004**: The system shall cap node level at the defined maximum.
 - [x] **PROG-EXP-005**: The system shall award a bonus for recovering a decayed skill.
-- [ ] **PROG-EXP-006**: The documented level thresholds shall match those the implementation produces.
-- [ ] **PROG-EXP-007**: Per-node and account-wide experience shall be reconcilable from stored data.
+- [x] **PROG-EXP-006**: The documented level thresholds shall match those the implementation produces.
+- [x] **PROG-EXP-007**: Per-node and account-wide experience shall be reconcilable from stored data.
 
 ## Node state
 
@@ -47,7 +47,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-STATE-004**: As proficiency falls with elapsed time, the system shall report a node as decaying.
 - [x] **PROG-STATE-005**: The system shall treat a structural heading as transparent for gating and as not assessable.
 - [x] **PROG-STATE-006**: The system shall report why a node is locked, naming the prerequisites responsible.
-- [ ] **PROG-STATE-007**: The mastery threshold shall be 0.85, defined once and used by every surface that reports mastery.
+- [x] **PROG-STATE-007**: The mastery threshold shall be 0.85, defined once and used by every surface that reports mastery.
 
 ## Opening a lesson
 
@@ -73,8 +73,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-META-003**: The system shall report a cohort leaderboard for a shared course.
 - [x] **PROG-META-004**: Copying a shared course shall be idempotent per learner.
 - [x] **PROG-META-005**: A copied course shall carry its own progression, independent of the original.
-- [ ] **PROG-META-006**: A day on which the learner completed a graded instrument take shall continue their streak, equally with a drill attempt.
-- [ ] **PROG-META-007**: The system shall compute a learner's streak in exactly one place.
+- [x] **PROG-META-006**: A day on which the learner completed a graded instrument take shall continue their streak, equally with a drill attempt.
+- [x] **PROG-META-007**: The system shall compute a learner's streak in exactly one place.
 
 ## Skill realms
 
@@ -82,5 +82,5 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **PROG-REALM-002**: A lesson shall be cleared at the same score the rest of the system treats as a pass, shall be judged on the learner's best take rather than their latest, and shall remain replayable once cleared.
 - [x] **PROG-REALM-003**: A skill's test shall open only when every lesson in its run is cleared, and a skill with no lessons shall not have an open test.
 - [x] **PROG-REALM-004**: Opening a skill shall enter its realm, and the realm shall show the run as a chain ending in that test.
-- [ ] **PROG-REALM-005**: Passing a skill's test shall be the moment the skill reads as complete in the tree, without the realm keeping its own record of that.
+- [x] **PROG-REALM-005**: Passing a skill's test shall be the moment the skill reads as complete in the tree, without the realm keeping its own record of that.
 - [x] **PROG-REALM-006**: A lesson shall be playable from inside the realm, rather than from a panel beside the tree.

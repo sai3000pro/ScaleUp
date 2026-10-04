@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.character import achievement_rows, calculate_stats, perk_definitions
 from app.domain.exp import level_progress
+from app.domain.states import MASTERED_LEVEL, MASTERED_MASTERY
 from app.models import Attempt, CharacterProfile, Course, NodeProgress
 from app.schemas.character import (
     AchievementOut,
@@ -31,7 +32,11 @@ async def _learning_facts(session: AsyncSession, user_id: uuid.UUID) -> dict[str
     course_count = await session.scalar(select(func.count(Course.id)).where(Course.owner_id == user_id)) or 0
     scores = [float(attempt.score or 0.0) for attempt in attempts]
     started = sum(1 for progress in progress_rows if progress.reps > 0 or progress.last_reviewed_at is not None)
-    mastered = sum(1 for progress in progress_rows if progress.level >= 5 and progress.mastery >= 0.8)
+    mastered = sum(
+        1
+        for progress in progress_rows
+        if progress.level >= MASTERED_LEVEL and progress.mastery >= MASTERED_MASTERY
+    )
     rescued = sum(1 for attempt in attempts if attempt.rescue_bonus_applied)
     return {
         "attempts": len(attempts),

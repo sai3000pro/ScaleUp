@@ -46,6 +46,10 @@ from app.vector.chroma_store import get_vector_store
 
 RETRIEVAL_K = 5
 
+# A rubric-word score at or above this reads "correct" rather than "partial" --
+# a grading verdict, deliberately not the mastery threshold.
+CORRECT_SCORE = 0.85
+
 
 async def _load_node(session: AsyncSession, node_id: uuid.UUID, user_id: uuid.UUID) -> SkillNode:
     node = await session.get(SkillNode, node_id)
@@ -373,7 +377,7 @@ def _grade_code(question: Question, answer: str) -> dict[str, object]:
             missed.append(requirement)
 
     score = round(len(hit) / max(len(requirements), 1), 3)
-    verdict = "correct" if score >= 0.85 else ("partial" if score > 0 else "incorrect")
+    verdict = "correct" if score >= CORRECT_SCORE else ("partial" if score > 0 else "incorrect")
     if not missed:
         feedback = "The snippet contains all required concepts. Runtime behavior was not executed."
     else:

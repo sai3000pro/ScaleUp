@@ -11,13 +11,32 @@ import uuid
 from collections import defaultdict
 from datetime import date
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.srs import update_mastery
 from app.domain.states import MASTERED_LEVEL, MASTERED_MASTERY
-from app.models import Attempt, Chunk, Course, Document, NodeProgress, SkillNode
+from app.models import Attempt, Chunk, Course, Document, NodeProgress, PerformanceAttempt, SkillNode
 from app.schemas.progress import ProgressAnalytics, ProgressSourceCoverage, ProgressTrendPoint
+
+
+# @spec PROG-EXP-007
+async def reconcile_total_exp(session: AsyncSession, user_id: uuid.UUID) -> int:
+    """Account EXP as the ledger records it: every award ever persisted.
+
+    `users.total_exp` is the running counter the award paths maintain; this is
+    the independent re-derivation that proves it -- drill awards and take
+    awards live in separate tables, so the check sums both.
+    """
+    drill_exp = await session.scalar(
+        select(func.coalesce(func.sum(Attempt.exp_awarded), 0)).where(Attempt.user_id == user_id)
+    )
+    take_exp = await session.scalar(
+        select(func.coalesce(func.sum(PerformanceAttempt.exp_awarded), 0)).where(
+            PerformanceAttempt.user_id == user_id
+        )
+    )
+    return int((drill_exp or 0) + (take_exp or 0))
 
 
 async def build_analytics(

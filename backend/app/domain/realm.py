@@ -70,7 +70,7 @@ def is_lesson_open(lessons: tuple[LessonProgress, ...], step: int) -> bool:
     return frontier is None or step <= frontier
 
 
-# @spec PROG-REALM-003
+# @spec PROG-REALM-003, PROG-REALM-005
 def is_test_open(lessons: tuple[LessonProgress, ...]) -> bool:
     """Whether the skill's test has been earned.
 

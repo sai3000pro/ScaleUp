@@ -52,6 +52,7 @@ import { nodeAriaLabel } from "@/lib/nodeState";
 import type { GraphNode, GraphSnapshot } from "@/lib/types";
 import { BUTTON_SECONDARY, FOCUS_RING } from "@/lib/ui";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
+import { SkillTreeOutline } from "@/components/skill-tree/SkillTreeOutline";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 interface Props {
@@ -167,6 +168,8 @@ export function SkillGraph3D({
   const [povCards, setPovCards] = useState<PovCard[]>([]);
   const [traversalNotice, setTraversalNotice] =
     useState<TraversalNotice | null>(null);
+  // No WebGL: the canvas stays empty and the outline carries the tree.
+  const [webglUnavailable, setWebglUnavailable] = useState(false);
   // The skill whose door is open -- the modal naming it, describing it, and
   // offering its world. Lives here (React) because it is DOM; the click that
   // opens it lives in the effect, so the timer and the double-click that
@@ -252,7 +255,8 @@ export function SkillGraph3D({
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true });
     } catch {
-      // No WebGL. The page keeps the outline, which is the honest fallback.
+      // @spec UI-GRAPH3D-009
+      setWebglUnavailable(true);
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -1173,6 +1177,19 @@ export function SkillGraph3D({
   return (
     <div className="relative h-full overflow-hidden bg-graph-ground">
       <div ref={mountRef} className="absolute inset-0" aria-hidden="true" />
+
+      {webglUnavailable && (
+        <div className="absolute inset-0 overflow-y-auto p-3">
+          <p className="mb-2 text-xs text-graph-ink-quiet">
+            3D view unavailable in this browser — showing the skill outline instead.
+          </p>
+          <SkillTreeOutline
+            snapshot={snapshot}
+            selectedNodeId={selectedNodeId}
+            onSelect={onSelect}
+          />
+        </div>
+      )}
 
       {/* Overview titles are hidden in POV so the projected overview label cannot
           appear beneath the node the learner is standing on. */}

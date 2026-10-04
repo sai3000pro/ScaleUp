@@ -57,7 +57,7 @@ def award_for_attempt(
 
 
 def exp_for_node_level(level: int) -> int:
-    """Cumulative EXP needed to reach a node level. 0, 100, 303, 623, 1057."""
+    """Cumulative EXP needed to reach a node level. 0, 100, 303, 580, 919."""
     if level <= 0:
         return 0
     return round(100 * level**1.6)
