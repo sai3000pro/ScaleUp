@@ -426,22 +426,27 @@ Production Dockerfiles are a real thing to want and explicitly not stage-1 work.
 
 Two shapes, both written down.
 
-**A shared-account demo** -- [`docs/deployment-render.md`](docs/deployment-render.md).
-Render for the backend, Vercel for the frontend, no third-party accounts and no
+**A demo deployment** -- [`docs/deployment-hosted.md`](docs/deployment-hosted.md).
+Free managed services and a frontend, no cloud provider account and no
 credential you have to obtain from anyone:
 
 | Piece | Where |
 |---|---|
 | Next.js frontend | Vercel, root directory `frontend` |
-| FastAPI API | Render Web Service, Docker, root directory `backend` |
-| Postgres | Render Postgres |
-| Redis | Render Key Value |
+| FastAPI API | Koyeb free web service, Docker, root directory `backend` |
+| Postgres | Supabase (session-mode pooler, port 5432) |
+| Redis | Upstash free tier |
 
-Render rather than a serverless host because **the live coach is a WebSocket**.
+Koyeb rather than a serverless host because **the live coach is a WebSocket**.
 `WS /api/practice/coach` needs a process that stays up and holds a connection,
-which a function that answers a request and exits cannot do. Render web services
+which a function that answers a request and exits cannot do. Koyeb web services
 carry WebSockets; `backend/Dockerfile` runs there unmodified, since it already
 reads the `PORT` the platform supplies.
+
+The hosted tier arms itself on the platform: Koyeb sets `KOYEB_APP_NAME`, so the
+API boots in hosted mode and refuses the placeholder JWT secret, dev-login, and
+a loopback CORS origin — a generated `JWT_SECRET`, `DEV_AUTH_ENABLED=false`, and
+a real `CORS_ORIGIN_REGEX` are part of the setup, not optional hardening.
 
 Three things that bite, all documented in full in that file:
 
@@ -450,8 +455,8 @@ Three things that bite, all documented in full in that file:
   without Neo4j and Chroma -- so `/ready` is legitimately red, and a health check
   aimed at it restarts the service for ever.
 - Run `alembic upgrade head` and `python -m app.seed` **as a one-off**, never on
-  boot. The free tier has no shell, so run them from your own machine against the
-  external database URL; both use `SYNC_DATABASE_URL` only.
+  boot. Koyeb's free tier has no shell, so run them from your own machine against
+  the Supabase session-pooler URL; both use `SYNC_DATABASE_URL` only.
 - `NEXT_PUBLIC_API_BASE_URL` is compiled into the browser bundle at build time.
   Changing it needs a redeploy, not a restart.
 

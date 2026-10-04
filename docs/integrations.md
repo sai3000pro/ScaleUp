@@ -193,14 +193,23 @@ The budget is per course, not per request: one textbook ingest is many calls.
 
 ## Before deploying
 
-`DEPLOYED=true` turns the development defaults into hard startup errors. The app
-**refuses to start** with the committed JWT secret, with dev-login enabled, with
-the fake email provider, with local storage, without OAuth credentials, without
-a webhook secret, with the SSRF check disabled, or with a loopback CORS origin.
+Development defaults become hard startup errors in two tiers, both driven by one
+requirements table (`DEPLOYMENT_REQUIREMENTS` in `app/integrations.py`).
 
-That check is deliberately at startup rather than at first use: every one of
+**Hosted** arms the security defaults only. The app **refuses to start** with
+the committed JWT secret, with dev-login enabled, with unsigned webhooks
+accepted, with the SSRF check disabled, or with a loopback CORS origin. It turns
+on by itself on a recognised platform (`KOYEB_APP_NAME`, `RENDER`,
+`FLY_APP_NAME`, `RAILWAY_ENVIRONMENT`, `K_SERVICE`), with `HOSTED=true`, or with
+`DEPLOYED=true` — and never inside CI.
+
+**Deployed** (`DEPLOYED=true`) adds the durability and integration requirements
+on top: the fake email provider, missing Google OAuth credentials, non-GCS
+storage, an empty GCS bucket, and an empty webhook secret all refuse to boot.
+
+Both checks are deliberately at startup rather than at first use: every one of
 those failures is otherwise silent. A placeholder JWT secret works perfectly —
 right up until someone reads it in the repository and forges a token.
 
-`check_integrations.py` lists the same requirements *before* you flip the flag,
+`check_integrations.py` lists both tiers' requirements *before* you flip a flag,
 which is the friendlier time to find out.
