@@ -9,7 +9,14 @@ from __future__ import annotations
 import pytest
 
 from app.config import Settings
-from app.domain.hosting import detect_hosting
+from app.domain.hosting import CI_SIGNALS, detect_hosting
+
+
+@pytest.fixture(autouse=True)
+def _not_running_inside_ci(monkeypatch) -> None:
+    """These tests simulate hosted platforms; CI itself must not mask them."""
+    for variable in CI_SIGNALS:
+        monkeypatch.delenv(variable, raising=False)
 
 
 def _settings(**overrides) -> Settings:
