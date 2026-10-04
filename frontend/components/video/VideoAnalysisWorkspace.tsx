@@ -177,7 +177,10 @@ export function VideoAnalysisWorkspace() {
     const tracker = new VisualTracker({
       instrument: selectedProfile.instrument,
       onStatus: (trackingStatus) => {
-        if (trackingStatus === "unavailable") setStatus("failed");
+        if (trackingStatus === "unavailable") {
+          stopTracker();
+          setStatus("failed");
+        }
       },
       onFrame: (frame) => {
         setFrames((existing) => appendVisualFrame(existing, frame));

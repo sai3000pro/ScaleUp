@@ -20,6 +20,8 @@ from app.evaluation.feedback import PERSONA, ExaminerFeedback, generate_feedback
 from app.evaluation.musicxml import MusicXMLParseError, midi_to_note_name, parse_musicxml
 from app.evaluation.piano import PianoPerformanceScore
 from app.evaluation.posture import PostureMetric, PostureScore, score_posture
+from app.evaluation.quality_budget import measure_scoring_ms
+from app.evaluation.scoring_limits import MAX_OBSERVED_NOTES
 from app.evaluation.registry import EvaluationResult, ObservationIn, evaluate
 from app.llm.base import LLMRole
 from app.models import (
@@ -86,6 +88,7 @@ def _metrics_out(metrics: PerformanceMetricBundle) -> PerformanceMetricsOut:
         dynamics_contrast=metrics.dynamics_contrast,
         posture_accuracy=metrics.posture_accuracy,
         posture_version=metrics.posture_version,
+        posture_metrics=metrics.posture_metrics,
         analyzer=metrics.analyzer,
         tempo_bpm=metrics.tempo_bpm,
         tempo_deviation_percent=metrics.tempo_deviation_percent,
@@ -463,6 +466,12 @@ async def submit_attempt(
     if asset is None:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Exercise score asset is missing.")
 
+    if len(payload.observed_notes) > MAX_OBSERVED_NOTES:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            f"At most {MAX_OBSERVED_NOTES} observed notes are allowed per scoring request.",
+        )
+
     instrument = "piano"
     if asset.asset_metadata and isinstance(asset.asset_metadata.get("instrument"), str):
         instrument = asset.asset_metadata["instrument"]
@@ -502,12 +511,14 @@ async def submit_attempt(
             )
             for note in payload.observed_notes
         ]
-        result = evaluate(
-            instrument,
-            exercise.evaluator_version,
-            score_asset,
-            observations,
-            posture=posture_score,
+        result, _scoring_elapsed_ms = measure_scoring_ms(
+            lambda: evaluate(
+                instrument,
+                exercise.evaluator_version,
+                score_asset,
+                observations,
+                posture=posture_score,
+            )
         )
     except (MusicXMLParseError, ValueError) as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc

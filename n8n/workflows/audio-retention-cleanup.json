@@ -1,0 +1,69 @@
+{
+  "name": "ScaleUp 30-day audio retention cleanup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "id": "5e9c0c7e-b57e-4c2a-a5f4-a2b0dcb8d930",
+      "name": "Daily schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-780, 180]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Fill in the secret before activation. A fresh event_id is generated\n// once per scheduled run and must be reused by retries of that run.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_WITH_WEBHOOK_SECRET';\nconst body = JSON.stringify({\n  event_id: crypto.randomUUID(),\n  occurred_at: new Date().toISOString(),\n  correlation_id: String($execution.id),\n});\nreturn [{ json: { body, signature: 'sha256=' + crypto.createHmac('sha256', SECRET).update(body).digest('hex'), correlation_id: String($execution.id) } }];\n"
+      },
+      "id": "ba3d64f1-92ab-4316-a28d-06cde855cc2a",
+      "name": "Sign cleanup request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-500, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://REPLACE_WITH_API_HOST/api/webhooks/v1/audio.retention.cleanup",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Webhook-Signature", "value": "={{ $json.signature }}" },
+            { "name": "X-Correlation-ID", "value": "={{ $json.correlation_id }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "id": "b5f6337d-5e66-43f5-8a11-55cf4f3f1e65",
+      "name": "Expire audio older than 30 days",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-220, 180],
+      "retryOnFail": true
+    }
+  ],
+  "connections": {
+    "Daily schedule": {
+      "main": [[{ "node": "Sign cleanup request", "type": "main", "index": 0 }]]
+    },
+    "Sign cleanup request": {
+      "main": [[{ "node": "Expire audio older than 30 days", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "versionId": "1",
+  "tags": []
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import type { CurriculumProposal } from "@/lib/types";
+import type { CurriculumCandidate, CurriculumProposal, CurriculumVersion } from "@/lib/types";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, INPUT } from "@/lib/ui";
 
 function safeUrl(value: string): string | null {
@@ -79,6 +79,43 @@ export function CurriculumPlanner({
   const [busy, setBusy] = useState<"search" | "approve" | "ingest" | "policy" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [versions, setVersions] = useState<CurriculumVersion[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<CurriculumCandidate[]>([]);
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewNotice, setReviewNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    api.listCurriculumVersions(courseId).then((items) => {
+      if (live) {
+        setVersions(items);
+        setSelectedVersionId((current) => current ?? items[0]?.id ?? null);
+      }
+    }).catch((caught: unknown) => {
+      if (live) setReviewError(caught instanceof Error ? caught.message : "Could not load curriculum versions.");
+    });
+    return () => {
+      live = false;
+    };
+  }, [courseId]);
+
+  useEffect(() => {
+    if (!selectedVersionId) {
+      setCandidates([]);
+      return;
+    }
+    let live = true;
+    api.listCurriculumCandidates(courseId, selectedVersionId).then((items) => {
+      if (live) setCandidates(items);
+    }).catch((caught: unknown) => {
+      if (live) setReviewError(caught instanceof Error ? caught.message : "Could not load curriculum candidates.");
+    });
+    return () => {
+      live = false;
+    };
+  }, [courseId, selectedVersionId]);
 
   useEffect(() => {
     let live = true;
@@ -226,6 +263,43 @@ export function CurriculumPlanner({
   const selectedDomainCount = new Set(
     proposal?.sources.filter((source) => selectedIds.has(source.id)).map((source) => source.domain),
   ).size;
+
+  async function reviewCandidate(candidateId: string, decision: "accepted" | "rejected" | "ambiguous"): Promise<void> {
+    if (!selectedVersionId || reviewBusyId) return;
+    setReviewBusyId(candidateId);
+    setReviewError(null);
+    setReviewNotice(null);
+    try {
+      const updated = await api.reviewCurriculumCandidate(courseId, selectedVersionId, candidateId, decision);
+      setCandidates((current) => current.map((candidate) => candidate.id === candidateId ? updated : candidate));
+      setReviewNotice(`Candidate marked ${decision}.`);
+    } catch (caught) {
+      setReviewError(caught instanceof Error ? caught.message : "Could not save the review.");
+    } finally {
+      setReviewBusyId(null);
+    }
+  }
+
+  async function publishReviewedVersion(): Promise<void> {
+    if (!selectedVersionId || reviewBusyId) return;
+    setReviewBusyId("publish");
+    setReviewError(null);
+    setReviewNotice(null);
+    try {
+      await api.publishCurriculumVersion(courseId, selectedVersionId);
+      const refreshed = await api.listCurriculumVersions(courseId);
+      setVersions(refreshed);
+      setReviewNotice("Reviewed curriculum published. The learner skill graph has been updated.");
+      onComplete();
+    } catch (caught) {
+      setReviewError(caught instanceof Error ? caught.message : "Could not publish this curriculum.");
+    } finally {
+      setReviewBusyId(null);
+    }
+  }
+
+  const reviewPending = candidates.some((candidate) => candidate.status === "draft" || candidate.status === "ambiguous");
+  const selectedVersion = versions.find((version) => version.id === selectedVersionId) ?? null;
 
   return (
     <section className={CARD} aria-labelledby="curriculum-planner-heading">
@@ -492,6 +566,78 @@ export function CurriculumPlanner({
 
       {notice && <p className="mt-3 text-xs text-slate-300">{notice}</p>}
       {error && <p role="alert" className="mt-3 text-xs text-rose-400">{error}</p>}
+
+      <section className="mt-5 border-t border-slate-800 pt-4" aria-labelledby="curriculum-review-heading">
+        <h3 id="curriculum-review-heading" className="font-display text-xs font-semibold">Review curriculum versions</h3>
+        <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+          Candidate prerequisites stay inert until reviewed and published. Evidence counts show whether a source quote backs each proposed link.
+        </p>
+        {versions.length > 0 ? (
+          <>
+            <label htmlFor="curriculum-version" className="mt-2 block text-[10px] text-slate-400">Version</label>
+            <select
+              id="curriculum-version"
+              value={selectedVersionId ?? ""}
+              onChange={(event) => setSelectedVersionId(event.target.value)}
+              className={`${INPUT} mt-1 px-2 py-1.5 text-xs`}
+            >
+              {versions.map((version) => (
+                <option key={version.id} value={version.id}>
+                  {version.title} · v{version.version} · {version.status}
+                </option>
+              ))}
+            </select>
+            {selectedVersion && (
+              <p className="mt-1 text-[10px] text-slate-500">
+                {selectedVersion.instrument} · {selectedVersion.node_count} skills · {selectedVersion.candidate_count} accepted · {selectedVersion.rejected_count} rejected
+              </p>
+            )}
+            {candidates.length > 0 ? (
+              <ul className="mt-2 space-y-2" aria-label="Prerequisite candidates">
+                {candidates.map((candidate) => (
+                  <li key={candidate.id} className="rounded-md border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
+                    <p className="font-medium text-slate-200">{candidate.prereq} → {candidate.target}</p>
+                    <p className="mt-0.5 text-slate-400">
+                      {candidate.status} · {Math.round(candidate.confidence * 100)}% confidence · {candidate.support} support · {candidate.evidence_count} evidence quote{candidate.evidence_count === 1 ? "" : "s"}
+                    </p>
+                    {candidate.rationale && <p className="mt-1 text-slate-500">{candidate.rationale}</p>}
+                    {candidate.evidence.map((item) => (
+                      <blockquote key={item.chunk_id} className="mt-1 border-l border-emerald-800 pl-2 text-emerald-200/80">
+                        “{item.quote}” <span className="text-slate-500">· page {item.page_start + 1}{item.section_path ? ` · ${item.section_path}` : ""}</span>
+                      </blockquote>
+                    ))}
+                    {candidate.cycle_path.length > 0 && <p className="mt-1 text-amber-300">Cycle: {candidate.cycle_path.join(" → ")}</p>}
+                    {candidate.rejection_reason && <p className="mt-1 text-rose-300">Compiler rejection: {candidate.rejection_reason}</p>}
+                    {(candidate.status === "draft" || candidate.status === "ambiguous") && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "accepted")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                          Accept
+                        </button>
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "rejected")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                          Reject
+                        </button>
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "ambiguous")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                          Keep ambiguous
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="mt-2 text-[10px] text-slate-500">No prerequisite candidates in this version.</p>}
+            <button
+              type="button"
+              onClick={() => void publishReviewedVersion()}
+              disabled={reviewBusyId !== null || reviewPending || selectedVersion?.status === "published" || selectedVersion?.status === "retired"}
+              className={`mt-3 w-full ${BUTTON_PRIMARY} text-xs`}
+            >
+              {reviewBusyId === "publish" ? "Publishing…" : reviewPending ? "Review all candidates to publish" : "Publish reviewed curriculum"}
+            </button>
+          </>
+        ) : <p className="mt-2 text-[10px] text-slate-500">No curriculum versions yet.</p>}
+        {reviewNotice && <p className="mt-2 text-xs text-slate-300">{reviewNotice}</p>}
+        {reviewError && <p role="alert" className="mt-2 text-xs text-rose-400">{reviewError}</p>}
+      </section>
     </section>
   );
 }

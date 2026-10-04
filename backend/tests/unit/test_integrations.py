@@ -78,6 +78,15 @@ class TestRegistry:
 
 
 class TestOutboundN8n:
+    def test_outbound_signing_has_no_service_cycle_edge(self) -> None:
+        """The outbound sender must depend on pure signing primitives only."""
+        from pathlib import Path
+
+        source = Path(__file__).resolve().parents[2] / "app" / "services" / "n8n_service.py"
+        text = source.read_text(encoding="utf-8")
+        assert "app.services.webhook_signing" in text
+        assert "app.services.webhook_service" not in text
+
     async def test_it_is_inert_when_unconfigured(self, monkeypatch) -> None:
         """Off means nothing is sent, not "sent to a stub"."""
         monkeypatch.setattr(n8n_service, "get_settings", lambda: _settings())
@@ -103,7 +112,7 @@ class TestOutboundN8n:
         assert await n8n_service.emit("attempt.completed", {"attempt_id": "x"}) is False
 
     async def test_a_delivered_event_is_signed_over_the_bytes_sent(self, monkeypatch) -> None:
-        from app.services.webhook_service import verify_signature
+        from app.services.webhook_signing import verify_signature
 
         captured: dict[str, object] = {}
 

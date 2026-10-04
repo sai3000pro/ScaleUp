@@ -318,6 +318,20 @@ async def create_curriculum_version(
 
 
 @router.get(
+    "/{course_id}/curriculum/versions",
+    response_model=list[CurriculumVersionOut],
+)
+async def list_curriculum_versions(
+    course_id: uuid.UUID,
+    user: CurrentUser,
+    session: DbSession,
+) -> list[CurriculumVersionOut]:
+    """List every draft, review, published, or retired version for review."""
+    course = await course_service.get_owned(session, course_id, user.id)
+    return await curriculum_graph_service.list_versions_api(session, course)
+
+
+@router.get(
     "/{course_id}/curriculum/versions/{version_id}/candidates",
     response_model=list[CurriculumCandidateOut],
 )

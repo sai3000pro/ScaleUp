@@ -571,6 +571,12 @@ contains `{ chunk_id, quote, extractor_version, prompt_sha256?, source_sha256? }
 Unknown concepts, cross-course chunks, invented quotes, and hash mismatches are
 rejected before the draft is committed.
 
+### `GET /api/courses/{course_id}/curriculum/versions` → `CurriculumVersion[]`
+
+Lists the course owner's curriculum versions in newest-first order. This provides
+the version ID needed by the candidate review and publish routes below; it
+includes draft, review, published, and retired versions.
+
 ### `GET /api/courses/{course_id}/curriculum/versions/{version_id}/candidates` → `CurriculumCandidate[]`
 
 Lists every candidate in stable review order, including cycle rejections produced
@@ -598,6 +604,7 @@ type CurriculumCandidate = {
   rejection_reason: string | null;
   cycle_path: string[];
   evidence_count: number;
+  evidence: { chunk_id: string; quote: string; section_path: string | null; page_start: number }[];
 };
 ```
 
@@ -661,11 +668,23 @@ stable boundary between selecting an exercise and submitting a performance.
 
 Header: `Idempotency-Key: <unique key>` (required, trimmed to at most 128 characters).
 
-The MVP submission carries canonical note observations so the backend contract
-is stable before browser DSP is added. This is a deterministic reference path, not
-an assertion that microphone recordings are already analyzed:
+The submission carries canonical note observations produced either by the
+browser microphone DSP or by the deterministic reference fixture. The scoring
+request body is bounded to **256 KiB** before JSON parsing and **256 observed
+notes**; larger bodies or lists return `413` with `{"detail":"…"}`. Instrumental
+scorer time is measured against a **50 ms demo target** for golden fixtures and
+operations; it is informational, not a hard live-request timeout, because host
+load must not make otherwise valid learner attempts fail. Requests remain
+synchronous; moving scoring to `202` plus a job is a separate scaling decision.
 
 ```ts
+// Limits are operational constraints, not response fields.
+const scoringLimits = {
+  max_payload_bytes: 262144,
+  max_observed_notes: 256,
+  golden_scoring_target_ms: 50,
+};
+
 type PerformedNote = {
   pitch_midi: number | null; // null only for drums, where `drum` carries identity
   onset_seconds: number;
@@ -697,8 +716,8 @@ asset's declared instrument:
 - **drums** — rhythm and drum identity only; pitch is inapplicable, never a
   fake score.
 
-It normalizes MusicXML, runs the versioned DTW evaluator, persists raw
-observations and the complete metric bundle, updates the existing SRS/EXP rows
+It normalizes MusicXML, runs the versioned DTW evaluator, persists canonical
+note observations and the complete metric bundle, updates the existing SRS/EXP rows
 when alignment confidence is sufficient, and marks silence/low-confidence
 submissions as `needs_review` without awarding EXP. Repeating the idempotency key returns
 the original persisted result and never awards EXP twice.
@@ -742,6 +761,20 @@ type PerformanceAttempt = {
     position_error_count: number;
     intonation_accuracy: number | null; // violin; null for other instruments
     intonation_deviation_cents: number | null; // mean |cents|; null when not measured
+    dynamics_accuracy: number | null; // null when score/take has no dynamic evidence
+    dynamic_range_db: number | null;
+    dynamics_contrast: number | null;
+    posture_accuracy: number | null; // null when camera-derived posture was not measured
+    posture_version: string | null;
+    posture_metrics: {
+      key: string;
+      value: number;
+      confidence: number;
+      status: string;
+      raw: number | null;
+      unit: string | null;
+    }[] | null;
+    analyzer: string | null;
     tempo_bpm: number | null;
     tempo_deviation_percent: number | null;
     alignment_confidence: number;
@@ -751,6 +784,10 @@ type PerformanceAttempt = {
   feedback: ExaminerFeedback;
 };
 ```
+
+The practice result UI displays every measured dimension. For posture it also
+shows each derived metric's confidence/status; raw recording bytes and original
+attempt/metric history are not part of this response.
 
 ### `GET /api/practice/attempts/{attempt_id}` → `PerformanceAttempt`
 
@@ -886,6 +923,16 @@ Raw practice audio is evidence: the browser segments a take into canonical
 notes, but the take itself is preserved so a replay can hear what was scored.
 Endpoints are owner-scoped; a take from another user is indistinguishable from
 one that does not exist (404).
+
+### Raw-audio retention
+
+Raw recordings and synthesized voice cache audio expire after 30 days through
+`POST /api/webhooks/v1/audio.retention.cleanup`. This operation is available
+only through the signed webhook boundary (or the explicitly enabled local dev
+webhook mode), and its event ID makes retries safe. It deletes recording and
+voice-artifact rows only; performance attempts, score bundles, feedback, metrics,
+and progress remain durable. See `n8n/workflows/audio-retention-cleanup.json`
+for the daily schedule template.
 
 ### `POST /api/recordings` → `201 Recording`
 
@@ -1714,6 +1761,18 @@ voice service. `404` if the attempt does not exist.
 }
 ```
 
+### `POST /api/webhooks/v1/audio.retention.cleanup` → `WebhookResult`
+
+A signed, idempotent scheduled operation with an envelope (`event_id`,
+`occurred_at`, optional `correlation_id`). It deletes only `recordings` and
+`voice_artifacts` older than 30 days. Attempts, score bundles, feedback, learner
+progress, and metrics are retained. Configure a daily n8n Schedule Trigger with
+a newly generated event ID per run and the same exact-byte HMAC signing scheme;
+retries of one run reuse its event ID.
+
+The `result` reports `recordings_deleted`, `voice_artifacts_deleted`,
+`retention_days`, and `cutoff_at`.
+
 ### `POST /api/webhooks/v1/daily-quests.refresh` → `WebhookResult`
 
 The nightly quest refresh. n8n schedules the call; the backend runs the
@@ -1755,7 +1814,7 @@ this is always safe and there are no rows to double-write.
 ```ts
 type WebhookResult = {
   event_id: string;
-  event_type: string;       // session.completed | feedback.requested | daily-quests.refresh
+  event_type: string;       // session.completed | feedback.requested | daily-quests.refresh | audio.retention.cleanup
   status: "processed" | "duplicate";
   correlation_id: string | null;
   result: Record<string, unknown>;  // per-type shape above

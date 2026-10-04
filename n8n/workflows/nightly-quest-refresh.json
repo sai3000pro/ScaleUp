@@ -25,7 +25,7 @@
     {
       "parameters": {
         "language": "javaScript",
-        "jsCode": "// Build the exact request body and its HMAC signature from the SAME\n// string, so the bytes signed are the bytes sent. Fill in the learner's\n// user_id and the backend WEBHOOK_SECRET before activating.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_WITH_WEBHOOK_SECRET';\nconst USER_ID = '00000000-0000-4000-8000-000000000001'; // seeded dev user\n\nconst body = JSON.stringify({\n  event_id: crypto.randomUUID(), // one per logical event; reuse on retries\n  occurred_at: new Date().toISOString(),\n  correlation_id: $execution.id,\n  user_id: USER_ID,\n});\n\nreturn {\n  body,\n  signature: 'sha256=' + crypto.createHmac('sha256', SECRET).update(body).digest('hex'),\n};\n"
+        "jsCode": "// Build the exact request body and its HMAC signature from the SAME\n// string, so the bytes signed are the bytes sent. Fill in the learner's\n// user_id and the backend WEBHOOK_SECRET before activating.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_WITH_WEBHOOK_SECRET';\nconst USER_ID = '00000000-0000-4000-8000-000000000001'; // seeded dev user\nconst correlationId = String($execution.id);\n\nconst body = JSON.stringify({\n  event_id: crypto.randomUUID(), // one per logical event; reuse on retries\n  occurred_at: new Date().toISOString(),\n  correlation_id: correlationId,\n  user_id: USER_ID,\n});\nconst signature = 'sha256=' + crypto.createHmac('sha256', SECRET).update(body).digest('hex');\n\nreturn [{ json: { body, signature, correlation_id: correlationId } }];\n"
       },
       "id": "3c5e9a1b-4f7d-4a2e-9c8b-6f0d3b2c4e5f",
       "name": "Build payload",
@@ -42,8 +42,9 @@
         "method": "POST",
         "url": "http://localhost:8000/api/webhooks/v1/daily-quests.refresh",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ $json.body }}",
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

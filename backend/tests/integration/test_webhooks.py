@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from httpx import AsyncClient
@@ -18,7 +19,18 @@ from app.config import get_settings
 from app.db.session import sync_session
 from app.evaluation.musicxml import parse_musicxml
 from app.evaluation.reference_scores import PIANO_STEPWISE_SCORE_XML
-from app.models import Course, Exercise, ScoreAsset, SkillNode, User, WebhookEvent
+from app.models import (
+    Course,
+    Exercise,
+    PerformanceAttempt,
+    PerformanceMetricBundle,
+    Recording,
+    ScoreAsset,
+    SkillNode,
+    StoredVoiceArtifact,
+    User,
+    WebhookEvent,
+)
 from app.services import webhook_service
 
 NOTES = [
@@ -114,6 +126,64 @@ async def _seed_attempt(authed_client: AsyncClient) -> tuple[uuid.UUID, uuid.UUI
     )
     assert attempt.status_code == 201, attempt.text
     return user_id, uuid.UUID(attempt.json()["id"])
+
+
+async def test_audio_retention_cleanup_is_signed_idempotent_and_keeps_scores(
+    authed_client: AsyncClient, webhook_secret: str
+) -> None:
+    _user_id, attempt_id = await _seed_attempt(authed_client)
+    recording_payload = {
+        "format": "webm",
+        "content_base64": "V0VCTQ==",
+    }
+    # Find the course belonging to the attempt, not any order-dependent course.
+    with sync_session() as session:
+        attempt = session.get(PerformanceAttempt, attempt_id)
+        course_id = attempt.course_id
+        metric = session.scalar(select(PerformanceMetricBundle).where(PerformanceMetricBundle.attempt_id == attempt_id))
+        assert metric is not None
+
+    recording_payload["course_id"] = str(course_id)
+    created = await authed_client.post("/api/recordings", json=recording_payload)
+    assert created.status_code == 201, created.text
+    old_recording_id = created.json()["id"]
+
+    with sync_session() as session:
+        recording = session.get(Recording, uuid.UUID(old_recording_id))
+        recording.created_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        session.add(
+            StoredVoiceArtifact(
+                cache_key="a" * 64,
+                attempt_id=attempt_id,
+                provider="fake",
+                voice_key="test",
+                format="wav",
+                content=b"fake-audio",
+                spoken_text="test audio",
+                created_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            )
+        )
+
+    body_payload = {
+        "event_id": str(uuid.uuid4()),
+        "occurred_at": _EVENT_AT,
+    }
+    headers, body = _signed_headers(webhook_secret, body_payload)
+    response = await authed_client.post("/api/webhooks/v1/audio.retention.cleanup", headers=headers, content=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["result"]["recordings_deleted"] == 1
+    assert response.json()["result"]["voice_artifacts_deleted"] == 1
+    assert response.json()["result"]["retention_days"] == 30
+
+    replay = await authed_client.post("/api/webhooks/v1/audio.retention.cleanup", headers=headers, content=body)
+    assert replay.status_code == 200, replay.text
+    assert replay.json()["status"] == "duplicate"
+
+    with sync_session() as session:
+        assert session.get(Recording, uuid.UUID(old_recording_id)) is None
+        assert session.get(StoredVoiceArtifact, "a" * 64) is None
+        assert session.get(PerformanceAttempt, attempt_id) is not None
+        assert session.scalar(select(PerformanceMetricBundle).where(PerformanceMetricBundle.attempt_id == attempt_id)) is not None
 
 
 async def test_session_completed_processes_and_a_replay_answers_from_the_ledger(

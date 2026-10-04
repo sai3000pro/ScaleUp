@@ -140,6 +140,13 @@ class CurriculumCandidateReviewIn(BaseModel):
     reason: str = Field(default="", max_length=2000)
 
 
+class CurriculumEvidenceOut(BaseModel):
+    chunk_id: uuid.UUID
+    quote: str
+    section_path: str | None
+    page_start: int
+
+
 class CurriculumCandidateOut(BaseModel):
     id: uuid.UUID
     version_id: uuid.UUID
@@ -152,6 +159,7 @@ class CurriculumCandidateOut(BaseModel):
     rejection_reason: str | None
     cycle_path: list[str]
     evidence_count: int
+    evidence: list[CurriculumEvidenceOut] = Field(default_factory=list)
 
 
 class CurriculumPublishOut(BaseModel):

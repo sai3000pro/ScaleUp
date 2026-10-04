@@ -406,6 +406,9 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  listCurriculumVersions: (courseId: string) =>
+    request<CurriculumVersion[]>(`/api/courses/${courseId}/curriculum/versions`),
+
   listCurriculumCandidates: (courseId: string, versionId: string) =>
     request<CurriculumCandidate[]>(
       `/api/courses/${courseId}/curriculum/versions/${versionId}/candidates`,

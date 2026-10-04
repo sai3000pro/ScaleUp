@@ -14,11 +14,15 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 
 - [x] **OPS-CONFIG-001**: The system shall run with no external credentials configured.
 - [x] **OPS-CONFIG-002**: The system shall select each provider by name, with a deterministic default.
-- [x] **OPS-CONFIG-003**: When marked as deployed, the system shall refuse to start with a placeholder signing secret, with development sign-in enabled, with the deterministic mail provider, with local storage, without federated credentials, without a webhook secret, with the address check disabled, or with a loopback origin.
+- [ ] **OPS-CONFIG-003**: When hosted, the system shall refuse to start with a placeholder signing secret, with development sign-in enabled, with unsigned webhooks accepted, with the address check disabled, or with a loopback origin.
 - [x] **OPS-CONFIG-004**: The system shall validate configuration at startup rather than at first use.
 - [x] **OPS-CONFIG-005**: Every setting the system reads shall be documented in the example environment file.
 - [D] **OPS-CONFIG-006**: Enabling an external service shall never require a source change.
 - [ ] **OPS-CONFIG-007**: Deployment requirements shall be defined once, so the startup check and the pre-deployment report cannot disagree.
+- [ ] **OPS-CONFIG-008**: When marked as deployed, the system shall refuse to start with the deterministic mail provider, without federated credentials, or without a webhook secret.
+- [ ] **OPS-CONFIG-009**: The system shall consider itself hosted when it detects a recognised deployment platform, without further configuration.
+- [ ] **OPS-CONFIG-010**: The system shall not treat a continuous-integration environment as a deployment platform.
+- [ ] **OPS-CONFIG-011**: A refusal to start shall name the signal that armed the check.
 
 ## Integration register
 

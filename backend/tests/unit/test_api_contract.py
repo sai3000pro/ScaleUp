@@ -156,6 +156,8 @@ _ROUTE_CONTRACT = {
     ("POST", "/api/courses/{course_id}/curriculum/proposals/{proposal_id}/approve"): (CurriculumProposalOut, 200),
     ("POST", "/api/courses/{course_id}/curriculum/proposals/{proposal_id}/ingest"): (CurriculumIngestAccepted, 202),
     ("POST", "/api/courses/{course_id}/curriculum/versions"): (CurriculumVersionOut, 201),
+    ("GET", "/api/courses/{course_id}/curriculum/versions"): (list[CurriculumVersionOut], 200),
+    ("GET", "/api/courses/{course_id}/curriculum/versions/{version_id}/candidates"): (list[CurriculumCandidateOut], 200),
     (
         "POST",
         "/api/courses/{course_id}/curriculum/versions/{version_id}/candidates/{candidate_id}/review",
@@ -305,8 +307,16 @@ _RESPONSE_PAYLOADS: dict[type[BaseModel], dict[str, Any]] = {
         "status": "accepted",
         "rationale": "Prerequisites: instrument-setup",
         "rejection_reason": None,
-        "cycle_path": [],
-        "evidence_count": 1,
+        "cycle_path": [],            "evidence_count": 1,
+            "evidence": [
+
+            {
+                "chunk_id": _CHUNK_ID,
+                "quote": "Instrument setup supports bow hold.",
+                "section_path": "Setup",
+                "page_start": 0,
+            }
+        ],
     },
     CurriculumPublishOut: {
         "version_id": _ID,
@@ -606,6 +616,13 @@ _RESPONSE_PAYLOADS: dict[type[BaseModel], dict[str, Any]] = {
             "position_error_count": 0,
             "intonation_accuracy": None,
             "intonation_deviation_cents": None,
+            "dynamics_accuracy": None,
+            "dynamic_range_db": None,
+            "dynamics_contrast": None,
+            "posture_accuracy": None,
+            "posture_version": None,
+            "posture_metrics": None,
+            "analyzer": None,
             "tempo_bpm": 120.0,
             "tempo_deviation_percent": 0.0,
             "alignment_confidence": 1.0,
@@ -812,6 +829,27 @@ def test_nested_document_summary_is_executable_too() -> None:
         "chunk_count",
         "created_at",
     }
+
+
+def test_curriculum_version_list_has_an_array_response_contract() -> None:
+    operation = OPENAPI["paths"]["/api/courses/{course_id}/curriculum/versions"]["get"]
+    schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["type"] == "array"
+    assert schema["items"]["$ref"] == "#/components/schemas/CurriculumVersionOut"
+
+
+def test_practice_attempt_body_and_synchronous_scoring_limits_are_documented() -> None:
+    from app.evaluation.scoring_limits import (
+        DEMO_SCORING_BUDGET_MS,
+        MAX_OBSERVED_NOTES,
+        MAX_SCORING_PAYLOAD_BYTES,
+    )
+
+    contract = " ".join((ROOT / "docs" / "api_contract.md").read_text(encoding="utf-8").split())
+    assert f"{MAX_SCORING_PAYLOAD_BYTES // 1024} KiB" in contract
+    assert f"{MAX_OBSERVED_NOTES} observed notes" in contract
+    assert f"{DEMO_SCORING_BUDGET_MS:.0f} ms" in contract
+    assert "413" in contract and "Instrumental scorer time" in contract
 
 
 def test_curriculum_candidate_list_has_an_array_response_contract() -> None:

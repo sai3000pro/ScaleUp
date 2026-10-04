@@ -150,7 +150,7 @@ class PostureObservationIn(BaseModel):
 
 
 class PerformanceAttemptCreate(BaseModel):
-    observed_notes: list[PerformedNoteIn] = Field(max_length=2000)
+    observed_notes: list[PerformedNoteIn]
     # The preserved original take this attempt was scored from, when one exists.
     recording_id: uuid.UUID | None = None
     # Absent when the camera was off or declined. Absent is not a failure: the
@@ -182,6 +182,17 @@ class RecordingOut(BaseModel):
     deduplicated: bool
 
 
+class PostureMetricOut(BaseModel):
+    """Confidence-bearing posture result returned with the overall posture score."""
+
+    key: str
+    value: float
+    confidence: float
+    status: str
+    raw: float | None = None
+    unit: str | None = None
+
+
 class PerformanceMetricsOut(BaseModel):
     evaluator_version: str
     expected_note_count: int
@@ -202,6 +213,7 @@ class PerformanceMetricsOut(BaseModel):
     dynamics_contrast: float | None = None
     posture_accuracy: float | None = None
     posture_version: str | None = None
+    posture_metrics: list[PostureMetricOut] | None = None
     analyzer: str | None = None
     tempo_bpm: float | None
     tempo_deviation_percent: float | None

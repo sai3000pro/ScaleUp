@@ -41,6 +41,10 @@ class DailyQuestsRefreshPayload(WebhookEnvelope):
     user_id: uuid.UUID
 
 
+class AudioRetentionCleanupPayload(WebhookEnvelope):
+    """Scheduled request to purge expired raw audio and synthesized audio cache."""
+
+
 class WebhookResult(BaseModel):
     event_id: uuid.UUID
     event_type: str

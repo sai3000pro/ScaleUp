@@ -11,8 +11,6 @@ what makes the webhook surface replay-safe.
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import logging
 from datetime import datetime, timezone
 
@@ -28,30 +26,12 @@ from app.schemas.webhook import (
     WebhookEnvelope,
     WebhookResult,
 )
-from app.services import performance_service, quest_service
+from app.services import performance_service, quest_service, retention_service
+from app.services.webhook_signing import payload_sha256, sign_payload, verify_signature
 
 logger = logging.getLogger(__name__)
 
-SIGNATURE_PREFIX = "sha256="
-
-
-def sign_payload(secret: str, body: bytes) -> str:
-    """The exact `X-Webhook-Signature` value for `body` under `secret`."""
-    digest = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
-    return f"{SIGNATURE_PREFIX}{digest}"
-
-
-# @spec OPS-HOOK-001, OPS-HOOK-002
-def verify_signature(secret: str, body: bytes, provided: str | None) -> bool:
-    """Constant-time comparison of the provided signature against the expected one."""
-    if not provided or not provided.startswith(SIGNATURE_PREFIX):
-        return False
-    expected = sign_payload(secret, body)
-    return hmac.compare_digest(expected, provided)
-
-
-def payload_sha256(body: bytes) -> str:
-    return hashlib.sha256(body).hexdigest()
+__all__ = ["dispatch", "payload_sha256", "sign_payload", "verify_signature"]
 
 
 async def _process_session_completed(session: AsyncSession, payload: SessionCompletedPayload) -> dict:
@@ -135,6 +115,8 @@ async def dispatch(
         result = await _process_feedback_requested(session, payload)
     elif event_type == "daily-quests.refresh":
         result = await _process_daily_quests_refresh(session, payload)
+    elif event_type == "audio.retention.cleanup":
+        result = await retention_service.expire_audio(session)
     else:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown webhook event type: {event_type}")
 

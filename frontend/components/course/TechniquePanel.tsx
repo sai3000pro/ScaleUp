@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { usePostureStore } from "@/stores/usePostureStore";
 
+import { classifyCaptureFailure } from "@/lib/pitchDetection";
 import { VisualTracker, type VisualTrackingStatus } from "@/lib/visualTracking";
 import {
   HISTORY_SIZE,
@@ -14,13 +15,17 @@ import {
 } from "@/lib/technique";
 import { CARD, FOCUS_RING } from "@/lib/ui";
 
-type CameraStatus = "idle" | "loading" | "active" | "denied";
+type CameraStatus = "idle" | "loading" | "active" | "denied" | "unavailable" | "unsupported" | "model_failed" | "failed";
 
 const STATUS_LABEL: Record<string, string> = {
   idle: "Technique camera is off",
   loading: "Loading hand-tracking model…",
   tracking: "Tracking your hand",
-  unavailable: "Hand model unavailable (offline?) — audio practice is unaffected",
+  active: "Tracking your hand",
+  unavailable: "Camera unavailable or already in use — audio practice is unaffected",
+  unsupported: "Camera capture is unsupported here — audio practice is unaffected",
+  model_failed: "Camera/model runtime failed — retry or continue with audio practice",
+  failed: "Camera capture failed — retry or continue with audio practice",
   denied: "Camera permission denied — audio practice is unaffected",
 };
 
@@ -76,19 +81,47 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
       window.clearInterval(mockIntervalRef.current);
       mockIntervalRef.current = null;
     }
+    if (navigator.mediaDevices?.getUserMedia === undefined) {
+      setCameraStatus("unsupported");
+      return;
+    }
+
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: false,
       });
-      streamRef.current = stream;
+    } catch (error: unknown) {
+      const failure = classifyCaptureFailure(error);
+      if (failure === "permission_denied") setCameraStatus("denied");
+      else if (failure === "unavailable") setCameraStatus("unavailable");
+      else if (failure === "unsupported") setCameraStatus("unsupported");
+      else setCameraStatus("failed");
+      return;
+    }
+
+    streamRef.current = stream;
+    try {
       if (videoRef.current !== null) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        try {
+          await videoRef.current.play();
+        } catch {
+          setCameraStatus("failed");
+          stopCamera();
+          return;
+        }
       }
       const tracker = new VisualTracker({
         instrument,
-        onStatus: setTrackingStatus,
+        onStatus: (status) => {
+          setTrackingStatus(status);
+          if (status === "unavailable") {
+            stopCamera();
+            setCameraStatus("model_failed");
+          }
+        },
         onFrame: (frame) => {
           const combined: TechniqueMetrics = {
             detected: frame.metrics.some((metric) => metric.status !== "not_detected"),
@@ -100,16 +133,22 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         },
       });
       trackerRef.current = tracker;
-      if (videoRef.current !== null) {
-        const started = await tracker.start(videoRef.current);
-        if (!started) {
-          setCameraStatus("idle");
-          return;
-        }
+      const video = videoRef.current;
+      if (video === null) {
+        stopCamera();
+        setCameraStatus("failed");
+        return;
+      }
+      const started = await tracker.start(video);
+      if (!started) {
+        stopCamera();
+        setCameraStatus("model_failed");
+        return;
       }
       setCameraStatus("active");
     } catch {
-      setCameraStatus("denied");
+      stopCamera();
+      setCameraStatus("model_failed");
     }
   }
 
@@ -138,7 +177,9 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
 
   const summary = mockMode
     ? "Mock landmarks — a camera-free demo of the metric pipeline"
-    : STATUS_LABEL[trackingStatus] ?? STATUS_LABEL.idle;
+    : cameraStatus === "denied" || cameraStatus === "unavailable" || cameraStatus === "unsupported" || cameraStatus === "model_failed" || cameraStatus === "failed"
+      ? STATUS_LABEL[cameraStatus]
+      : STATUS_LABEL[trackingStatus] ?? STATUS_LABEL.idle;
 
   return (
     <section className={CARD} aria-labelledby="technique-heading">
@@ -167,23 +208,26 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         <button
           type="button"
           onClick={enableMock}
-          disabled={mockMode}
+          disabled={mockMode || cameraStatus === "loading"}
           className={`flex-1 rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS_RING}`}
         >
           {mockMode ? "Mock running" : "Use mock landmarks"}
         </button>
       </div>
 
-      {cameraStatus === "active" && (
-        <video
-          ref={videoRef}
-          muted
-          playsInline
-          className="mt-3 h-28 w-full rounded-md border border-slate-800 bg-slate-950 object-cover"
-        />
-      )}
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        hidden={cameraStatus !== "loading" && cameraStatus !== "active"}
+        onError={() => {
+          stopCamera();
+          setCameraStatus("failed");
+        }}
+        className="mt-3 h-28 w-full rounded-md border border-slate-800 bg-slate-950 object-cover"
+      />
 
-      <p className="mt-2 text-[11px] text-slate-400">{summary}</p>
+      <p className="mt-2 text-[11px] text-slate-400" role="status">{summary}</p>
 
       {metrics && metrics.metrics.length > 0 && (
         <ul className="mt-2 space-y-2">
