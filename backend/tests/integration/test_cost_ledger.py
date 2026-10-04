@@ -151,15 +151,17 @@ async def test_a_failed_call_is_recorded_with_its_status(
     assert row.prompt_id == "graph_extract"
 
 
-async def test_a_call_whose_prompt_will_not_render_is_still_recorded(seeded: uuid.UUID) -> None:
-    """The last-resort branch: a variable is missing, so `prepare` itself raises.
+# @spec LLM-BUDGET-005
+async def test_a_call_whose_prompt_will_not_render_is_refused_and_recorded(seeded: uuid.UUID) -> None:
+    """A variable is missing, so `prepare` itself raises: the call is refused
+    before any provider spend, and still leaves exactly one ledger row.
 
-    Recording "unknown" beats recording nothing -- the call still happened, and
-    a silent gap in the ledger is what this whole table exists to prevent.
+    Recording "unknown" beats recording nothing -- the refusal still happened,
+    and a silent gap in the ledger is what this whole table exists to prevent.
     """
     recorder = RecordingLLMClient(ExplodingClient(ProviderError("503")), course_id=PIANO_COURSE_ID)
 
-    with pytest.raises(ProviderError):
+    with pytest.raises(KeyError):
         await recorder.structured(LLMRole.GRAPH_EXTRACT_MAP, {"book_title": "only one variable"})
 
     [row] = ledger_rows()
@@ -191,7 +193,8 @@ async def test_a_ledger_failure_never_breaks_the_call(
 
     recorder = RecordingLLMClient(FakeLLMClient(), course_id=PIANO_COURSE_ID)
     result = await recorder.structured(
-        LLMRole.QUESTION_GEN, {"node_title": "Vectors", "node_summary": "s", "context": "c"}
+        LLMRole.QUESTION_GEN,
+        {"node_title": "Vectors", "node_summary": "s", "context": "c", "requested_type": "short_answer"},
     )
     assert result.data["question"]
 
@@ -232,3 +235,48 @@ async def test_cost_is_scoped_to_the_owner(client: AsyncClient, dev_headers: dic
 
     response = await client.get(f"/api/courses/{PIANO_COURSE_ID}/cost", headers=headers)
     assert response.status_code == 404
+
+
+# @spec LLM-LEDGER-006
+async def test_cost_breaks_down_outcomes_by_prompt_version(
+    client: AsyncClient, dev_headers: dict[str, str], seeded: uuid.UUID
+) -> None:
+    """Two prompt versions of one role land in different groups, with mixed
+    statuses counted correctly."""
+    from app.repositories import llm_calls
+
+    for status in ("ok", "ok", "provider_error"):
+        llm_calls.record(
+            role=str(LLMRole.QUESTION_GEN),
+            provider="fake",
+            model="fake",
+            prompt_id="question_gen",
+            prompt_version="v2",
+            prompt_sha256="a" * 64,
+            request_fingerprint="fp-v2",
+            status=status,
+            latency_ms=100,
+            course_id=PIANO_COURSE_ID,
+        )
+    for status in ("ok", "cancelled"):
+        llm_calls.record(
+            role=str(LLMRole.QUESTION_GEN),
+            provider="fake",
+            model="fake",
+            prompt_id="question_gen",
+            prompt_version="v3",
+            prompt_sha256="b" * 64,
+            request_fingerprint="fp-v3",
+            status=status,
+            latency_ms=300,
+            course_id=PIANO_COURSE_ID,
+        )
+
+    cost = (await client.get(f"/api/courses/{PIANO_COURSE_ID}/cost", headers=dev_headers)).json()
+
+    groups = {(g["prompt_id"], g["prompt_version"]): g for g in cost["by_prompt_version"]}
+    v2, v3 = groups[("question_gen", "v2")], groups[("question_gen", "v3")]
+    assert (v2["calls"], v2["ok"], v2["failed"], v2["cancelled"]) == (3, 2, 1, 0)
+    assert (v3["calls"], v3["ok"], v3["failed"], v3["cancelled"]) == (2, 1, 0, 1)
+    assert v2["avg_latency_ms"] == 100
+    assert v3["avg_latency_ms"] == 300

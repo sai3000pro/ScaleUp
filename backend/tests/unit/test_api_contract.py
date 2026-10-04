@@ -549,6 +549,7 @@ _RESPONSE_PAYLOADS: dict[type[BaseModel], dict[str, Any]] = {
         "budget_remaining_usd": 4.99,
         "budget_exceeded": False,
         "by_role": [],
+        "by_prompt_version": [],
     },
     ExerciseOut: {
         "id": _ID,

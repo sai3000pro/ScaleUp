@@ -99,3 +99,19 @@ def available_prompts() -> list[tuple[str, str]]:
         for markdown in sorted(directory.glob("v*.md")):
             found.append((directory.name, markdown.stem))
     return found
+
+
+# @spec LLM-PROMPT-004
+def superseded_prompts(live: Mapping[str, str]) -> list[tuple[str, str]]:
+    """Every (prompt_id, version) on disk no role points at.
+
+    A new prompt version is a new file, never an edit, so older files stay in
+    the tree. Superseded is derivable -- it means "on disk but not the live
+    version" -- which is what lets the prompts directory be read without the
+    registry's silence doing the marking.
+    """
+    return [
+        (prompt_id, version)
+        for prompt_id, version in available_prompts()
+        if live.get(prompt_id) != version
+    ]

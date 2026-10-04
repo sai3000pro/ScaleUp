@@ -17,6 +17,28 @@ class RoleCost(BaseModel):
     avg_latency_ms: int | None
 
 
+# @spec LLM-LEDGER-006
+class PromptVersionOutcome(BaseModel):
+    """Outcome counts for one prompt version of one role.
+
+    Grouped by (role, prompt_id, prompt_version) so the same role before and
+    after a prompt edit lands in different rows -- the comparison the ledger
+    stores prompt identity for.
+    """
+
+    role: str
+    prompt_id: str
+    prompt_version: str
+    calls: int
+    ok: int
+    # Anything that is neither ok nor cancelled: a barge-in is a real outcome,
+    # not a failure.
+    failed: int
+    cancelled: int
+    avg_latency_ms: int | None
+    cost_usd: float
+
+
 class CourseCost(BaseModel):
     course_id: str
     total_calls: int
@@ -28,3 +50,4 @@ class CourseCost(BaseModel):
     budget_remaining_usd: float
     budget_exceeded: bool
     by_role: list[RoleCost]
+    by_prompt_version: list[PromptVersionOutcome]

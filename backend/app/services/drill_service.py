@@ -34,6 +34,7 @@ from app.domain.states import (
     gating_masteries,
     overdue_days,
 )
+from app.domain.wire_formats import rubric_line
 from app.llm.base import BudgetExceededError, LLMRole
 from app.llm.registry import ROLES
 from app.models import Attempt, Chunk, NodeProgress, Question, SkillEdge, SkillNode, User
@@ -325,7 +326,8 @@ async def _project_drill(
 
 
 def _render_rubric(rubric: list[dict]) -> str:
-    return "\n".join(f"{point['id']}: {point['point']} (weight {point['weight']})" for point in rubric)
+    """One line per rubric point, in the shared wire format the grader parses."""
+    return "\n".join(rubric_line(point["id"], point["point"], point["weight"]) for point in rubric)
 
 
 def _normalise_answer(value: str) -> str:

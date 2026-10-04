@@ -50,6 +50,7 @@ from dataclasses import dataclass, field, replace
 from typing import Container, Protocol, Sequence
 
 from app.core.sync_bridge import run_sync
+from app.domain.wire_formats import fragment_block
 from app.ingestion.toc import slugify
 from app.llm.base import LLMClient, LLMRole, RefusalError, SchemaValidationError
 
@@ -853,7 +854,7 @@ def render_fragments(fragments: Sequence[RawFragment], limit: int = FRAGMENT_PRO
     blocks: list[str] = []
     for fragment in fragments:
         label = fragment.lead_in or "(section opening)"
-        blocks.append(f"[fragment {fragment.ordinal}] lead-in: {label}\n{fragment.text[:limit]}")
+        blocks.append(fragment_block(fragment.ordinal, label, fragment.text[:limit]))
     return "\n\n".join(blocks)
 
 

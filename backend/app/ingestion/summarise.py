@@ -54,6 +54,7 @@ from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from app.core.sync_bridge import run_sync
+from app.domain.wire_formats import candidate_head
 from app.ingestion.segment import (
     DANGLING_WORDS,
     DEFINING_KINDS,
@@ -462,7 +463,7 @@ def render_briefs(briefs: Sequence[NodeBrief], excerpt_chars: int = NODE_EXCERPT
     real code path rather than a shortcut around it.
     """
     return "\n\n".join(
-        f"### `{brief.slug}` — {brief.title}\n{' '.join(brief.text.split())[:excerpt_chars]}"
+        f"{candidate_head(brief.slug, brief.title)}\n{' '.join(brief.text.split())[:excerpt_chars]}"
         for brief in briefs
     )
 

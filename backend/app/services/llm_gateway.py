@@ -28,6 +28,7 @@ from typing import Any, AsyncIterator, Mapping, Sequence
 from starlette.concurrency import run_in_threadpool
 
 from app.config import get_settings
+from app.domain.vectors import unit_normalise
 from app.ingestion.embed import embed_texts
 from app.llm.base import (
     LLMClient,
@@ -38,6 +39,7 @@ from app.llm.base import (
     SchemaValidationError,
     StreamDelta,
     StructuredResult,
+    Usage,
 )
 from app.llm.factory import get_llm_client
 from app.llm.registry import price_for
@@ -93,7 +95,7 @@ class RecordingLLMClient:
     ) -> StructuredResult:
         started = time.monotonic()
         resolved_course = self._resolve_course(course_id)
-        await run_in_threadpool(self._enforce_budget, role, variables, resolved_course)
+        await run_in_threadpool(self._enforce_budget, role, variables, resolved_course, started)
         try:
             result = await self._inner.structured(role, variables, course_id=course_id)
         except BaseException as error:
@@ -149,7 +151,7 @@ class RecordingLLMClient:
         """
         started = time.monotonic()
         resolved_course = self._resolve_course(course_id)
-        await run_in_threadpool(self._enforce_budget, role, variables, resolved_course)
+        await run_in_threadpool(self._enforce_budget, role, variables, resolved_course, started)
 
         inner = getattr(self._inner, "stream_text", None)
         if inner is None:
@@ -157,11 +159,15 @@ class RecordingLLMClient:
 
         model = self._inner.model_for(role)
         chunks: list[str] = []
+        reported: Usage | None = None
         status = "ok"
         error: BaseException | None = None
         try:
             async for delta in inner(role, variables, course_id=course_id):
-                chunks.append(delta.text)
+                if delta.usage is not None:
+                    reported = delta.usage
+                if delta.text:
+                    chunks.append(delta.text)
                 yield delta
         except GeneratorExit:
             # The consumer stopped iterating -- barge-in, or the take finished.
@@ -178,18 +184,21 @@ class RecordingLLMClient:
                 variables,
                 model,
                 "".join(chunks),
+                reported,
                 status,
                 error,
                 started,
                 resolved_course,
             )
 
+    # @spec LLM-PROV-006
     def _record_stream(
         self,
         role: LLMRole,
         variables: Mapping[str, Any],
         model: str,
         text: str,
+        reported: Usage | None,
         status: str,
         error: BaseException | None,
         started: float,
@@ -207,6 +216,11 @@ class RecordingLLMClient:
             input_tokens = 0
 
         output_tokens = max(0, len(text) // CHARS_PER_TOKEN)
+        if reported is not None:
+            # The provider's own counts are the truth; the character estimate is
+            # only a stand-in for providers that do not report.
+            input_tokens = reported.input_tokens
+            output_tokens = reported.output_tokens
         llm_calls.record(
             role=str(role),
             provider=self._provider_for(role),
@@ -241,18 +255,18 @@ class RecordingLLMClient:
         role: LLMRole,
         variables: Mapping[str, Any],
         course_id: uuid.UUID | None,
+        started: float,
     ) -> None:
         if course_id is None:
             return
         model = self._inner.model_for(role)
         try:
             prepared = prepare(role, variables, model)
-        except Exception:
-            # Prompt rendering is part of the provider call's failure surface.
-            # There is no honest preflight estimate when a caller supplied an
-            # incomplete variable set, so let the provider seam run and let the
-            # normal failure recorder persist an `unknown` prompt row.
-            return
+        except Exception as error:
+            # A prompt that will not render is refused before any provider
+            # spend; the refusal still gets its one ledger row.
+            self._record_failure(role, variables, error, started, course_id)
+            raise
         estimated_input = max(1, (len(prepared.prompt_text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN)
         # Providers may spend a second max-sized turn repairing invalid JSON;
         # reserve for both so a schema repair cannot push a course over its cap.
@@ -414,4 +428,5 @@ def embed_texts_recorded(texts: Sequence[str], *, course_id: uuid.UUID | None = 
         latency_ms=int((time.monotonic() - started) * 1000),
         course_id=course_id,
     )
-    return vectors
+    # @spec LLM-EMBED-004
+    return [unit_normalise(vector) for vector in vectors]
