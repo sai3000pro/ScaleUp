@@ -7,12 +7,15 @@ than at 3am inside a Celery task.
 
 from __future__ import annotations
 
+import os
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator, model_validator
+from pydantic import PrivateAttr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.domain.hosting import detect_hosting
 
 # repo_root/backend/app/config.py -> repo_root
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -86,6 +89,16 @@ class Settings(BaseSettings):
     # has to be explicit.
     deployed: bool = False
 
+    # The same hard errors, without naming the full DEPLOYED shape: hosted arms
+    # the security defaults only. Set explicitly for a platform the detector in
+    # `app.domain.hosting` does not recognise; DEPLOYED=true implies it.
+    hosted: bool = False
+
+    # Which signal armed the hosting check, resolved once at construction and
+    # read by the health report and the integration report. Never a field: the
+    # platform variables are not settings.
+    _hosting_signal: str | None = PrivateAttr(default=None)
+
     @model_validator(mode="after")
     def _resolve_upload_dir(self) -> Settings:
         """Make `upload_dir` absolute, anchored to the repo root."""
@@ -93,38 +106,37 @@ class Settings(BaseSettings):
             object.__setattr__(self, "upload_dir", (REPO_ROOT / self.upload_dir).resolve())
         return self
 
+    @property
+    def hosting_signal(self) -> str | None:
+        """Which signal armed the hosting check, for the refusal message and the
+        health report. None on a developer machine or in CI."""
+        return self._hosting_signal
+
+    @property
+    def is_hosted(self) -> bool:
+        """Deployment defaults must not run here, even without DEPLOYED=true."""
+        return self.deployed or self.hosted or detect_hosting(os.environ) is not None
+
     @model_validator(mode="after")
-    # @spec ACCESS-AUTH-008, OPS-CONFIG-003, OPS-CONFIG-004, OPS-STORE-003
-    def _reject_development_defaults_when_deployed(self) -> Settings:
-        if self.deployed:
-            problems: list[str] = []
-            if self.jwt_secret == PLACEHOLDER_JWT_SECRET:
-                problems.append("JWT_SECRET is still the committed placeholder; generate a real one")
-            if self.dev_auth_enabled:
-                problems.append("DEV_AUTH_ENABLED must be false when DEPLOYED=true")
-            if self.email_provider == "fake":
-                problems.append("EMAIL_PROVIDER must not be fake when DEPLOYED=true")
-            if not self.google_oauth_client_id or not self.google_oauth_client_secret:
-                problems.append("Google OAuth credentials must be configured when DEPLOYED=true")
-            if self.url_fetch_allow_private_hosts:
-                problems.append(
-                    "URL_FETCH_ALLOW_PRIVATE_HOSTS must be false when DEPLOYED=true; "
-                    "it disables the SSRF address check and makes the cloud metadata "
-                    "endpoint reachable through the URL ingest form"
-                )
-            if self.storage_backend != "gcs":
-                problems.append("STORAGE_BACKEND must be gcs when DEPLOYED=true; local uploads are ephemeral")
-            if self.storage_backend == "gcs" and not self.gcs_bucket:
-                problems.append("GCS_BUCKET is required when STORAGE_BACKEND=gcs")
-            if not self.webhook_secret:
-                problems.append("WEBHOOK_SECRET must be set when DEPLOYED=true; n8n webhooks would be unauthenticated")
-            if "localhost" in self.cors_origin_regex or "127.0.0.1" in self.cors_origin_regex:
-                problems.append(
-                    "CORS_ORIGIN_REGEX still allows loopback origins when DEPLOYED=true; "
-                    "set an explicit production origin allowlist"
-                )
-            if problems:
-                raise ValueError("refusing to start: " + "; ".join(problems))
+    # @spec ACCESS-AUTH-008, OPS-CONFIG-003, OPS-CONFIG-004, OPS-CONFIG-007,
+    # OPS-CONFIG-008, OPS-CONFIG-011, OPS-STORE-003
+    def _refuse_development_defaults_when_hosted(self) -> Settings:
+        signal = detect_hosting(os.environ)
+        object.__setattr__(
+            self,
+            "_hosting_signal",
+            "DEPLOYED"
+            if self.deployed
+            else "HOSTED" if self.hosted else (f"{signal.variable} ({signal.platform})" if signal else None),
+        )
+        if not self.is_hosted:
+            return self
+        # Lazy import: `app.integrations` imports this module.
+        from app.integrations import violated_requirements
+
+        problems = violated_requirements(self)
+        if problems:
+            raise ValueError(f"refusing to start ({self.hosting_signal}): " + "; ".join(problems))
         return self
 
     # ── llm ───────────────────────────────────────────────────────────────

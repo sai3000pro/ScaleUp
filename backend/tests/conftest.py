@@ -42,6 +42,22 @@ from app.vector.chroma_store import get_vector_store  # noqa: E402
 celery_app.conf.task_always_eager = True
 celery_app.conf.task_eager_propagates = True
 
+
+@pytest.fixture(autouse=True)
+def _no_hosting_signal(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's shell must not flip tests into hosted mode.
+
+    `Settings.is_hosted` reads platform variables straight from os.environ, so a
+    Koyeb/Render/whatever checkout would make every Settings construction in the
+    suite refuse. Hosting tests set the variables explicitly on top of this.
+    """
+    from app.domain.hosting import PLATFORM_SIGNALS
+
+    for signal in PLATFORM_SIGNALS:
+        monkeypatch.delenv(signal.variable, raising=False)
+    monkeypatch.delenv("HOSTED", raising=False)
+    monkeypatch.delenv("DEPLOYED", raising=False)
+
 _TABLES = ", ".join(f'"{table.name}"' for table in Base.metadata.sorted_tables)
 
 
