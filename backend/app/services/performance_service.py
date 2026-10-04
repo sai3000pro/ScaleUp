@@ -21,8 +21,8 @@ from app.evaluation.musicxml import MusicXMLParseError, midi_to_note_name, parse
 from app.evaluation.piano import PianoPerformanceScore
 from app.evaluation.posture import PostureMetric, PostureScore, score_posture
 from app.evaluation.quality_budget import measure_scoring_ms
-from app.evaluation.scoring_limits import MAX_OBSERVED_NOTES
 from app.evaluation.registry import EvaluationResult, ObservationIn, evaluate
+from app.evaluation.scoring_limits import MAX_OBSERVED_NOTES
 from app.llm.base import LLMRole
 from app.models import (
     Course,
