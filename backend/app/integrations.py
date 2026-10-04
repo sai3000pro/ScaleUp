@@ -399,6 +399,11 @@ DEPLOYMENT_REQUIREMENTS: tuple[DeploymentRequirement, ...] = (
     ),
     DeploymentRequirement(
         "deployed",
+        lambda s: s.email_provider == "resend" and not s.resend_api_key,
+        "RESEND_API_KEY is required when EMAIL_PROVIDER=resend",
+    ),
+    DeploymentRequirement(
+        "deployed",
         lambda s: not s.google_oauth_client_id or not s.google_oauth_client_secret,
         "Google OAuth credentials must be configured when DEPLOYED=true",
     ),

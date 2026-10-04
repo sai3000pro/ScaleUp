@@ -62,6 +62,7 @@ Does not work, by construction:
 | Neo4j | `GET /api/health/ready` reports it down, and reindex staleness cannot be computed. No practice read path touches it. |
 | Chroma | The Ask panel, search, and retrieval-backed drills fail. The instrument practice loop does not use it. |
 | Object storage | `STORAGE_BACKEND=local` writes to the container's ephemeral disk. Uploaded sources and recorded takes do not survive a redeploy. |
+| Password-reset email | With `EMAIL_PROVIDER=fake` the reset link is written to the API's log stream — Koyeb logs, visible to the Koyeb account owner — so a reset is an operator action, not self-service. Set `EMAIL_PROVIDER=resend` + `RESEND_API_KEY` to send real mail. |
 
 **Sign-in is per account, not a shared one.** `DEV_AUTH_ENABLED=false` means the
 no-password dev-login route does not exist at all. Visitors register real
@@ -70,6 +71,11 @@ accounts through the password form, or sign in as the seeded
 history are their own. The hosted tier is what makes this safe to expose: with
 a generated `JWT_SECRET`, a forged token is not possible, and dev-login is
 simply absent.
+
+The seeded account is a **public demo account**: its password is committed in
+this repository, so anyone can sign in as it and alter its courses and
+progress. Treat it as a shared scratch account for looking around, and register
+a real account for any progress you care about.
 
 ## 0. Verify the production build locally
 
@@ -205,7 +211,7 @@ Everything else keeps its default, and every default is a working fallback:
 | `LLM_PROVIDER` | `fake` | Coaching text is deterministic. Scores are unaffected — a model never touches a number. Set to `gemini` with a `GEMINI_API_KEY` for model-written questions, grading and coaching; an overloaded model falls back to a cheaper one and then to the deterministic floor, so a busy free tier degrades the wording rather than failing the request. |
 | `EMBEDDING_PROVIDER` | `fake` | No embedding spend. Only retrieval paths care. |
 | `VOICE_PROVIDER` | `fake` | No spoken audio; `spoken_text` still returned. |
-| `EMAIL_PROVIDER` | `fake` | Password reset logs a link instead of sending one. |
+| `EMAIL_PROVIDER` | `fake` | Password reset logs a link instead of sending one — see the "does not work" table above. |
 | `STORAGE_BACKEND` | `local` | Ephemeral container disk. |
 | `WEBHOOK_SECRET` | empty | Inbound webhooks return 503 "not configured" rather than accepting unsigned calls (`app/api/routers/webhooks.py:64`). |
 | `FRONTEND_URL` | localhost | Used only for password-reset links and OAuth redirect safety, neither of which exists here. |
@@ -233,7 +239,7 @@ exit silently. `python -m app.seed` prints what it creates.
 
 **The seed is not optional.** It creates:
 
-- the user `dev@example.com` / `devpassword123`
+- the user `dev@example.com` / `devpassword123` — a public demo account; its password is committed in this repository, so it is a shared scratch account, not private storage
 - two ready-made courses — an 11-node piano tree and a 10-node guitar tree
 - four internal courses — trumpet, drums, banjo, and a source-generated violin
 
@@ -320,8 +326,9 @@ the OpenAPI page, titled *ScaleUp API*.
 **5. The landing page renders.** Open `https://scaleup.vercel.app`. It renders
 with no session and no backend call, so it works even while the API is cold.
 
-**6. Sign in.** Register through the password form, or use
-`dev@example.com` / `devpassword123`. Six courses appear. If the courses list
+**6. Sign in.** Register through the password form, or use the shared demo
+account `dev@example.com` / `devpassword123` — its password is public, so use
+it only to look around. Six courses appear. If the courses list
 is empty, step 4 did not run.
 
 **7. Record a take.** Open a course, choose a skill, play the exercise. A score

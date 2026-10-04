@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+# @spec ACCESS-AUTH-008
 def _set_refresh_cookie(response: Response, raw_refresh_token: str) -> None:
     settings = get_settings()
     response.set_cookie(
@@ -30,7 +31,7 @@ def _set_refresh_cookie(response: Response, raw_refresh_token: str) -> None:
         value=raw_refresh_token,
         max_age=settings.refresh_token_ttl_days * 24 * 60 * 60,
         httponly=True,
-        secure=settings.deployed,
+        secure=settings.is_hosted,
         samesite="lax",
         path="/api/auth",
     )

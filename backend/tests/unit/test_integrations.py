@@ -79,6 +79,11 @@ class TestRegistry:
         assert any("JWT_SECRET" in item for item in pending)
         assert any("loopback" in item for item in pending)
 
+    # @spec OPS-CONFIG-008
+    def test_resend_without_a_key_is_a_deployed_requirement(self) -> None:
+        pending = missing_for_deployment(_settings(email_provider="resend"), tier="deployed")
+        assert any("RESEND_API_KEY" in item for item in pending)
+
     # @spec OPS-CONFIG-007
     def test_the_two_tiers_together_equal_the_unfiltered_list(self) -> None:
         settings = _settings()

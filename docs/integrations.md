@@ -204,7 +204,8 @@ on by itself on a recognised platform (`KOYEB_APP_NAME`, `RENDER`,
 `DEPLOYED=true` — and never inside CI.
 
 **Deployed** (`DEPLOYED=true`) adds the durability and integration requirements
-on top: the fake email provider, missing Google OAuth credentials, non-GCS
+on top: the fake email provider, Resend selected without `RESEND_API_KEY`,
+missing Google OAuth credentials, non-GCS
 storage, an empty GCS bucket, and an empty webhook secret all refuse to boot.
 
 Both checks are deliberately at startup rather than at first use: every one of

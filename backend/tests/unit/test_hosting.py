@@ -98,6 +98,26 @@ def test_an_explicit_hosted_flag_names_itself(monkeypatch) -> None:
     assert "DEV_AUTH_ENABLED" in str(caught.value)
 
 
+# @spec OPS-CONFIG-008
+def test_deployed_refuses_resend_without_a_key() -> None:
+    with pytest.raises(ValueError) as caught:
+        _settings(
+            deployed=True,
+            jwt_secret="a-real-generated-secret",
+            dev_auth_enabled=False,
+            dev_webhooks_enabled=False,
+            url_fetch_allow_private_hosts=False,
+            cors_origin_regex=r"https://scaleup\.vercel\.app",
+            email_provider="resend",
+            google_oauth_client_id="id",
+            google_oauth_client_secret="secret",
+            storage_backend="gcs",
+            gcs_bucket="scaleup-uploads",
+            webhook_secret="whsec",
+        )
+    assert "RESEND_API_KEY" in str(caught.value)
+
+
 # @spec OPS-CONFIG-003
 def test_unsigned_webhooks_are_refused_while_hosted(monkeypatch) -> None:
     with pytest.raises(ValueError) as caught:
