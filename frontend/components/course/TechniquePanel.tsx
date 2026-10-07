@@ -14,15 +14,7 @@ import {
 } from "@/lib/technique";
 import { CARD, FOCUS_RING } from "@/lib/ui";
 
-type CameraStatus = "idle" | "loading" | "active" | "denied";
-
-const STATUS_LABEL: Record<string, string> = {
-  idle: "Technique camera is off",
-  loading: "Loading hand-tracking model…",
-  tracking: "Tracking your hand",
-  unavailable: "Hand model unavailable (offline?) — audio practice is unaffected",
-  denied: "Camera permission denied — audio practice is unaffected",
-};
+import { cameraSummary, type CameraStatus } from "@/lib/cameraStatus";
 
 const METRIC_COLOR: Record<string, string> = {
   good: "text-emerald-300",
@@ -31,7 +23,7 @@ const METRIC_COLOR: Record<string, string> = {
   not_detected: "text-slate-500",
 };
 
-// @spec CAP-CAM-008, CAP-PERM-003, CAP-PERM-004
+// @spec CAP-CAM-008, CAP-PERM-003, CAP-PERM-004, CAP-PERM-005
 export function TechniquePanel({ instrument = "piano" }: { instrument?: string }) {
   const [cameraStatus, setCameraStatus] = useState<CameraStatus>("idle");
   const [trackingStatus, setTrackingStatus] = useState<VisualTrackingStatus>("idle");
@@ -108,8 +100,9 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         }
       }
       setCameraStatus("active");
-    } catch {
-      setCameraStatus("denied");
+    } catch (caught: unknown) {
+      const name = caught instanceof DOMException ? caught.name : "";
+      setCameraStatus(name === "NotFoundError" || name === "OverconstrainedError" ? "missing" : "denied");
     }
   }
 
@@ -136,9 +129,8 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
     setTrackingStatus("tracking");
   }
 
-  const summary = mockMode
-    ? "Mock landmarks — a camera-free demo of the metric pipeline"
-    : STATUS_LABEL[trackingStatus] ?? STATUS_LABEL.idle;
+  const summary = cameraSummary(cameraStatus, trackingStatus, mockMode);
+  const cameraFailed = cameraStatus === "denied" || cameraStatus === "missing";
 
   return (
     <section className={CARD} aria-labelledby="technique-heading">
@@ -183,7 +175,7 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         />
       )}
 
-      <p className="mt-2 text-[11px] text-slate-400">{summary}</p>
+      <p className={`mt-2 text-[11px] ${cameraFailed ? "text-amber-300" : "text-slate-400"}`} role={cameraFailed ? "alert" : undefined}>{summary}</p>
 
       {metrics && metrics.metrics.length > 0 && (
         <ul className="mt-2 space-y-2">

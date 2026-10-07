@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { ANALYZER_ID, MicRecorder } from "@/lib/pitchDetection";
 import type { Exercise, PerformanceAttempt, PerformedNote } from "@/lib/types";
 import { BUTTON_PRIMARY, BUTTON_RECORDING, CARD, FOCUS_RING } from "@/lib/ui";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface PracticePanelProps {
   courseId: string;
@@ -57,7 +58,7 @@ const RECORD_STATUS_LABEL: Record<string, string> = {
   stopping: "Scoring take…",
 };
 
-// @spec CAP-PERM-002
+// @spec CAP-PERM-002, UI-SHELL-008
 export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, pinned = false }: PracticePanelProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -115,6 +116,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
         recordingId === null && label === "fixture" ? "score-fixture" : ANALYZER_ID,
       );
       setResult(attempt);
+      void useAuthStore.getState().refreshUser();
       setRecordStatus(`Recorded ${label} · ${attempt.metrics.observed_note_count} notes detected`);
       onCompleted();
     } catch (caught: unknown) {

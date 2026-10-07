@@ -144,3 +144,4 @@ system itself.
 - [x] **UI-SHELL-005**: Ambient page decoration shall be painted in CSS rather than loaded as an image.
 - [x] **UI-SHELL-006**: Ambient decoration shall be non-interactive and shall sit behind all content.
 - [ ] **UI-SHELL-007**: Wide content shall scroll within its own container, so the page body never scrolls sideways.
+- [x] **UI-SHELL-008**: After a scored take awards experience, the header shall re-read the account's level, experience and streak rather than wait for the next full page load.

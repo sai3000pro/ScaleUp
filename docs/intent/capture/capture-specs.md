@@ -71,3 +71,4 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-PERM-002**: The system shall provide a fixture path that submits known notes with no microphone present.
 - [x] **CAP-PERM-003**: The system shall provide a fixture landmark source so the camera path is exercisable with no camera present.
 - [x] **CAP-PERM-004**: While the camera is unavailable, the practice loop shall remain fully usable.
+- [x] **CAP-PERM-005**: When the camera cannot be opened, the technique panel shall state the reason (permission denied, or no camera present) in place of reporting the camera as merely off.
