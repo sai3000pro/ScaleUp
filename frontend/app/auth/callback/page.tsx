@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import { NAV_LINK } from "@/lib/ui";
+import { MUTED, NAV_LINK } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function AuthCallbackPage() {
@@ -46,7 +46,7 @@ export default function AuthCallbackPage() {
             </Link>
           </>
         ) : (
-          <p className="text-sm text-slate-400">Completing Google sign-in…</p>
+          <p className={`text-sm ${MUTED}`}>Completing Google sign-in…</p>
         )}
       </div>
     </main>

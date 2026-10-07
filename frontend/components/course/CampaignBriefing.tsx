@@ -12,7 +12,7 @@ import type {
   CoursePath,
   ProgressAnalytics,
 } from "@/lib/types";
-import { BUTTON_PRIMARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_PRIMARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 interface Props {
@@ -76,12 +76,12 @@ export function CampaignBriefing({ courseId, refreshKey, path, progress, isBuild
           <h2 id="campaign-briefing-heading" className="font-display text-sm font-semibold text-emerald-100">
             Campaign cleared
           </h2>
-          <span className="text-[11px] text-slate-400">{path.completed} / {path.total}</span>
+          <span className={`text-mini ${MUTED}`}>{path.completed} / {path.total}</span>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-slate-300">
           Every skill on the main path is above the mastery threshold. Keep your party sharp by checking Daily Quests for fading skills.
         </p>
-        {briefing.target_outcome && <p className="mt-2 text-[11px] font-semibold text-emerald-300">Victory condition: {briefing.target_outcome}</p>}
+        {briefing.target_outcome && <p className="mt-2 text-mini font-semibold text-emerald-300">Victory condition: {briefing.target_outcome}</p>}
         <TreeShape shape={briefing.tree_shape} />
         <OutcomeCoverage courseId={courseId} coverage={briefing.outcome_coverage} />
         <SourceCoverage progress={progress} />
@@ -102,16 +102,16 @@ export function CampaignBriefing({ courseId, refreshKey, path, progress, isBuild
         <h2 id="campaign-briefing-heading" className="font-display text-sm font-semibold text-sky-100">
           {heading}
         </h2>
-        <span className="text-[11px] text-slate-400">{path.completed} / {path.total} skills</span>
+        <span className={`text-mini ${MUTED}`}>{path.completed} / {path.total} skills</span>
       </div>
-      <p className="mt-1 text-[11px] text-slate-400">Your next quest is chosen from the prerequisite order.</p>
-      {briefing.target_outcome && <p className="mt-2 text-[11px] font-semibold text-violet-300">Victory condition: {briefing.target_outcome}</p>}
+      <p className={`mt-1 text-mini ${MUTED}`}>Your next quest is chosen from the prerequisite order.</p>
+      {briefing.target_outcome && <p className="mt-2 text-mini font-semibold text-violet-300">Victory condition: {briefing.target_outcome}</p>}
 
       <div className="mt-3 rounded-lg border border-sky-900/60 bg-slate-950/50 p-3">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-300">Current quest</p>
+        <p className="text-tiny font-semibold uppercase tracking-wide text-sky-300">Current quest</p>
         <h3 className="mt-1 font-display text-sm font-semibold text-slate-100">Drill {quest.title}</h3>
-        <p className="mt-1 text-[11px] text-slate-400">{quest.summary}</p>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className={`mt-1 text-mini ${MUTED}`}>{quest.summary}</p>
+        <p className="mt-2 text-tiny text-slate-500">
           {questStyle.label} · {difficultyLabel(quest.difficulty)} · step {quest.order + 1}
         </p>
         <button
@@ -124,14 +124,14 @@ export function CampaignBriefing({ courseId, refreshKey, path, progress, isBuild
       </div>
 
       {upcoming && (
-        <p className="mt-3 text-[11px] text-slate-400">
+        <p className={`mt-3 text-mini ${MUTED}`}>
           Next unlock on your path: <span className="font-semibold text-slate-300">{upcoming.title}</span>. Master this skill to advance.
         </p>
       )}
       <TreeShape shape={briefing.tree_shape} />
       <OutcomeCoverage courseId={courseId} coverage={briefing.outcome_coverage} />
       <SourceCoverage progress={progress} />
-      <Link href="/quests" className={`mt-2 inline-block text-[11px] text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
+      <Link href="/quests" className={`mt-2 inline-block text-mini ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}>
         See all Daily Quests →
       </Link>
     </section>
@@ -144,15 +144,15 @@ function TreeShape({ shape }: { shape: CampaignBriefingData["tree_shape"] }) {
   return (
     <div className="mt-3 rounded-lg border border-sky-900/60 bg-sky-950/30 p-2.5" aria-label="Generated skill tree shape">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-300">Actual skill-tree shape</p>
-        <span className="text-[10px] text-slate-500">{shape.depth} level{shape.depth === 1 ? "" : "s"} deep</span>
+        <p className="text-tiny font-semibold uppercase tracking-wide text-sky-300">Actual skill-tree shape</p>
+        <span className="text-tiny text-slate-500">{shape.depth} level{shape.depth === 1 ? "" : "s"} deep</span>
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+      <div className="mt-2 grid grid-cols-3 gap-2 text-tiny">
         <div><span className="block text-slate-500">Playable skills</span><span className="font-semibold text-slate-200">{shape.playable_skills}</span></div>
         <div><span className="block text-slate-500">Branches</span><span className="font-semibold text-slate-200">{shape.branches}</span></div>
         <div><span className="block text-slate-500">Prerequisite links</span><span className="font-semibold text-slate-200">{shape.prerequisite_links}</span></div>
       </div>
-      <p className="mt-2 text-[10px] text-slate-500">
+      <p className="mt-2 text-tiny text-slate-500">
         Starts with: {shape.starting_skills.slice(0, 3).map((skill) => skill.title).join(", ") || "the first available skills"}
         {shape.starting_skills.length > 3 ? `, and ${shape.starting_skills.length - 3} more` : ""}.
       </p>
@@ -160,7 +160,7 @@ function TreeShape({ shape }: { shape: CampaignBriefingData["tree_shape"] }) {
         {depths.map(([depth, count]) => (
           <div key={depth} className="flex min-w-0 flex-1 flex-col items-center gap-1">
             <div className="w-full rounded-t-sm bg-sky-400/70" style={{ height: `${Math.max(6, (count / largestDepth) * 36)}px` }} title={`Depth ${depth}: ${count} skills`} />
-            <span className="text-[9px] text-slate-500">D{depth}</span>
+            <span className="text-micro text-slate-500">D{depth}</span>
           </div>
         ))}
       </div>
@@ -208,52 +208,52 @@ function OutcomeCoverage({
   return (
     <div className="mt-3 rounded-lg border border-violet-900/60 bg-violet-950/10 p-2.5" aria-label="Victory condition coverage">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-300">Victory-condition signal</p>
-        <span className="text-[10px] text-slate-500">{Math.round(coverage.coverage * 100)}% visible</span>
+        <p className="text-tiny font-semibold uppercase tracking-wide text-violet-300">Victory-condition signal</p>
+        <span className="text-tiny text-slate-500">{Math.round(coverage.coverage * 100)}% visible</span>
       </div>
-      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">{coverage.signal} This is a lexical check, not a semantic quality judgement.</p>
-      {coverage.matched_terms.length > 0 && <p className="mt-2 text-[10px] text-emerald-300">Visible: {coverage.matched_terms.join(", ")}</p>}
-      {coverage.missing_terms.length > 0 && <p className="mt-1 text-[10px] text-amber-300">Not obvious yet: {coverage.missing_terms.join(", ")}</p>}
+      <p className={`mt-1 text-tiny leading-relaxed ${MUTED}`}>{coverage.signal} This is a lexical check, not a semantic quality judgement.</p>
+      {coverage.matched_terms.length > 0 && <p className="mt-2 text-tiny text-emerald-300">Visible: {coverage.matched_terms.join(", ")}</p>}
+      {coverage.missing_terms.length > 0 && <p className="mt-1 text-tiny text-amber-300">Not obvious yet: {coverage.missing_terms.join(", ")}</p>}
       <button
         type="button"
         onClick={() => void evaluate()}
         disabled={evaluating}
-        className={`mt-2 text-[10px] text-violet-300 underline underline-offset-2 hover:text-violet-200 disabled:cursor-wait disabled:opacity-60 ${FOCUS_RING}`}
+        className={`mt-2 text-tiny text-violet-300 underline underline-offset-2 hover:text-violet-200 disabled:cursor-wait disabled:opacity-60 ${FOCUS_RING}`}
       >
         {evaluating ? "Evaluating the campaign…" : "Evaluate outcome against the skill tree"}
       </button>
-      {evaluationError && <p role="alert" className="mt-1 text-[10px] text-rose-300">{evaluationError}</p>}
+      {evaluationError && <p role="alert" className="mt-1 text-tiny text-rose-300">{evaluationError}</p>}
       {evaluation && (
         <div className="mt-2 rounded border border-violet-900/50 bg-slate-950/40 p-2">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-200">Outcome readiness</p>
-            <span className="text-[10px] text-violet-300">{Math.round(evaluation.readiness * 100)}%</span>
+            <p className="text-tiny font-semibold uppercase tracking-wide text-violet-200">Outcome readiness</p>
+            <span className="text-tiny text-violet-300">{Math.round(evaluation.readiness * 100)}%</span>
           </div>
-          <p className="mt-1 text-[10px] leading-relaxed text-slate-300">{evaluation.rationale}</p>
-          <p className="mt-1 text-[10px] text-slate-500">{evaluation.mode} · {evaluation.provider} · {evaluation.evaluated_skill_count} skills reviewed</p>
+          <p className="mt-1 text-tiny leading-relaxed text-slate-300">{evaluation.rationale}</p>
+          <p className="mt-1 text-tiny text-slate-500">{evaluation.mode} · {evaluation.provider} · {evaluation.evaluated_skill_count} skills reviewed</p>
           {evaluation.matched_skills.length > 0 && (
-            <p className="mt-1 text-[10px] text-emerald-300">Supporting skills: {evaluation.matched_skills.map((skill) => skill.title).join(", ")}</p>
+            <p className="mt-1 text-tiny text-emerald-300">Supporting skills: {evaluation.matched_skills.map((skill) => skill.title).join(", ")}</p>
           )}
           {evaluation.missing_capabilities.length > 0 && (
-            <p className="mt-1 text-[10px] text-amber-300">Gaps to investigate: {evaluation.missing_capabilities.join(", ")}</p>
+            <p className="mt-1 text-tiny text-amber-300">Gaps to investigate: {evaluation.missing_capabilities.join(", ")}</p>
           )}
           {evaluation.side_quests.length > 0 && (
             <div className="mt-3 rounded border border-amber-900/50 bg-amber-950/10 p-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-200">Side quests: expand the campaign</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+              <p className="text-tiny font-semibold uppercase tracking-wide text-amber-200">Side quests: expand the campaign</p>
+              <p className={`mt-1 text-tiny leading-relaxed ${MUTED}`}>
                 These are source-addition tasks, not generated skills. Complete one by finding evidence, approving it in the planner, and ingesting it.
               </p>
               <ul className="mt-2 space-y-2">
                 {evaluation.side_quests.map((quest) => (
                   <li key={quest.capability} className="rounded border border-amber-900/40 bg-slate-950/40 p-2">
-                    <p className="text-[10px] font-semibold text-amber-100">{quest.title}</p>
-                    <p className="mt-1 text-[10px] text-slate-400">{quest.reason}</p>
-                    <p className="mt-1 text-[10px] text-slate-500">{quest.action}</p>
-                    <p className="mt-2 break-words rounded bg-slate-950/70 p-1.5 text-[10px] text-slate-300">{quest.source_query}</p>
+                    <p className="text-tiny font-semibold text-amber-100">{quest.title}</p>
+                    <p className={`mt-1 text-tiny ${MUTED}`}>{quest.reason}</p>
+                    <p className="mt-1 text-tiny text-slate-500">{quest.action}</p>
+                    <p className="mt-2 break-words rounded bg-slate-950/70 p-1.5 text-tiny text-slate-300">{quest.source_query}</p>
                     <button
                       type="button"
                       onClick={() => void copySourceQuery(quest)}
-                      className={`mt-1 text-[10px] text-amber-200 underline underline-offset-2 hover:text-amber-100 ${FOCUS_RING}`}
+                      className={`mt-1 text-tiny text-amber-200 underline underline-offset-2 hover:text-amber-100 ${FOCUS_RING}`}
                     >
                       {copiedCapability === quest.capability ? "Copied source-search prompt" : "Copy source-search prompt"}
                     </button>
@@ -275,18 +275,18 @@ function SourceCoverage({ progress }: { progress: ProgressAnalytics | null }) {
   return (
     <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/40 p-2.5" aria-label="Campaign source coverage">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Source → skill coverage</p>
-        <span className="text-[10px] text-slate-500">{progress.started_skills} / {progress.total_skills} skills practiced</span>
+        <p className={`text-tiny font-semibold uppercase tracking-wide ${MUTED}`}>Source → skill coverage</p>
+        <span className="text-tiny text-slate-500">{progress.started_skills} / {progress.total_skills} skills practiced</span>
       </div>
       <ul className="mt-2 space-y-1.5">
         {shown.map((source) => (
-          <li key={source.document_id} className="flex items-baseline justify-between gap-2 text-[10px]">
+          <li key={source.document_id} className="flex items-baseline justify-between gap-2 text-tiny">
             <span className="min-w-0 truncate text-slate-300">{source.filename}</span>
             <span className="shrink-0 text-slate-500">{source.skills_started}/{source.skills_total} skills · {source.attempts} attempts</span>
           </li>
         ))}
       </ul>
-      {remaining > 0 && <p className="mt-1 text-[10px] text-slate-500">+ {remaining} more source{remaining === 1 ? "" : "s"} in Progress.</p>}
+      {remaining > 0 && <p className="mt-1 text-tiny text-slate-500">+ {remaining} more source{remaining === 1 ? "" : "s"} in Progress.</p>}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { api } from "@/lib/api";
-import { BUTTON_PRIMARY, INPUT, NAV_LINK } from "@/lib/ui";
+import { BUTTON_PRIMARY, INPUT, MUTED, NAV_LINK } from "@/lib/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
     <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-semibold tracking-tight">Recover your account</h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className={`mt-2 text-sm ${MUTED}`}>
           Enter your email and we&apos;ll send a one-time password reset link if an account exists.
         </p>
         <form onSubmit={submit} className="mt-6 space-y-3">

@@ -34,7 +34,7 @@ the segment that owns that progress.
 - [x] **LAND-STORY-007**: The page shall state that grading runs with no credentials and no network, since a reader's first question about an AI product is what happens when the model is unavailable.
 - [x] **LAND-STORY-008**: The page shall describe decay and return — that unpractised technique fades and is scheduled back — as a distinct movement from measurement.
 - [x] **LAND-STORY-009**: The page shall close with the way into the product.
-- [ ] **LAND-STORY-010**: The page shall name the instruments that ship with a published curriculum, and the count shall be derived from the curricula rather than typed.
+- [x] **LAND-STORY-010**: The page shall name the instruments that ship with a published curriculum, and the count shall be derived from the curricula rather than typed.
 
 ## Motion
 
@@ -50,4 +50,4 @@ the segment that owns that progress.
 - [x] **LAND-ROUTE-002**: The page shall not be exchanged for another destination on the basis of a reader's session; a signed-in reader who navigates to it shall see it.
 - [x] **LAND-ROUTE-003**: The primary action shall send a signed-in reader to their courses and a stranger to sign-up.
 - [x] **LAND-ROUTE-004**: The persistent learner HUD shall not render over the landing page, since it reports a progress a stranger does not have.
-- [ ] **LAND-ROUTE-005**: The page shall declare social preview metadata, so a shared link renders as a card rather than a bare URL.
+- [x] **LAND-ROUTE-005**: The page shall declare social preview metadata, so a shared link renders as a card rather than a bare URL.

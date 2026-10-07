@@ -15,7 +15,7 @@ import type {
   CharacterSheet,
   CharacterSkinTone,
 } from "@/lib/types";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 
 const ARCHETYPES: { id: CharacterArchetype; title: string; description: string; icon: string; color: string }[] = [
   { id: "scholar", title: "Scholar", description: "Turn careful understanding into steady growth.", icon: "✦", color: "sky" },
@@ -79,7 +79,7 @@ const STAT_META: { key: "focus" | "memory" | "resilience" | "curiosity"; label: 
 function ChoiceGroup<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { id: T; label: string; color?: string; icon?: string }[]; onChange: (value: T) => void }) {
   return (
     <fieldset>
-      <legend className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</legend>
+      <legend className={`text-mini font-semibold uppercase tracking-[0.16em] ${MUTED}`}>{label}</legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((option) => (
           <button key={option.id} type="button" onClick={() => onChange(option.id)} aria-pressed={value === option.id} className={`character-custom-choice ${value === option.id ? "character-custom-choice-selected" : ""} ${FOCUS_RING}`}>
@@ -133,7 +133,7 @@ function StatCard({ label, description, value, icon, color }: { label: string; d
         <span className="font-display text-lg font-bold text-slate-100">{value}</span>
       </div>
       <h3 className="mt-4 text-sm font-semibold text-slate-100">{label}</h3>
-      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{description}</p>
+      <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>{description}</p>
       <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-800">
         <div className={`character-stat-fill character-stat-fill-${color}`} style={{ width: `${Math.min(100, value)}%` }} />
       </div>
@@ -150,18 +150,18 @@ function LevelProgress({ sheet }: { sheet: CharacterSheet }) {
     <div>
       <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-300">Current level</p>
+          <p className="text-tiny font-semibold uppercase tracking-[0.22em] text-sky-300">Current level</p>
           <p className="mt-1 font-display text-5xl font-extrabold tracking-[-0.06em] text-white">{sheet.level}</p>
         </div>
         <div className="text-right">
-          <p className="font-display text-sm font-bold text-slate-100">{sheet.total_exp.toLocaleString()} <span className="font-body text-xs font-medium text-slate-400">EXP</span></p>
-          <p className="mt-1 text-[11px] text-slate-400">{sheet.exp_into_level} / {sheet.exp_for_next_level} to level {sheet.level + 1}</p>
+          <p className="font-display text-sm font-bold text-slate-100">{sheet.total_exp.toLocaleString()} <span className={`font-body text-xs font-medium ${MUTED}`}>EXP</span></p>
+          <p className={`mt-1 text-mini ${MUTED}`}>{sheet.exp_into_level} / {sheet.exp_for_next_level} to level {sheet.level + 1}</p>
         </div>
       </div>
       <div className="mt-5 h-3 overflow-hidden rounded-full border border-sky-400/20 bg-slate-950/80 p-0.5" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Level progress">
         <div className="character-exp-fill h-full rounded-full" style={{ width: `${percent}%` }} />
       </div>
-      <div className="mt-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-wider text-slate-500">
+      <div className="mt-2 flex items-center justify-between text-tiny font-medium uppercase tracking-wider text-slate-500">
         <span>Next milestone</span>
         <span>{percent}% charged</span>
       </div>
@@ -272,7 +272,7 @@ export default function CharacterPage() {
       <main id="main-content" className="character-shell mx-auto max-w-6xl px-4 py-10">
         <div className="character-loading-panel">
           <div className="character-loading-orb" />
-          <p className="mt-4 text-sm text-slate-400">Summoning your character sheet…</p>
+          <p className={`mt-4 text-sm ${MUTED}`}>Summoning your character sheet…</p>
         </div>
       </main>
     );
@@ -295,13 +295,13 @@ export default function CharacterPage() {
               <CharacterSprite avatar={avatar} archetype={archetype} skinTone={skinTone} hairStyle={hairStyle} hairColor={hairColor} outfitColor={outfitColor} accessory={accessory} size="lg" animated className="mx-auto mt-5" />
               <p className="mt-3 font-display text-xs font-semibold uppercase tracking-[0.24em] text-sky-300">{avatarLabel(avatar)} · {ARCHETYPES.find((item) => item.id === archetype)?.title}</p>
               <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Build your learning hero.</h1>
-              <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-slate-400">Every answer is experience. Every skill is a new ability. Your character grows wherever your curiosity takes you.</p>
+              <p className={`mx-auto mt-3 max-w-sm text-sm leading-relaxed ${MUTED}`}>Every answer is experience. Every skill is a new ability. Your character grows wherever your curiosity takes you.</p>
             </div>
           </div>
           <form onSubmit={create} className="p-6 sm:p-10">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-300"><span className="h-1.5 w-1.5 rounded-full bg-sky-400" /> Identity setup</div>
             <h2 className="mt-3 font-display text-2xl font-bold text-white">Who will you become?</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-400">Pick a look and a vibe. Your archetype shapes your style, never your ability to learn.</p>
+            <p className={`mt-2 text-sm leading-relaxed ${MUTED}`}>Pick a look and a vibe. Your archetype shapes your style, never your ability to learn.</p>
             <label htmlFor="character-name" className="mt-7 block text-xs font-semibold text-slate-300">Character name</label>
             <input id="character-name" className={`${INPUT} mt-2 bg-slate-950/70`} value={name} onChange={(event) => setName(event.target.value)} placeholder="What should the guild call you?" maxLength={80} autoFocus />
             <fieldset className="mt-6">
@@ -311,7 +311,7 @@ export default function CharacterPage() {
                   <button key={item.id} type="button" onClick={() => setAvatar(item.id)} aria-pressed={avatar === item.id} className={`character-avatar-choice ${avatar === item.id ? "character-avatar-choice-selected" : ""} ${FOCUS_RING}`}>
                     <CharacterSprite avatar={item.id} archetype={archetype} skinTone={skinTone} hairStyle={hairStyle} hairColor={hairColor} outfitColor={outfitColor} accessory={accessory} size="sm" />
                     <span className="mt-1 block text-xs font-semibold text-slate-200">{item.title}</span>
-                    <span className="mt-0.5 block text-[9px] text-slate-500">{item.eyebrow}</span>
+                    <span className="mt-0.5 block text-micro text-slate-500">{item.eyebrow}</span>
                   </button>
                 ))}
               </div>
@@ -322,7 +322,7 @@ export default function CharacterPage() {
                 {ARCHETYPES.map((item) => (
                   <button key={item.id} type="button" onClick={() => setArchetype(item.id)} aria-pressed={archetype === item.id} className={`character-archetype-choice ${archetype === item.id ? "character-archetype-choice-selected" : ""} ${FOCUS_RING}`}>
                     <span className="character-archetype-icon">{item.icon}</span>
-                    <span className="min-w-0"><span className="block text-left text-xs font-semibold text-slate-100">{item.title}</span><span className="mt-0.5 block text-left text-[10px] leading-relaxed text-slate-500">{item.description}</span></span>
+                    <span className="min-w-0"><span className="block text-left text-xs font-semibold text-slate-100">{item.title}</span><span className="mt-0.5 block text-left text-tiny leading-relaxed text-slate-500">{item.description}</span></span>
                   </button>
                 ))}
               </div>
@@ -330,7 +330,7 @@ export default function CharacterPage() {
             <CustomizationPanel skinTone={skinTone} hairStyle={hairStyle} hairColor={hairColor} outfitColor={outfitColor} accessory={accessory} setSkinTone={setSkinTone} setHairStyle={setHairStyle} setHairColor={setHairColor} setOutfitColor={setOutfitColor} setAccessory={setAccessory} />
             {error && <p role="alert" className="mt-5 text-sm text-rose-400">{error}</p>}
             <button type="submit" disabled={busy || !name.trim()} className={`mt-7 w-full ${BUTTON_PRIMARY} character-cta-button`}>{busy ? "Joining the guild…" : "Enter the world →"}</button>
-            <p className="mt-3 text-center text-[10px] text-slate-500">You can customize your character later.</p>
+            <p className="mt-3 text-center text-tiny text-slate-500">You can customize your character later.</p>
           </form>
         </div>
       </main>
@@ -357,11 +357,11 @@ export default function CharacterPage() {
 
       {editing && (
         <form onSubmit={saveProfile} className="character-editor mt-5 rounded-2xl border border-sky-500/30 bg-sky-950/20 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">Loadout editor</p><p className="mt-1 text-sm text-slate-400">Change your identity whenever the next chapter calls for it.</p></div><button type="submit" disabled={busy || !name.trim()} className={BUTTON_PRIMARY}>{busy ? "Saving…" : "Save changes"}</button></div>
+          <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">Loadout editor</p><p className={`mt-1 text-sm ${MUTED}`}>Change your identity whenever the next chapter calls for it.</p></div><button type="submit" disabled={busy || !name.trim()} className={BUTTON_PRIMARY}>{busy ? "Saving…" : "Save changes"}</button></div>
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(180px,0.7fr)_1fr_1fr]">
             <input className={`${INPUT} bg-slate-950/60`} value={name} onChange={(event) => setName(event.target.value)} aria-label="Character name" maxLength={80} />
-            <div className="flex flex-wrap gap-2">{AVATARS.map((item) => <button key={item.id} type="button" onClick={() => setAvatar(item.id)} className={`rounded-lg border px-2 py-1 text-xs ${avatar === item.id ? "border-sky-400 bg-sky-500/15 text-sky-200" : "border-slate-700 text-slate-400"} ${FOCUS_RING}`}>{item.title}</button>)}</div>
-            <div className="flex flex-wrap gap-2">{ARCHETYPES.map((item) => <button key={item.id} type="button" onClick={() => setArchetype(item.id)} className={`rounded-lg border px-2 py-1 text-xs ${archetype === item.id ? "border-violet-400 bg-violet-500/15 text-violet-200" : "border-slate-700 text-slate-400"} ${FOCUS_RING}`}>{item.title}</button>)}</div>
+            <div className="flex flex-wrap gap-2">{AVATARS.map((item) => <button key={item.id} type="button" onClick={() => setAvatar(item.id)} className={`rounded-lg border px-2 py-1 text-xs ${avatar === item.id ? "border-sky-400 bg-sky-500/15 text-sky-200" : `border-slate-700 ${MUTED}`} ${FOCUS_RING}`}>{item.title}</button>)}</div>
+            <div className="flex flex-wrap gap-2">{ARCHETYPES.map((item) => <button key={item.id} type="button" onClick={() => setArchetype(item.id)} className={`rounded-lg border px-2 py-1 text-xs ${archetype === item.id ? "border-violet-400 bg-violet-500/15 text-violet-200" : `border-slate-700 ${MUTED}`} ${FOCUS_RING}`}>{item.title}</button>)}</div>
           </div>
           <CustomizationPanel skinTone={skinTone} hairStyle={hairStyle} hairColor={hairColor} outfitColor={outfitColor} accessory={accessory} setSkinTone={setSkinTone} setHairStyle={setHairStyle} setHairColor={setHairColor} setOutfitColor={setOutfitColor} setAccessory={setAccessory} />
         </form>
@@ -375,11 +375,11 @@ export default function CharacterPage() {
             <div className="relative z-10 flex flex-col items-center">
               <div className="character-hero-chip"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> ONLINE · LEARNING ARC ACTIVE</div>
               <CharacterSprite avatar={currentAvatar} archetype={currentArchetype.id} skinTone={skinTone} hairStyle={hairStyle} hairColor={hairColor} outfitColor={outfitColor} accessory={accessory} size="lg" animated className="mt-2" />
-              <div className="-mt-2 rounded-full border border-slate-700/80 bg-slate-950/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 backdrop-blur">{currentArchetype.icon} {currentArchetype.title}</div>
+              <div className={`-mt-2 rounded-full border border-slate-700/80 bg-slate-950/70 px-3 py-1 text-tiny font-semibold uppercase tracking-[0.18em] ${MUTED} backdrop-blur`}>{currentArchetype.icon} {currentArchetype.title}</div>
             </div>
           </div>
           <div className="relative flex flex-col justify-center px-6 pb-8 pt-4 sm:px-12 lg:py-10">
-            <div className="flex items-start justify-between gap-4"><div><p className="character-kicker">PLAYER CHARACTER · {currentAvatar.toUpperCase()}</p><h1 id="character-heading" className="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-white sm:text-5xl">{profile.character_name}</h1><p className="mt-2 max-w-md text-sm leading-relaxed text-slate-400">{currentArchetype.description} Your next ability is one good study session away.</p></div><div className="character-level-badge"><span>LVL</span><strong>{sheet.level}</strong></div></div>
+            <div className="flex items-start justify-between gap-4"><div><p className="character-kicker">PLAYER CHARACTER · {currentAvatar.toUpperCase()}</p><h1 id="character-heading" className="mt-2 font-display text-4xl font-extrabold tracking-[-0.05em] text-white sm:text-5xl">{profile.character_name}</h1><p className={`mt-2 max-w-md text-sm leading-relaxed ${MUTED}`}>{currentArchetype.description} Your next ability is one good study session away.</p></div><div className="character-level-badge"><span>LVL</span><strong>{sheet.level}</strong></div></div>
             <div className="mt-8 max-w-lg"><LevelProgress sheet={sheet} /></div>
             <div className="mt-7 flex flex-wrap gap-2"><div className="character-mini-stat"><span className="text-amber-300">✦</span><span><strong>{streakLabel}</strong><small>study streak</small></span></div><div className="character-mini-stat"><span className="text-violet-300">◇</span><span><strong>{sheet.available_perk_points}</strong><small>perk points</small></span></div><div className="character-mini-stat"><span className="text-emerald-300">✓</span><span><strong>{achievementCount}/{totalAchievementCount}</strong><small>achievements</small></span></div></div>
           </div>
@@ -393,12 +393,12 @@ export default function CharacterPage() {
 
       <div className="mt-10 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
         <section className="character-panel" aria-labelledby="perks-heading">
-          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="character-kicker">ABILITY TREE</p><h2 id="perks-heading" className="mt-1 font-display text-xl font-bold text-white">Choose your perks</h2><p className="mt-1 text-xs text-slate-400">Shape how your learning adventure feels.</p></div><div className="character-points-badge"><span>{sheet.available_perk_points}</span> points available</div></div>
+          <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="character-kicker">ABILITY TREE</p><h2 id="perks-heading" className="mt-1 font-display text-xl font-bold text-white">Choose your perks</h2><p className={`mt-1 text-xs ${MUTED}`}>Shape how your learning adventure feels.</p></div><div className="character-points-badge"><span>{sheet.available_perk_points}</span> points available</div></div>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {sheet.perks.map((perk, index) => {
               const available = sheet.available_perk_points >= perk.cost;
               const unlocked = unlockedPerks.has(perk.id);
-              return <article key={perk.id} className={`character-perk-card ${unlocked ? "character-perk-unlocked" : ""}`}><div className="flex items-start gap-3"><div className={`character-perk-node ${unlocked ? "character-perk-node-unlocked" : ""}`}><span>{unlocked ? "✓" : String(index + 1).padStart(2, "0")}</span></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><h3 className="text-sm font-semibold text-slate-100">{perk.title}</h3><span className={`text-[10px] font-semibold uppercase tracking-wider ${unlocked ? "text-emerald-300" : "text-slate-600"}`}>{unlocked ? "Active" : `Cost ${perk.cost}`}</span></div><p className="mt-1 text-xs leading-relaxed text-slate-400">{perk.description}</p></div></div>{!unlocked && <button type="button" disabled={busy || !available} onClick={() => void unlock(perk.id)} className={`mt-4 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${available ? "border-violet-400/40 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20" : "cursor-not-allowed border-slate-800 bg-slate-950 text-slate-600"} ${FOCUS_RING}`}>{available ? "Unlock ability" : "Locked · level up to earn a point"}</button>}</article>;
+              return <article key={perk.id} className={`character-perk-card ${unlocked ? "character-perk-unlocked" : ""}`}><div className="flex items-start gap-3"><div className={`character-perk-node ${unlocked ? "character-perk-node-unlocked" : ""}`}><span>{unlocked ? "✓" : String(index + 1).padStart(2, "0")}</span></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><h3 className="text-sm font-semibold text-slate-100">{perk.title}</h3><span className={`text-tiny font-semibold uppercase tracking-wider ${unlocked ? "text-emerald-300" : "text-slate-600"}`}>{unlocked ? "Active" : `Cost ${perk.cost}`}</span></div><p className={`mt-1 text-xs leading-relaxed ${MUTED}`}>{perk.description}</p></div></div>{!unlocked && <button type="button" disabled={busy || !available} onClick={() => void unlock(perk.id)} className={`mt-4 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition ${available ? "border-violet-400/40 bg-violet-500/10 text-violet-200 hover:bg-violet-500/20" : "cursor-not-allowed border-slate-800 bg-slate-950 text-slate-600"} ${FOCUS_RING}`}>{available ? "Unlock ability" : "Locked · level up to earn a point"}</button>}</article>;
             })}
           </div>
         </section>
@@ -406,12 +406,12 @@ export default function CharacterPage() {
         <section className="character-panel" aria-labelledby="achievements-heading">
           <div className="flex items-start justify-between gap-3"><div><p className="character-kicker">TROPHY CASE</p><h2 id="achievements-heading" className="mt-1 font-display text-xl font-bold text-white">Achievements</h2></div><span className="text-2xl text-amber-300" aria-hidden>✦</span></div>
           <div className="mt-6 space-y-3">
-            {sheet.achievements.map((achievement) => { const percent = achievement.target > 0 ? Math.min(100, Math.round((achievement.progress / achievement.target) * 100)) : 0; return <article key={achievement.id} className={`character-achievement ${achievement.unlocked ? "character-achievement-unlocked" : ""}`}><div className="flex items-start gap-3"><div className={`character-achievement-icon ${achievement.unlocked ? "character-achievement-icon-unlocked" : ""}`}>{achievement.unlocked ? "✓" : "◇"}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-slate-100">{achievement.title}</h3><span className={`text-[10px] font-semibold ${achievement.unlocked ? "text-emerald-300" : "text-slate-500"}`}>{achievement.unlocked ? "Earned" : `${achievement.progress}/${achievement.target}`}</span></div><p className="mt-1 text-[11px] leading-relaxed text-slate-400">{achievement.description}</p>{!achievement.unlocked && <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-amber-400" style={{ width: `${percent}%` }} /></div>}</div></div></article>; })}
+            {sheet.achievements.map((achievement) => { const percent = achievement.target > 0 ? Math.min(100, Math.round((achievement.progress / achievement.target) * 100)) : 0; return <article key={achievement.id} className={`character-achievement ${achievement.unlocked ? "character-achievement-unlocked" : ""}`}><div className="flex items-start gap-3"><div className={`character-achievement-icon ${achievement.unlocked ? "character-achievement-icon-unlocked" : ""}`}>{achievement.unlocked ? "✓" : "◇"}</div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-slate-100">{achievement.title}</h3><span className={`text-tiny font-semibold ${achievement.unlocked ? "text-emerald-300" : "text-slate-500"}`}>{achievement.unlocked ? "Earned" : `${achievement.progress}/${achievement.target}`}</span></div><p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>{achievement.description}</p>{!achievement.unlocked && <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-800"><div className="h-full rounded-full bg-amber-400" style={{ width: `${percent}%` }} /></div>}</div></div></article>; })}
           </div>
         </section>
       </div>
 
-      <section className="character-next-step mt-5 flex flex-col gap-4 rounded-2xl border border-sky-500/20 bg-sky-950/20 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"><div className="flex items-center gap-4"><div className="character-next-icon">→</div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">Next mission</p><h2 className="mt-1 font-display text-lg font-bold text-white">Keep the arc moving.</h2><p className="mt-1 text-xs text-slate-400">Drill a skill or rescue one that is starting to fade.</p></div></div><div className="flex flex-wrap gap-2"><Link href="/quests" className={BUTTON_PRIMARY}>Open quests</Link><Link href="/courses" className={BUTTON_SECONDARY}>View courses</Link></div></section>
+      <section className="character-next-step mt-5 flex flex-col gap-4 rounded-2xl border border-sky-500/20 bg-sky-950/20 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"><div className="flex items-center gap-4"><div className="character-next-icon">→</div><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300">Next mission</p><h2 className="mt-1 font-display text-lg font-bold text-white">Keep the arc moving.</h2><p className={`mt-1 text-xs ${MUTED}`}>Drill a skill or rescue one that is starting to fade.</p></div></div><div className="flex flex-wrap gap-2"><Link href="/quests" className={BUTTON_PRIMARY}>Open quests</Link><Link href="/courses" className={BUTTON_SECONDARY}>View courses</Link></div></section>
     </main>
   );
 }

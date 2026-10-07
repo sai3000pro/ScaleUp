@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { CurriculumCandidate, CurriculumProposal, CurriculumVersion } from "@/lib/types";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 
 function safeUrl(value: string): string | null {
   try {
@@ -304,7 +304,7 @@ export function CurriculumPlanner({
   return (
     <section className={CARD} aria-labelledby="curriculum-planner-heading">
       <h2 id="curriculum-planner-heading" className="font-display text-sm font-semibold">Plan from the web</h2>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className={`mt-1 text-xs ${MUTED}`}>
         Describe what you want to master. Review and approve sources before they become evidence for this RPG skill tree.
       </p>
 
@@ -324,7 +324,7 @@ export function CurriculumPlanner({
             {busy === "search" ? "Searching…" : "Propose"}
           </button>
         </div>
-        <label htmlFor="campaignOutcome" className="block text-[10px] text-slate-400">
+        <label htmlFor="campaignOutcome" className={`block text-tiny ${MUTED}`}>
           Victory condition <span className="text-slate-500">(optional)</span>
           <input
             id="campaignOutcome"
@@ -337,7 +337,7 @@ export function CurriculumPlanner({
           />
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="block text-[10px] text-slate-400">
+          <label className={`block text-tiny ${MUTED}`}>
             What do you already know? <span className="text-slate-500">(optional)</span>
             <textarea
               className={`${INPUT} mt-1 min-h-16 resize-y`}
@@ -348,7 +348,7 @@ export function CurriculumPlanner({
               disabled={busy !== null}
             />
           </label>
-          <label className="block text-[10px] text-slate-400">
+          <label className={`block text-tiny ${MUTED}`}>
             Where will you use it? <span className="text-slate-500">(optional)</span>
             <textarea
               className={`${INPUT} mt-1 min-h-16 resize-y`}
@@ -361,7 +361,7 @@ export function CurriculumPlanner({
           </label>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <label className="text-[10px] text-slate-400">
+          <label className={`text-tiny ${MUTED}`}>
             Level
             <select
               value={level}
@@ -374,7 +374,7 @@ export function CurriculumPlanner({
               <option value="advanced">Advanced</option>
             </select>
           </label>
-          <label className="text-[10px] text-slate-400">
+          <label className={`text-tiny ${MUTED}`}>
             Minutes / week
             <select
               value={weeklyMinutes}
@@ -388,7 +388,7 @@ export function CurriculumPlanner({
               <option value={600}>600</option>
             </select>
           </label>
-          <label className="text-[10px] text-slate-400">
+          <label className={`text-tiny ${MUTED}`}>
             Format
             <select
               value={format}
@@ -410,20 +410,20 @@ export function CurriculumPlanner({
           <div className="flex items-baseline justify-between gap-2">
             <div>
               <p className="text-xs font-semibold text-slate-200">Sources for “{proposal.goal}”</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">
+              <p className="mt-0.5 text-tiny text-slate-500">
                 v{proposal.proposal_version} · {proposal.learner_level} · {proposal.weekly_minutes} min/week · {proposal.format_preference} · {proposal.provider}
               </p>
               {proposal.prior_knowledge && (
-                <p className="mt-1 text-[10px] text-slate-400">Starting knowledge: {proposal.prior_knowledge}</p>
+                <p className={`mt-1 text-tiny ${MUTED}`}>Starting knowledge: {proposal.prior_knowledge}</p>
               )}
               {proposal.application_context && (
-                <p className="mt-1 text-[10px] text-slate-400">Application: {proposal.application_context}</p>
+                <p className={`mt-1 text-tiny ${MUTED}`}>Application: {proposal.application_context}</p>
               )}
               {proposal.target_outcome && (
-                <p className="mt-1 text-[10px] text-violet-300">Victory condition: {proposal.target_outcome}</p>
+                <p className="mt-1 text-tiny text-violet-300">Victory condition: {proposal.target_outcome}</p>
               )}
             </div>
-            <span className="text-[10px] text-slate-400">{selectedIds.size} selected</span>
+            <span className={`text-tiny ${MUTED}`}>{selectedIds.size} selected</span>
           </div>
 
           <ul className="mt-2 space-y-2" aria-label="Proposed web sources">
@@ -452,18 +452,18 @@ export function CurriculumPlanner({
                       ) : (
                         <span className="font-display text-xs font-semibold text-slate-300">{source.title}</span>
                       )}
-                      <span className="mt-0.5 block text-[10px] text-slate-500">
+                      <span className="mt-0.5 block text-tiny text-slate-500">
                         {source.domain} · {Math.round(source.quality_score * 100)}% fit · found via {source.discovery_angle}
                       </span>
                       {source.quality_reasons.length > 0 && (
-                        <span className="mt-1 block text-[10px] text-slate-500">
+                        <span className="mt-1 block text-tiny text-slate-500">
                           {source.quality_reasons.join(" · ")}
                         </span>
                       )}
-                      <span className={`mt-1 block text-[10px] ${source.policy_status === "blocked" ? "text-rose-300" : "text-amber-300"}`}>
+                      <span className={`mt-1 block text-tiny ${source.policy_status === "blocked" ? "text-rose-300" : "text-amber-300"}`}>
                         {source.policy_status === "blocked" ? "Policy blocked" : "Policy review required"}: {source.policy_reasons.join(" · ")}
                       </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[10px]">
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 text-tiny">
                         <a
                           href={safeUrl(source.robots_url) ?? undefined}
                           target="_blank"
@@ -489,14 +489,14 @@ export function CurriculumPlanner({
                           {busy === "policy" ? "Checking…" : "Check now"}
                         </button>
                       </span>
-                      <span className="mt-1 block text-[10px] text-slate-500">
+                      <span className="mt-1 block text-tiny text-slate-500">
                         Robots: {source.robots_status} · License: {source.license_status}
                         {source.policy_checked_at ? ` · checked ${new Date(source.policy_checked_at).toLocaleString()}` : ""}
                       </span>
-                      {source.snippet && <span className="mt-1 block text-[11px] leading-relaxed text-slate-400">{source.snippet}</span>}
+                      {source.snippet && <span className={`mt-1 block text-mini leading-relaxed ${MUTED}`}>{source.snippet}</span>}
                     </span>
                   </label>
-                  {source.ingest_error && <p className="mt-1 text-[10px] text-rose-400">{source.ingest_error}</p>}
+                  {source.ingest_error && <p className="mt-1 text-tiny text-rose-400">{source.ingest_error}</p>}
                 </li>
               );
             })}
@@ -505,31 +505,31 @@ export function CurriculumPlanner({
           <section className="mt-3 rounded-lg border border-violet-900/60 bg-violet-950/10 p-3" aria-labelledby="campaign-map-heading">
             <div className="flex items-baseline justify-between gap-2">
               <h3 id="campaign-map-heading" className="font-display text-xs font-semibold text-violet-100">Campaign map preview</h3>
-              <span className="text-[10px] text-slate-500">planning beats, not generated nodes</span>
+              <span className="text-tiny text-slate-500">planning beats, not generated nodes</span>
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+            <p className={`mt-1 text-tiny leading-relaxed ${MUTED}`}>
               This is the adventure shape suggested by your context. The actual skills, branches, and prerequisite edges are extracted from the approved source text.
             </p>
             <ol className="mt-3 grid gap-2 sm:grid-cols-3">
               {phases.map((phase, index) => (
                 <li key={phase.label} className="relative rounded-md border border-violet-900/50 bg-slate-950/40 p-2">
-                  <span className="text-[10px] font-semibold text-violet-300">Stage {index + 1}</span>
-                  <span className="mt-1 block text-[11px] font-semibold text-slate-200">{phase.label}</span>
-                  <span className="mt-1 block text-[10px] leading-relaxed text-slate-500">{phase.description}</span>
+                  <span className="text-tiny font-semibold text-violet-300">Stage {index + 1}</span>
+                  <span className="mt-1 block text-mini font-semibold text-slate-200">{phase.label}</span>
+                  <span className="mt-1 block text-tiny leading-relaxed text-slate-500">{phase.description}</span>
                 </li>
               ))}
             </ol>
-            <p className="mt-2 text-[10px] text-slate-500">
+            <p className="mt-2 text-tiny text-slate-500">
               {selectedSourceCount} selected source{selectedSourceCount === 1 ? "" : "s"} across {selectedDomainCount} domain{selectedDomainCount === 1 ? "" : "s"}. More diverse approved evidence can produce a richer tree.
             </p>
             {proposal.target_outcome && (
-              <p className="mt-1 text-[10px] font-semibold text-violet-300">Final objective: {proposal.target_outcome}</p>
+              <p className="mt-1 text-tiny font-semibold text-violet-300">Final objective: {proposal.target_outcome}</p>
             )}
           </section>
 
           {proposal.status === "draft" && (
             <>
-              <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-900/60 bg-amber-950/20 p-2 text-[10px] text-amber-200">
+              <label className="mt-3 flex items-start gap-2 rounded-lg border border-amber-900/60 bg-amber-950/20 p-2 text-tiny text-amber-200">
                 <input
                   type="checkbox"
                   checked={policyAcknowledged}
@@ -569,12 +569,12 @@ export function CurriculumPlanner({
 
       <section className="mt-5 border-t border-slate-800 pt-4" aria-labelledby="curriculum-review-heading">
         <h3 id="curriculum-review-heading" className="font-display text-xs font-semibold">Review curriculum versions</h3>
-        <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+        <p className={`mt-1 text-tiny leading-relaxed ${MUTED}`}>
           Candidate prerequisites stay inert until reviewed and published. Evidence counts show whether a source quote backs each proposed link.
         </p>
         {versions.length > 0 ? (
           <>
-            <label htmlFor="curriculum-version" className="mt-2 block text-[10px] text-slate-400">Version</label>
+            <label htmlFor="curriculum-version" className={`mt-2 block text-tiny ${MUTED}`}>Version</label>
             <select
               id="curriculum-version"
               value={selectedVersionId ?? ""}
@@ -588,16 +588,16 @@ export function CurriculumPlanner({
               ))}
             </select>
             {selectedVersion && (
-              <p className="mt-1 text-[10px] text-slate-500">
+              <p className="mt-1 text-tiny text-slate-500">
                 {selectedVersion.instrument} · {selectedVersion.node_count} skills · {selectedVersion.candidate_count} accepted · {selectedVersion.rejected_count} rejected
               </p>
             )}
             {candidates.length > 0 ? (
               <ul className="mt-2 space-y-2" aria-label="Prerequisite candidates">
                 {candidates.map((candidate) => (
-                  <li key={candidate.id} className="rounded-md border border-slate-800 bg-slate-950/60 p-2 text-[10px]">
+                  <li key={candidate.id} className="rounded-md border border-slate-800 bg-slate-950/60 p-2 text-tiny">
                     <p className="font-medium text-slate-200">{candidate.prereq} → {candidate.target}</p>
-                    <p className="mt-0.5 text-slate-400">
+                    <p className={`mt-0.5 ${MUTED}`}>
                       {candidate.status} · {Math.round(candidate.confidence * 100)}% confidence · {candidate.support} support · {candidate.evidence_count} evidence quote{candidate.evidence_count === 1 ? "" : "s"}
                     </p>
                     {candidate.rationale && <p className="mt-1 text-slate-500">{candidate.rationale}</p>}
@@ -610,13 +610,13 @@ export function CurriculumPlanner({
                     {candidate.rejection_reason && <p className="mt-1 text-rose-300">Compiler rejection: {candidate.rejection_reason}</p>}
                     {(candidate.status === "draft" || candidate.status === "ambiguous") && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "accepted")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "accepted")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-tiny`}>
                           Accept
                         </button>
-                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "rejected")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "rejected")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-tiny`}>
                           Reject
                         </button>
-                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "ambiguous")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-[10px]`}>
+                        <button type="button" onClick={() => void reviewCandidate(candidate.id, "ambiguous")} disabled={reviewBusyId !== null} className={`${BUTTON_SECONDARY} px-2 py-1 text-tiny`}>
                           Keep ambiguous
                         </button>
                       </div>
@@ -624,7 +624,7 @@ export function CurriculumPlanner({
                   </li>
                 ))}
               </ul>
-            ) : <p className="mt-2 text-[10px] text-slate-500">No prerequisite candidates in this version.</p>}
+            ) : <p className="mt-2 text-tiny text-slate-500">No prerequisite candidates in this version.</p>}
             <button
               type="button"
               onClick={() => void publishReviewedVersion()}
@@ -634,7 +634,7 @@ export function CurriculumPlanner({
               {reviewBusyId === "publish" ? "Publishing…" : reviewPending ? "Review all candidates to publish" : "Publish reviewed curriculum"}
             </button>
           </>
-        ) : <p className="mt-2 text-[10px] text-slate-500">No curriculum versions yet.</p>}
+        ) : <p className="mt-2 text-tiny text-slate-500">No curriculum versions yet.</p>}
         {reviewNotice && <p className="mt-2 text-xs text-slate-300">{reviewNotice}</p>}
         {reviewError && <p role="alert" className="mt-2 text-xs text-rose-400">{reviewError}</p>}
       </section>

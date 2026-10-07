@@ -930,14 +930,14 @@ export function SkillRealm3D({
             {traversalNotice.message}
           </p>
           {traversalNotice.currentTitle && (
-            <p className="mt-1 text-[10px] text-graph-learning">
+            <p className="mt-1 text-tiny text-graph-learning">
               Current lesson: {traversalNotice.currentTitle}
             </p>
           )}
           <button
             type="button"
             onClick={() => setTraversalNotice(null)}
-            className={`mt-2 rounded-md border border-graph-line bg-graph-raised px-2.5 py-1 text-[11px] font-semibold text-graph-ink ${FOCUS_RING}`}
+            className={`mt-2 rounded-md border border-graph-line bg-graph-raised px-2.5 py-1 text-mini font-semibold text-graph-ink ${FOCUS_RING}`}
           >
             Close
           </button>
@@ -978,7 +978,7 @@ export function SkillRealm3D({
               }}
               aria-label={`${card.badge === "previous" ? "Previous lesson" : card.badge === "next" ? "Next lesson" : "Test"} ${card.title}. ${card.desc} ${card.status}. ${card.progress}`}
             >
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-graph-ink-quiet">
+              <span className="block text-micro font-bold uppercase tracking-wider text-graph-ink-quiet">
                 {card.badge === "previous"
                   ? "▲ Previous"
                   : card.badge === "next"
@@ -988,16 +988,16 @@ export function SkillRealm3D({
               <span className="mt-0.5 block truncate font-display text-xs font-semibold text-graph-ink">
                 {card.title}
               </span>{" "}
-              <span className="mt-1 block line-clamp-2 text-[10px] leading-snug text-graph-ink-quiet">
+              <span className="mt-1 block line-clamp-2 text-tiny leading-snug text-graph-ink-quiet">
                 {card.desc}
               </span>
               <span
-                className="mt-1.5 block text-[10px] font-semibold"
+                className="mt-1.5 block text-tiny font-semibold"
                 style={{ color: card.accent }}
               >
                 {card.status}
               </span>
-              <span className="mt-1 block text-[10px] leading-snug text-graph-ink-quiet">
+              <span className="mt-1 block text-tiny leading-snug text-graph-ink-quiet">
                 {card.progress}
               </span>
             </button>
@@ -1009,7 +1009,7 @@ export function SkillRealm3D({
         <p className="font-display text-sm font-semibold text-graph-ink">
           {realm.node_title}
         </p>
-        <p className="mt-1 text-[11px] leading-snug text-graph-ink-quiet">
+        <p className="mt-1 text-mini leading-snug text-graph-ink-quiet">
           {realm.test_open
             ? "Every lesson cleared. Pass the test to master this skill."
             : `Lesson ${realm.open_step ?? 1} of ${realm.lessons.length}. Clear them all to open the test.`}
@@ -1029,7 +1029,7 @@ export function SkillRealm3D({
         </button>
       </div>
 
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-graph-ink-quiet">
+      <p className="pointer-events-none absolute bottom-3 left-3 text-mini text-graph-ink-quiet">
         Right-drag to look around · click a lesson for details · double-click to
         step to an unlocked neighbour
       </p>
@@ -1044,7 +1044,7 @@ export function SkillRealm3D({
             aria-labelledby="lesson-confirm-title"
             className="w-full max-w-sm rounded-xl border border-graph-line bg-graph-surface p-5 shadow-lg"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-graph-learning">
+            <p className="text-tiny font-semibold uppercase tracking-wider text-graph-learning">
               Lesson {pending.step} of {realm.lessons.length}
             </p>
             <h3
@@ -1057,13 +1057,13 @@ export function SkillRealm3D({
               {pending.instructions}
             </p>
             {pending.cleared && (
-              <p className="mt-2 text-[11px] text-graph-ink-quiet">
+              <p className="mt-2 text-mini text-graph-ink-quiet">
                 Already cleared at {Math.round((pending.best_score ?? 0) * 100)}
                 %. Playing it again can only help.
               </p>
             )}
             {!pendingCanStart && (
-              <p className="mt-2 text-[11px] text-graph-decaying">
+              <p className="mt-2 text-mini text-graph-decaying">
                 Complete the previous lesson before starting this lesson.
               </p>
             )}

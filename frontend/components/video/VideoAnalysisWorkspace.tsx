@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 import {
   appendVisualFrame,
   isSupportedSelectedVideo,
@@ -45,7 +45,7 @@ const STATUS_COPY: Record<AnalysisStatus, string> = {
 const STATUS_COLOR: Record<string, string> = {
   good: "text-emerald-300",
   needs_attention: "text-amber-300",
-  low_confidence: "text-slate-400",
+  low_confidence: `${MUTED}`,
   not_detected: "text-slate-500",
 };
 
@@ -252,18 +252,18 @@ export function VideoAnalysisWorkspace() {
 
   return (
     <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 outline-none">
-      <Link href="/courses" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
+      <Link href="/courses" className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}>
         ← Back to courses
       </Link>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Video technique analysis</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-400">
+          <p className={`mt-1 max-w-2xl text-sm leading-relaxed ${MUTED}`}>
             Select an MP4 and run hand plus body analysis locally. The video and its audio track are never
             uploaded or scored; only timestamped visual metrics exist outside the player.
           </p>
         </div>
-        <span className="w-fit rounded-full border border-violet-900/60 bg-violet-950/30 px-3 py-1 text-[11px] text-violet-300">
+        <span className="w-fit rounded-full border border-violet-900/60 bg-violet-950/30 px-3 py-1 text-mini text-violet-300">
           VIDEO ONLY
         </span>
       </div>
@@ -286,7 +286,7 @@ export function VideoAnalysisWorkspace() {
                   </option>
                 ))}
               </select>
-              <span className="mt-1 block text-[10px] text-slate-500">
+              <span className="mt-1 block text-tiny text-slate-500">
                 Only this skill&apos;s declared visual requirements affect the final verdict.
               </span>
             </label>
@@ -302,7 +302,7 @@ export function VideoAnalysisWorkspace() {
             </label>
           </div>
 
-          <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/15 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
+          <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/15 px-3 py-2 text-mini leading-relaxed text-amber-200/80">
             <strong className="font-semibold text-amber-300">MVP calibration:</strong> these visual bars are lighter demo defaults,
             not teacher-validated technique standards. The verdict requires {Math.round(selectedProfile.coverageFloor * 100)}% visible evidence,
             {` ${Math.round(selectedProfile.overallPassFloor * 100)}%`} overall, and {Math.round(selectedProfile.requirements[0].passFloor * 100)}% per critical requirement.
@@ -357,7 +357,7 @@ export function VideoAnalysisWorkspace() {
           </div>
 
           <div className="mt-4" aria-live="polite">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div className={`flex items-center justify-between text-mini ${MUTED}`}>
               <span>{STATUS_COPY[status]}</span>
               <span>{formatTime(currentTimeMs)} / {formatTime(durationMs)}</span>
             </div>
@@ -371,19 +371,19 @@ export function VideoAnalysisWorkspace() {
           <section className={CARD} aria-labelledby="live-feedback-heading">
             <h2 id="live-feedback-heading" className="font-display text-sm font-semibold">2. Current visual feedback</h2>
             {latestFrame === null ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">Feedback will appear as timestamped frames are analysed.</p>
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>Feedback will appear as timestamped frames are analysed.</p>
             ) : (
               <>
-                <p className="mt-1 text-[11px] text-slate-500">At {formatTime(latestFrame.timestampMs)}</p>
+                <p className="mt-1 text-mini text-slate-500">At {formatTime(latestFrame.timestampMs)}</p>
                 <ul className="mt-3 space-y-2">
                   {latestFrame.metrics.map((metric) => (
-                    <li key={metric.key} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-[11px]">
+                    <li key={metric.key} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-mini">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium capitalize text-slate-200">{metric.key.replace(/_/g, " ")}</span>
                         <span className={STATUS_COLOR[metric.status]}>{metric.status.replace(/_/g, " ")}</span>
                       </div>
-                      <p className="mt-1 leading-relaxed text-slate-400">{metric.explanation}</p>
-                      <p className="mt-1 text-[10px] text-slate-500">confidence {Math.round(metric.confidence * 100)}%</p>
+                      <p className={`mt-1 leading-relaxed ${MUTED}`}>{metric.explanation}</p>
+                      <p className="mt-1 text-tiny text-slate-500">confidence {Math.round(metric.confidence * 100)}%</p>
                     </li>
                   ))}
                 </ul>
@@ -395,29 +395,29 @@ export function VideoAnalysisWorkspace() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="summary-heading" className="font-display text-sm font-semibold">3. Final skill verdict</h2>
-                <p className="mt-1 text-[11px] capitalize text-slate-500">
+                <p className="mt-1 text-mini capitalize text-slate-500">
                   {selectedProfile.title} · {selectedProfile.instrument}
                 </p>
               </div>
               {status === "completed" && (
-                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${OUTCOME_COLOR[assessment.outcome]}`}>
+                <span className={`rounded-full border px-2.5 py-1 text-tiny font-semibold uppercase tracking-wide ${OUTCOME_COLOR[assessment.outcome]}`}>
                   {OUTCOME_COPY[assessment.outcome]}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
+            <p className="mt-1 text-mini text-slate-500">
               {summary.frameCount} sampled frames · {summary.measuredFrameCount} with countable visual evidence
             </p>
             {status !== "completed" ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
                 Play the complete video to produce a take-level verdict.
               </p>
             ) : assessment.outcome === "insufficient_evidence" ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
                 The camera did not provide enough trustworthy evidence for every required metric. Reframe the player and instrument, then retry.
               </p>
             ) : (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
                 {assessment.outcome === "pass"
                   ? "The full-window aggregate met the overall bar and every critical requirement."
                   : "The video was measurable, but the aggregate or a critical requirement remained below its bar."}
@@ -427,19 +427,19 @@ export function VideoAnalysisWorkspace() {
               <>
                 <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs">
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Overall score</dt>
+                    <dt className="text-tiny uppercase tracking-wide text-slate-500">Overall score</dt>
                     <dd className="mt-1 font-semibold text-slate-200">
                       {assessment.overallScore === null ? "Not graded" : `${Math.round(assessment.overallScore * 100)}%`}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Evidence coverage</dt>
+                    <dt className="text-tiny uppercase tracking-wide text-slate-500">Evidence coverage</dt>
                     <dd className="mt-1 font-semibold text-slate-200">{Math.round(assessment.evidenceCoverage * 100)}%</dd>
                   </div>
                 </dl>
                 <ul className="mt-3 space-y-2">
                   {assessment.requirements.map((requirement) => (
-                    <li key={requirement.metricKey} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-[11px]">
+                    <li key={requirement.metricKey} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-mini">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-slate-200">
                           {requirement.label}{requirement.critical ? " · critical" : ""}
@@ -449,14 +449,14 @@ export function VideoAnalysisWorkspace() {
                             ? "text-emerald-300"
                             : requirement.passState === "retry"
                               ? "text-amber-300"
-                              : "text-slate-400"
+                              : `${MUTED}`
                         }>
                           {requirement.passState === "insufficient_evidence"
                             ? "not measured"
                             : `${Math.round((requirement.score as number) * 100)}%`}
                         </span>
                       </div>
-                      <p className="mt-1 text-[10px] text-slate-500">
+                      <p className="mt-1 text-tiny text-slate-500">
                         {Math.round(requirement.coverage * 100)}% coverage
                         {requirement.goodFrameRatio === null ? "" : ` · ${Math.round(requirement.goodFrameRatio * 100)}% good frames`}
                         {` · ${requirement.corrections.length} correction period${requirement.corrections.length === 1 ? "" : "s"}`}
@@ -474,21 +474,21 @@ export function VideoAnalysisWorkspace() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <h2 id="timeline-heading" className="font-display text-sm font-semibold">Technique timeline</h2>
-            <p className="mt-1 text-[11px] text-slate-500">Adjacent frames with the same correction are grouped into one event.</p>
+            <p className="mt-1 text-mini text-slate-500">Adjacent frames with the same correction are grouped into one event.</p>
           </div>
-          <span className="text-[11px] text-slate-500">{summary.highlights.length} corrections</span>
+          <span className="text-mini text-slate-500">{summary.highlights.length} corrections</span>
         </div>
         {summary.highlights.length === 0 ? (
-          <p className="mt-4 text-xs text-slate-400">No countable corrections have been observed.</p>
+          <p className={`mt-4 text-xs ${MUTED}`}>No countable corrections have been observed.</p>
         ) : (
           <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {summary.highlights.map((highlight, index) => (
               <li key={`${highlight.key}-${highlight.startMs}-${index}`} className="rounded-lg border border-amber-900/50 bg-amber-950/10 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                <p className="text-tiny font-semibold uppercase tracking-wide text-amber-300">
                   {formatTime(highlight.startMs)}{highlight.endMs > highlight.startMs ? `–${formatTime(highlight.endMs)}` : ""}
                 </p>
                 <p className="mt-1 text-xs font-medium capitalize text-slate-200">{highlight.key.replace(/_/g, " ")}</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{highlight.explanation}</p>
+                <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>{highlight.explanation}</p>
               </li>
             ))}
           </ol>

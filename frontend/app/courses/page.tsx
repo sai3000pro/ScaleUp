@@ -7,10 +7,10 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { learnerCourses, prebuiltCourses } from "@/lib/courses";
 import type { Course, CourseStatus, KnownCourseStatus } from "@/lib/types";
-import { BUTTON_PRIMARY, CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { BUTTON_PRIMARY, CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 
 const STATUS_STYLE: Record<KnownCourseStatus, string> = {
-  draft: "bg-slate-800 text-slate-400",
+  draft: `bg-slate-800 ${MUTED}`,
   ingesting: "bg-sky-500/15 text-sky-300",
   ready: "bg-emerald-500/15 text-emerald-300",
   failed: "bg-rose-500/15 text-rose-300",
@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<KnownCourseStatus, string> = {
 // literal text "undefined" into the className for any status added after this
 // build, which renders an unstyled, invisible badge.
 function statusStyle(status: CourseStatus): string {
-  return STATUS_STYLE[status as KnownCourseStatus] ?? "bg-slate-800 text-slate-400";
+  return STATUS_STYLE[status as KnownCourseStatus] ?? `bg-slate-800 ${MUTED}`;
 }
 
 // The learner's own trees are what they came for; the ready-made ones are a way
@@ -98,7 +98,7 @@ export default function CoursesPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-xl font-semibold tracking-tight">Your courses</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className={`mt-1 text-sm ${MUTED}`}>
             Each campaign is an RPG skill tree: learn skills, unlock prerequisites, earn EXP, and defeat decay with quests.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function CoursesPage() {
           <h2 id="start-campaign-heading" className="font-display text-sm font-semibold text-sky-100">
             Start a skill campaign
           </h2>
-          <p className="mt-1 max-w-2xl text-xs text-slate-400">
+          <p className={`mt-1 max-w-2xl text-xs ${MUTED}`}>
             Choose an instrument and a learning goal. Shared skills like reading, pulse and phrasing come
             from the same catalogue every instrument draws on, so what you learn here counts everywhere.
           </p>
@@ -182,11 +182,11 @@ export default function CoursesPage() {
             className={`-mb-px border-b-2 px-3 py-2 text-sm transition ${FOCUS_RING} ${
               shelf === option.key
                 ? "border-sky-400 text-slate-100"
-                : "border-transparent text-slate-400 hover:text-slate-200"
+                : `border-transparent ${MUTED} hover:text-slate-200`
             }`}
           >
             {option.label}
-            <span className="ml-2 text-[11px] text-slate-500 tabular-nums">
+            <span className="ml-2 text-mini text-slate-500 tabular-nums">
               {option.key === "mine" ? mine.length : prebuilt.length}
             </span>
           </button>
@@ -194,13 +194,13 @@ export default function CoursesPage() {
       </div>
 
       {loading ? (
-        <p className="mt-8 text-sm text-slate-400">Loading…</p>
+        <p className={`mt-8 text-sm ${MUTED}`}>Loading…</p>
       ) : shown.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-slate-800 p-10 text-center">
           <p className="text-sm text-slate-300">
             {shelf === "mine" ? "No courses yet." : "Nothing prebuilt is available."}
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className={`mt-1 text-xs ${MUTED}`}>
             {shelf === "mine"
               ? "Name an instrument above and your skill tree is built now — or open a prebuilt course to start straight away."
               : "Run the seed to load the ready-made guitar and piano trees."}
@@ -217,15 +217,15 @@ export default function CoursesPage() {
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-display text-sm font-semibold">{course.title}</h2>
                   <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium ${statusStyle(course.status)}`}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-mini font-medium ${statusStyle(course.status)}`}
                   >
                     {course.status}
                   </span>
                 </div>
                 {course.description && (
-                  <p className="mt-1 line-clamp-2 text-xs text-slate-400">{course.description}</p>
+                  <p className={`mt-1 line-clamp-2 text-xs ${MUTED}`}>{course.description}</p>
                 )}
-                <p className="mt-3 text-[11px] text-slate-400">
+                <p className={`mt-3 text-mini ${MUTED}`}>
                   {course.node_count} skills · {course.edge_count} links · {course.mastered_count} mastered
                 </p>
               </Link>

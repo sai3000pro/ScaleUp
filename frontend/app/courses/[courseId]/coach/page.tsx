@@ -10,7 +10,7 @@ import { getAudioContext, playMetronomeClick, playMidiTone } from "@/lib/audioSy
 import { CoachSocket, type CoachCue, type CoachExercise, type CoachUtteranceState } from "@/lib/coachSocket";
 import { MicRecorder } from "@/lib/pitchDetection";
 import type { CoachLiveTipResponse, Course, Exercise, ExerciseNote, PerformanceAttempt, PerformedNote } from "@/lib/types";
-import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { usePostureStore } from "@/stores/usePostureStore";
 
@@ -49,7 +49,7 @@ export default function CoachingStudioPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-slate-950 p-8 text-center text-slate-400">
+        <main className={`min-h-screen bg-slate-950 p-8 text-center ${MUTED}`}>
           Loading coaching studio…
         </main>
       }
@@ -476,7 +476,7 @@ function CoachingStudioView() {
                 ← Back to Course
               </Link>
               <span className="text-slate-600">/</span>
-              <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">
+              <span className={`text-xs uppercase tracking-wider ${MUTED} font-medium`}>
                 Live Coaching Studio
               </span>
             </div>
@@ -513,7 +513,7 @@ function CoachingStudioView() {
         )}
 
         {loading ? (
-          <div className={`${CARD} p-12 text-center text-slate-400`}>
+          <div className={`${CARD} p-12 text-center ${MUTED}`}>
             <p className="animate-pulse">Loading coaching studio…</p>
           </div>
         ) : (
@@ -526,7 +526,7 @@ function CoachingStudioView() {
                   {/* Exercise Header & Selector */}
                   <div className={CARD}>
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <label className={`block text-xs font-semibold uppercase tracking-wider ${MUTED}`}>
                         Choose Exercise / Drill
                       </label>
                       <select
@@ -549,7 +549,7 @@ function CoachingStudioView() {
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                         <div>
                           <h2 className="text-xl font-bold text-slate-100">{selectedExercise.title}</h2>
-                          <p className="text-xs text-slate-400 mt-0.5">
+                          <p className={`text-xs ${MUTED} mt-0.5`}>
                             Target Score: {selectedExercise.score_title}
                           </p>
                         </div>
@@ -564,7 +564,7 @@ function CoachingStudioView() {
                       </div>
 
                       <div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                        <h3 className={`text-xs font-semibold uppercase tracking-wider ${MUTED} mb-1`}>
                           Playing Instructions
                         </h3>
                         <p className="text-sm leading-relaxed text-slate-200 bg-slate-900/60 p-3 rounded-lg border border-slate-800/60">
@@ -582,12 +582,12 @@ function CoachingStudioView() {
                         <h3 className="font-display text-base font-bold text-slate-100 flex items-center gap-2">
                           <span>⏱️ Drill Tempo & Metronome</span>
                           {customBpm !== null && customBpm !== selectedExercise.tempo_bpm && (
-                            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
+                            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-tiny font-bold text-rose-300 border border-rose-500/30">
                               Custom Tempo
                             </span>
                           )}
                         </h3>
-                        <p className="text-xs text-slate-400">
+                        <p className={`text-xs ${MUTED}`}>
                           Adjust the tempo slider to slow down for practice or speed up as you master the exercise.
                         </p>
                       </div>
@@ -602,7 +602,7 @@ function CoachingStudioView() {
                         </button>
                         <div className="flex items-baseline gap-1 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-1 text-rose-200 font-mono font-black text-lg shadow-inner">
                           <span>{tempoBpm}</span>
-                          <span className="text-[10px] font-sans font-bold text-rose-400">BPM</span>
+                          <span className="text-tiny font-sans font-bold text-rose-400">BPM</span>
                         </div>
                         <button
                           type="button"
@@ -618,7 +618,7 @@ function CoachingStudioView() {
                     <div className="space-y-4 rounded-xl bg-slate-950/80 border border-slate-800 p-4">
                       {/* Range Slider */}
                       <div className="space-y-1.5">
-                        <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                        <div className={`flex justify-between text-mini font-mono ${MUTED}`}>
                           <span>30 BPM (Slow Practice)</span>
                           <span className="font-bold text-slate-300">{(60 / tempoBpm).toFixed(2)}s per beat</span>
                           <span>180 BPM (Presto)</span>
@@ -636,7 +636,7 @@ function CoachingStudioView() {
 
                       {/* Quick Preset Buttons */}
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1">
+                        <span className={`text-mini font-semibold uppercase tracking-wider ${MUTED} mr-1`}>
                           Presets:
                         </span>
                         {[
@@ -662,7 +662,7 @@ function CoachingStudioView() {
                           <button
                             type="button"
                             onClick={() => setCustomBpm(null)}
-                            className="ml-auto text-[11px] font-semibold text-slate-400 hover:text-rose-400 underline transition"
+                            className={`ml-auto text-mini font-semibold ${MUTED} hover:text-rose-400 underline transition`}
                           >
                             Reset ({selectedExercise.tempo_bpm} BPM)
                           </button>
@@ -676,11 +676,11 @@ function CoachingStudioView() {
                     <div className="mb-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-display text-base font-bold text-slate-100">Notes to Play</h3>
-                        <p className="text-xs text-slate-400">
+                        <p className={`text-xs ${MUTED}`}>
                           Click any note card to highlight its key and preview its tone before recording.
                         </p>
                       </div>
-                      <span className="text-xs text-slate-400 font-mono">
+                      <span className={`text-xs ${MUTED} font-mono`}>
                         {selectedExercise.notes?.length ?? 0} notes · {selectedExercise.duration_beats}{" "}
                         beats
                       </span>
@@ -711,7 +711,7 @@ function CoachingStudioView() {
                                 }
                               >
                                 <span
-                                  className={`text-[10px] font-mono ${
+                                  className={`text-tiny font-mono ${
                                     isSelected
                                       ? "text-rose-300 font-bold"
                                       : "text-slate-500 group-hover:text-rose-400"
@@ -728,11 +728,11 @@ function CoachingStudioView() {
                                 >
                                   {note.note_name}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
+                                <span className={`text-tiny ${MUTED}`}>
                                   Beat {note.onset_beats + 1}
                                 </span>
                                 {note.fret !== null && (
-                                  <span className="mt-1 text-[9px] text-rose-400 font-mono">
+                                  <span className="mt-1 text-micro text-rose-400 font-mono">
                                     Fret {note.fret}
                                   </span>
                                 )}
@@ -756,7 +756,7 @@ function CoachingStudioView() {
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-400">
+                      <div className={`rounded-xl border border-dashed border-slate-800 p-8 text-center text-xs ${MUTED}`}>
                         Follow the playing instructions at {tempoBpm} BPM.
                       </div>
                     )}
@@ -789,7 +789,7 @@ function CoachingStudioView() {
 
                     {/* Gemini Voice Selection */}
                     <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-950 p-2.5 border border-slate-800">
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <label className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}>
                         AI Coach Voice:
                       </label>
                       <select
@@ -819,7 +819,7 @@ function CoachingStudioView() {
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-400">Focus Area:</span>
+                        <span className={`font-semibold ${MUTED}`}>Focus Area:</span>
                         <span className="font-bold text-rose-300 rounded bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
                           {aiTip?.focus_area ?? "Ergonomics & Pacing"}
                         </span>
@@ -830,7 +830,7 @@ function CoachingStudioView() {
                       </p>
                       {aiTip?.suggested_action && (
                         <div className="rounded-lg bg-slate-900 p-2.5 border border-slate-800/80">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
+                          <span className="text-tiny font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
                             Actionable Cue
                           </span>
                           <p className="text-xs font-medium text-slate-300">{aiTip.suggested_action}</p>
@@ -889,7 +889,7 @@ function CoachingStudioView() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-300">🖥️ Live Stream Logs</span>
-                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                        <span className={`rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-tiny font-mono ${MUTED}`}>
                           {liveStreamLogs.length} events
                         </span>
                       </div>
@@ -903,12 +903,12 @@ function CoachingStudioView() {
                     </div>
 
                     {showLogs && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-52 overflow-y-auto space-y-1.5 shadow-inner">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-mini max-h-52 overflow-y-auto space-y-1.5 shadow-inner">
                         {liveStreamLogs.map((log, idx) => (
                           <div key={idx} className="flex items-start gap-2 leading-relaxed">
                             <span className="text-slate-500 shrink-0">{log.timestamp}</span>
                             <span
-                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                              className={`rounded px-1 text-micro font-black shrink-0 ${
                                 log.direction === "out"
                                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
@@ -938,7 +938,7 @@ function CoachingStudioView() {
                     Count-In · Get Ready
                   </span>
                   <h2 className="text-3xl font-black text-slate-100">{selectedExercise.title}</h2>
-                  <p className="text-xs text-slate-400">
+                  <p className={`text-xs ${MUTED}`}>
                     Drill Tempo: {tempoBpm} BPM · Starting in...
                   </p>
                 </div>
@@ -1018,7 +1018,7 @@ function CoachingStudioView() {
                   {/* Large Visual Metronome Pulse Bar */}
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
                     <div className="space-y-1 text-center md:text-left">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}>
                         Tempo & Measure Lock
                       </p>
                       <p className="text-xl font-black text-slate-100">{tempoBpm} BPM</p>
@@ -1030,7 +1030,7 @@ function CoachingStudioView() {
                           return (
                             <span
                               key={m}
-                              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border transition-all ${
+                              className={`text-tiny font-mono font-bold px-2 py-0.5 rounded border transition-all ${
                                 isCurrentM
                                   ? "border-rose-500 bg-rose-500/20 text-rose-200 ring-1 ring-rose-400"
                                   : isPastM
@@ -1069,13 +1069,13 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="text-center md:text-right space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}>
                         Drill Timeline
                       </p>
                       <p className="text-xl font-black text-rose-400 font-mono">
                         Beat {Math.min(16, currentDrillBeat + 1)} <span className="text-slate-500 text-sm font-normal">/ 16</span>
                       </p>
-                      <p className="text-[11px] text-slate-400 font-mono">
+                      <p className={`text-mini ${MUTED} font-mono`}>
                         {Math.round((Math.min(16, currentDrillBeat + 1) / 16) * 100)}% Timeline
                       </p>
                     </div>
@@ -1083,7 +1083,7 @@ function CoachingStudioView() {
 
                   {/* Active Instructions Reminder */}
                   <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    <p className={`text-xs font-semibold uppercase tracking-wider ${MUTED} mb-1`}>
                       Drill Objective
                     </p>
                     <p className="text-sm font-medium text-slate-200">
@@ -1101,7 +1101,7 @@ function CoachingStudioView() {
                         </span>
                         <h3 className="font-display text-sm font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2">
                           <span>🤖 Real-Time AI Coach Analysis</span>
-                          <span className="text-[10px] font-normal text-slate-400 border border-slate-800 bg-slate-900 px-2 py-0.5 rounded-full">
+                          <span className={`text-tiny font-normal ${MUTED} border border-slate-800 bg-slate-900 px-2 py-0.5 rounded-full`}>
                             Live Stream
                           </span>
                         </h3>
@@ -1130,7 +1130,7 @@ function CoachingStudioView() {
                     {/* Contextual Real-Time Insight Cards */}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        <span className={`text-tiny font-bold uppercase tracking-wider ${MUTED} block`}>
                           AI Pedagogical Focus
                         </span>
                         <p className="text-xs text-slate-200 leading-relaxed">
@@ -1140,14 +1140,14 @@ function CoachingStudioView() {
                               : `Maintain a steady pulse lock with the ${tempoBpm} BPM downbeat.`)}
                         </p>
                         {aiTip?.suggested_action && (
-                          <p className="text-[11px] font-medium text-rose-300 pt-1 border-t border-slate-800/80 mt-1">
+                          <p className="text-mini font-medium text-rose-300 pt-1 border-t border-slate-800/80 mt-1">
                             🎯 {aiTip.suggested_action}
                           </p>
                         )}
                       </div>
 
                       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        <span className={`text-tiny font-bold uppercase tracking-wider ${MUTED} block`}>
                           Micro-Timing & Pitch Bias
                         </span>
                         <p className="text-xs text-slate-200">
@@ -1159,7 +1159,7 @@ function CoachingStudioView() {
                               : "Timing is right on the center of the beat! ✨"
                             : "Listening to live note attacks…"}
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className={`text-mini ${MUTED}`}>
                           Pace: {(60 / tempoBpm).toFixed(2)}s per beat · {cue?.matched_count ?? 0} notes matched
                         </p>
                       </div>
@@ -1191,7 +1191,7 @@ function CoachingStudioView() {
                   {/* Live Cue Badge & Real-Time Stats */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}>
                         Live Readout
                       </span>
                       <p
@@ -1204,7 +1204,7 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}>
                         Matched Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-emerald-400">
@@ -1213,7 +1213,7 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}>
                         Missed Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-rose-400">
@@ -1222,7 +1222,7 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}>
                         Extra Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-amber-400">
@@ -1234,7 +1234,7 @@ function CoachingStudioView() {
                   {/* Transcript History */}
                   {transcript.length > 0 && (
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <h4 className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}>
                         Coach Guidance Log
                       </h4>
                       <div className="space-y-1.5 max-h-40 overflow-y-auto">
@@ -1252,7 +1252,7 @@ function CoachingStudioView() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-bold text-slate-300">🖥️ Gemini Live Stream Logs ({geminiVoice})</span>
-                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                        <span className={`rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-tiny font-mono ${MUTED}`}>
                           {liveStreamLogs.length} events
                         </span>
                       </div>
@@ -1266,12 +1266,12 @@ function CoachingStudioView() {
                     </div>
 
                     {showLogs && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-56 overflow-y-auto space-y-1.5 shadow-inner">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-mini max-h-56 overflow-y-auto space-y-1.5 shadow-inner">
                         {liveStreamLogs.map((log, idx) => (
                           <div key={idx} className="flex items-start gap-2 leading-relaxed">
                             <span className="text-slate-500 shrink-0">{log.timestamp}</span>
                             <span
-                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                              className={`rounded px-1 text-micro font-black shrink-0 ${
                                 log.direction === "out"
                                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
@@ -1456,7 +1456,7 @@ const NoteHighway = memo(function NoteHighway({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className={`flex items-center justify-between text-xs ${MUTED}`}>
         <span>Note Sequence Highway</span>
         <span className="font-mono">
           Note {Math.min(cursor + 1, expectedCount)} of {expectedCount}
@@ -1474,12 +1474,12 @@ const NoteHighway = memo(function NoteHighway({
                   ? "border-rose-500 bg-rose-500/20 text-rose-200 scale-110 shadow-lg shadow-rose-500/50 ring-2 ring-rose-400/60 font-bold"
                   : isPast
                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                  : "border-slate-800 bg-slate-950 text-slate-400 opacity-60"
+                  : `border-slate-800 bg-slate-950 ${MUTED} opacity-60`
               }`}
             >
-              <span className="text-[10px] font-mono opacity-80">#{idx + 1}</span>
+              <span className="text-tiny font-mono opacity-80">#{idx + 1}</span>
               <span className="my-1 font-display text-lg font-black">{note.note_name}</span>
-              <span className="text-[10px]">Beat {note.onset_beats + 1}</span>
+              <span className="text-tiny">Beat {note.onset_beats + 1}</span>
             </div>
           );
         })}

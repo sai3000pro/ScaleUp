@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 
 import { difficultyLabel, nodeAriaLabel, nodeStyle } from "@/lib/nodeState";
 import type { GraphNode, GraphSnapshot } from "@/lib/types";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 interface Props {
   snapshot: GraphSnapshot;
@@ -62,11 +62,11 @@ export function SkillTreeOutline({ snapshot, selectedNodeId, onSelect }: Props) 
       <div className="flex items-baseline justify-between gap-2">
         <div>
           <h2 id="skill-outline-heading" className="font-display text-sm font-semibold">Skill outline</h2>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className={`mt-1 text-mini ${MUTED}`}>
             Select a skill to inspect it. Use arrow keys to move through the outline.
           </p>
         </div>
-        <span className="shrink-0 text-[11px] text-slate-500">{orderedNodes.length} nodes</span>
+        <span className="shrink-0 text-mini text-slate-500">{orderedNodes.length} nodes</span>
       </div>
 
       <p className="sr-only" aria-live="polite">
@@ -105,17 +105,17 @@ export function SkillTreeOutline({ snapshot, selectedNodeId, onSelect }: Props) 
                   style={{ backgroundColor: style.accent }}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate font-display text-xs font-semibold ${structural ? "text-slate-400" : "text-slate-100"}`}>
+                  <span className={`block truncate font-display text-xs font-semibold ${structural ? `${MUTED}` : "text-slate-100"}`}>
                     {node.title}
                   </span>
-                  <span className="mt-0.5 block text-[10px] text-slate-400">{details}</span>
+                  <span className={`mt-0.5 block text-tiny ${MUTED}`}>{details}</span>
                   {node.blocked_by.length > 0 && (
-                    <span className="mt-0.5 block truncate text-[10px] text-slate-500">
+                    <span className="mt-0.5 block truncate text-tiny text-slate-500">
                       Needs {node.blocked_by.map((blocker) => blocker.title).join(", ")}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-[10px] text-slate-500">Depth {node.depth}</span>
+                <span className="shrink-0 text-tiny text-slate-500">Depth {node.depth}</span>
               </button>
             </div>
           );
@@ -124,7 +124,7 @@ export function SkillTreeOutline({ snapshot, selectedNodeId, onSelect }: Props) 
 
       {selected && selected.blocked_by.length > 0 && (
         <div className="mt-3 border-t border-slate-800 pt-3" aria-labelledby="outline-prerequisites-heading">
-          <h3 id="outline-prerequisites-heading" className="text-[11px] font-semibold text-slate-300">
+          <h3 id="outline-prerequisites-heading" className="text-mini font-semibold text-slate-300">
             Prerequisites for {selected.title}
           </h3>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -133,7 +133,7 @@ export function SkillTreeOutline({ snapshot, selectedNodeId, onSelect }: Props) 
                 key={blocker.id}
                 type="button"
                 onClick={() => onSelect(blocker.id)}
-                className={`rounded-md border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-sky-400 hover:text-slate-100 ${FOCUS_RING}`}
+                className={`rounded-md border border-slate-700 px-2 py-1 text-tiny text-slate-300 hover:border-sky-400 hover:text-slate-100 ${FOCUS_RING}`}
               >
                 {blocker.title}
               </button>

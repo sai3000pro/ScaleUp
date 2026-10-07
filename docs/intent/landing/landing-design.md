@@ -84,6 +84,18 @@ standard this page would meet. Rather than invent a plausible-looking figure, th
 argument is made from what a teacher *does*, and every quantity on the page is drawn from this
 repository.
 
+The instrument and skill counts are not typed. `frontend/lib/curricula.ts` is generated from
+`backend/app/curricula/` by `npm run build:curricula` — one entry per published, versioned
+curriculum — and `landingEvidence.ts` derives the count and sums the skills from it; the page
+names the instruments from the same list, under the number, so one can be checked against
+the other. `frontend/lib/curricula.test.ts` re-derives the manifest from the backend files and
+fails while the committed copy is stale (`LAND-STORY-010`).
+
+A shared link to the root renders as a card: `frontend/lib/landingMetadata.ts` declares the
+Open Graph and Twitter entries, `app/opengraph-image.tsx` paints the card image from markup
+so no asset has to be kept in step with the copy, and the root layout's `metadataBase`
+(`NEXT_PUBLIC_SITE_URL`) resolves both to absolute URLs (`LAND-ROUTE-005`).
+
 `frontend/lib/landingEvidence.ts` is the single module those quantities live in, and it is the
 place a sourced market figure would be added: each entry carries its own `source` string, and
 a claim without one cannot be rendered because the type does not permit it.
@@ -138,7 +150,5 @@ and cost the reader a bundle.
 - **A sourced cost figure is still wanted.** The qualitative argument is honest but a reader
   responds to a number. The slot exists in `landingEvidence.ts` and needs a citable source — a
   published survey of lesson rates, not an estimate.
-- **The page has no social preview.** No Open Graph image or card metadata is set, so a shared
-  link renders as a bare URL.
 - **Nothing measures whether the argument works.** There is no analytics on the page and no
   instrumentation of which movement a reader stops at.
