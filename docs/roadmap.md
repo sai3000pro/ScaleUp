@@ -1,8 +1,10 @@
 # Roadmap — ScaleUp
 
-**Last reviewed:** 2026-08-20
-**Product direction:** piano-first and guitar-next instrument tutoring, with the
-existing Learn-Anything learning loop retained as the platform foundation.
+**Last reviewed:** 2026-09-28
+**Product direction:** multi-instrument practice over the existing Learn-Anything
+learning loop. The learner-facing chooser currently covers piano, guitar,
+violin, trumpet, drums, and banjo; this does not imply equal depth of pedagogy or
+hardware-backed pitch extraction across those instruments.
 
 Learn-Anything already turns structured educational content into a prerequisite
 DAG, lets a learner drill nodes, awards EXP, and schedules review through decay.
@@ -19,10 +21,10 @@ choose instrument and exercise
   → turn decayed skills into daily practice quests
 ```
 
-The target is not a general-purpose music school on the first release. It is a
-flawless, deterministic hackathon demo with versioned curriculum fixtures for
-piano and guitar, a source-generated violin proof, a small set of score fixtures,
-and fake providers available at every external boundary.
+The target is a reproducible, deterministic demo with versioned curricula,
+score-backed exercises, and fake providers at external boundaries. Production
+hosting, live hardware validation, and audio-to-note quality remain explicit
+verification gates rather than implied accomplishments.
 
 ---
 
@@ -38,7 +40,7 @@ Piano is the first DAG and evaluation target. It gives us:
   model;
 - a reusable skill tree shape for the later violin, trumpet, and drums trees.
 
-The first evaluator should support short, mostly monophonic piano exercises:
+The piano evaluator supports short, mostly monophonic exercises:
 scales, five-finger patterns, and simple melodies. Chords, sustain-pedal nuance,
 left/right-hand coordination, and full-song alignment are follow-on work, not
 hidden MVP requirements.
@@ -67,15 +69,17 @@ another tree in Python seed code.
   deployment is a hosting decision, not a reason to bypass routers, services,
   repositories, or the domain layer.
 - **The browser owns capture and lightweight vision.** Web Audio records the
-  practice clip. MediaPipe tracks 21 3D hand landmarks in-browser when the learner
-  grants camera access. Send derived landmarks/metrics by default, not raw video.
-- **Python owns deterministic evaluation.** A scoring service normalises MusicXML,
-  extracts audio features, and uses Dynamic Time Warping to align the performance
-  with the expected notes and timing.
+  practice clip and emits monophonic pitch observations. MediaPipe tracks hand
+  and pose landmarks in-browser when the learner grants camera access. Send only
+  derived metrics to scoring; raw video stays local.
+- **Python owns deterministic evaluation.** The browser capture adapter emits
+  canonical notes; Python normalizes MusicXML and uses Dynamic Time Warping to
+  align events. Raw-audio feature extraction on the server is not part of this
+  scoring path.
 - **n8n owns macro-orchestration, not business rules.** It may call authenticated
-  backend endpoints for session completion, feedback generation, and nightly quest
-  refresh. Domain calculations stay in services/domain so they remain testable,
-  idempotent, and usable without n8n.
+  backend endpoints for session completion, feedback, nightly quest refresh, and
+  audio retention. Domain calculations stay in services/domain so they remain
+  testable, idempotent, and usable without n8n.
 - **LLM callers name roles.** Add a performance-feedback role to the existing LLM
   registry; callers must not name a provider or model. Prompts remain versioned
   files with hashes recorded in `llm_calls`.
@@ -100,8 +104,8 @@ domain   →  nothing
 
 ## How the DAG becomes data-driven
 
-The hardcoded piano tree is a demo fixture, not the long-term curriculum
-architecture. The durable design is a **versioned curriculum compiler**: source
+The hardcoded piano tree is a deterministic source fixture; runtime curricula use
+the **versioned curriculum compiler**: source
 material produces a draft graph, validation and review produce a published graph,
 and only published graphs can unlock skills or create quests.
 
@@ -195,7 +199,8 @@ unreviewed LLM edges.
 
 A seeded user can:
 
-1. select **Piano** and see a hardcoded prerequisite DAG;
+1. select **Piano** and see a published prerequisite DAG;
+
 2. open an unlocked exercise with a MusicXML-backed expected performance;
 3. record a short attempt in the browser with Web Audio;
 4. submit the recording and receive deterministic pitch/rhythm metrics;
@@ -217,8 +222,8 @@ service, persistence, grading, progression, and idempotency contracts.
 ## Work board
 
 Each phase below is intended to leave the repository runnable and typechecking.
-A contributor should take one bounded slice, add its contract/tests, and update
-this document with the evidence before starting the next slice.
+Changes should remain bounded, include contract/tests, and update this document
+with evidence as delivery progresses.
 
 ### 0. Foundation and contracts — do first
 
@@ -230,24 +235,23 @@ introduced.
 - [x] Add models/migrations for curriculum versions, skill definitions,
   prerequisite candidates, evidence, and reviews.
 - [x] Add persisted exercise, score asset, practice session, performance attempt,
-  and metric-bundle records with evaluator/version provenance. Feedback, voice
-  artifacts, and raw recordings remain later provider/storage work.
+  metric bundle, examiner feedback, voice artifact, and raw recording records
+  with evaluator/version provenance.
 - [x] Add an explicit publication state so draft curriculum cannot affect unlocks,
   SRS, or quests; only `publish()` projects to `skill_nodes`.
-- [ ] Define IDs, lifecycle states, timestamps, score version, evaluator version,
-  and provenance for every metric. Store raw measurements and evaluator versions;
-  do not store time-derived mastery or proficiency.
-- [ ] Extend `docs/api_contract.md` and `frontend/lib/types.ts` together for tree,
-  exercise, session, score, feedback, and quest responses. Keep errors and polling
-  semantics explicit.
-- [ ] Define upload limits, accepted audio formats, sample rate/channel policy,
-  retention, camera consent, and deletion semantics before accepting recordings.
-- [ ] Define idempotency keys for session submission and feedback generation. A
-  retry must return the stored result, never award EXP or call a paid provider a
-  second time.
-- [ ] Add fake fixtures for one piano tree, three exercises, two perfect/poor
-  attempts, and one decayed node. No fixture should require an LLM, camera, n8n,
-  or ElevenLabs.
+- [x] Define IDs, lifecycle states, timestamps, score/evaluator versions, and
+  metric provenance; time-derived mastery/proficiency remain computed on read.
+- [x] Extend `docs/api_contract.md` and `frontend/lib/types.ts` for tree,
+  exercise, session, score, feedback, and quest responses with an executable
+  backend/type mirror check. Job polling semantics are documented for ingestion;
+  scoring remains synchronous.
+- [x] Define recording size/formats, browser capture settings, retention,
+  camera consent and owner deletion. Production retention execution remains an
+  operations verification gate described in phase 8.
+- [x] Define idempotency for session submission and webhook feedback; retries
+  return stored results and do not repeat EXP or paid synthesis.
+- [x] Add offline piano/instrument fixtures and deterministic fake boundaries;
+  unit evaluation does not require an LLM, camera, n8n, or ElevenLabs.
 
 **Likely files:** `backend/app/models/`, `backend/app/services/`,
 `backend/app/domain/`, `backend/app/api/routers/`,
@@ -261,7 +265,8 @@ construct the fixture without Docker; the OpenAPI/type contract has no drift.
 **Outcome:** the existing RPG loop works for a piano learner before audio exists.
 
 - [x] Author the first deterministic piano DAG as checked-in curriculum data, not
-  LLM output. It covers keyboard layout, finger numbers, rhythm, five-finger
+  LLM output.  It covers keyboard layout, finger numbers, rhythm, five-finger
+
   patterns, melodies, scales, triads, chord progressions, and sight reading.
   It is now loaded through the published curriculum tables and generic compiler.
 - [x] Validate acyclicity, missing prerequisites, duplicate slugs, and unreachable
@@ -271,9 +276,8 @@ construct the fixture without Docker; the OpenAPI/type contract has no drift.
   existing learner graph on refresh.
 - [x] Attach the first piano exercise and MusicXML asset to a published node. A
   broader exercise catalog and prerequisite-aware selection remain follow-on work.
-- [ ] Add piano labels and state explanations to the existing skill-tree UI. A
-  locked node must say what it is waiting for; a decayed node must explain why it
-  is on today's quest board.
+- [x] Render the shared instrument skill graph with distinct states and
+  prerequisite explanations; a decayed node links into practice/quest flow.
 
 **Likely files:** `backend/app/seed.py`, `backend/app/domain/`, existing skill-node
 models/services, `frontend/components/skill-tree/`,
@@ -290,10 +294,10 @@ unlock state exactly once; existing textbook-course behavior remains intact.
   tempo/time-signature handling, and a score hash. The persisted asset boundary
   rejects malformed scores during evaluation; upload/size policy is still open.
 - [x] Build a browser recording control using the Web Audio API
-  (`frontend/lib/pitchDetection.ts`): an explicit permission request, recording
-  and stopping states, denied/unavailable handling, and the recorded take
-  segmented into canonical note observations. The MVP is clip-based and never
-  implies real-time analysis.
+  (`frontend/lib/pitchDetection.ts`): explicit permission, recording/stopping
+  states, typed denied/unavailable/unsupported failures, canonical segmented
+  note observations, and best-effort raw clip preservation. It is clip-based and
+  separate from the optional live-coach WebSocket flow.
 - [x] Preserve the original recording as content-addressed storage with
   course/user ownership and deletion rules. `POST /api/recordings` dedupes per
   (user, content sha256), the owner streams bytes back from a separate content
@@ -302,26 +306,30 @@ unlock state exactly once; existing textbook-course behavior remains intact.
   takes rejected), and the frontend's MediaRecorder captures `audio/webm`
   alongside the pitch analysis — best-effort, so a failed upload never sinks
   the take's score.
-- [ ] Make submission asynchronous if scoring can exceed the request budget. Return
-  `202` plus a pollable job, following the existing job contract.
+- [ ] Move scoring to `202` plus a pollable job if measured production workloads
+  exceed the synchronous envelope. Current bounded requests are synchronous.
 - [x] Add a no-microphone fixture path so the demo and tests can submit known
-  canonical note observations without browser hardware. The practice panel uses
-  the same API contract the Web Audio adapter will use.
-- [x] Add a typed practice panel with exercise selection, scoring, retry/error
-  feedback, a persisted result summary, microphone recording, and a speak
-  button that falls back to browser TTS.
+  canonical observations through the same API contract as the microphone path.
+- [x] Add a typed practice panel with exercise selection, score breakdown,
+  retry/error and capture-failure feedback, persisted results, fixture retry,
+  feedback speech/browser-TTS fallback, and a daily-quest call to action.
+- [x] Bound scoring submissions to 256 KiB and 256 observations before JSON
+  parsing; keep the 50 ms target as a measured golden-fixture objective rather
+  than rejecting learner attempts based on host load.
 
 **Likely files:** `frontend/components/` practice-session components,
 `frontend/lib/api.ts`, backend storage/job services, score-asset models, and the
 existing job router/contract.
 
-**Acceptance:** a fixture recording reaches a persisted attempt; permission denial,
-empty audio, too-large audio, duplicate submission, and cancellation have tested
-outcomes.
+**Acceptance:** fixture notes reach a persisted attempt; capture failures,
+empty audio, bounded scoring payloads, duplicate submission, and owner deletion
+have explicit behavior. Database-dependent persistence/retention tests require
+Postgres and are not covered by the offline validation gate.
 
-### 3. Deterministic piano evaluator on Render
+### 3. Deterministic piano evaluator and deployment readiness
 
-**Outcome:** the same recording and MusicXML always produce explainable metrics.
+**Outcome:** canonical observations and MusicXML produce explainable metrics;
+external deployment remains an explicit follow-up.
 
 - [x] Implement a pure score normaliser: MusicXML → ordered expected notes,
   durations, beats, and exercise metadata. The parser currently supports the
@@ -342,11 +350,13 @@ outcomes.
   an RMS floor with a 7 dB release gap, a note-off debounce, a median filter
   over the pitch stream, and an amplitude re-attack trigger so two identical
   repeated notes stop merging into one. Clipping detection remains open.
-- [ ] Keep the evaluator as a Python service called by the application backend.
-  Deploy it on Render only after the local deterministic path and golden fixtures
-  are green; hosting must not change the contract.
-- [ ] Add golden tests for perfect, slow, fast, wrong-pitch, missed-note, extra-note,
-  and noisy recordings. Include a latency and payload-size budget for the demo.
+- [x] Keep the evaluator as a pure Python boundary called by the application
+  backend; no external evaluator service or provider is required.
+- [x] Add deterministic coverage for perfect, wrong-pitch, missed-note, extra,
+  repeated-phrase and budget cases. The 50 ms target is tracked in golden tests.
+- [ ] Add measured slow/fast/noisy microphone fixtures and verify the evaluator
+  on actual audio hardware; the current tests operate on canonical note events.
+- [ ] Verify the same contract on the eventual Render deployment.
 
 **Likely files:** a new `backend/app/evaluation/` or isolated scoring package,
 `backend/tests/unit/` and `backend/tests/integration/`, plus Render deployment
@@ -437,8 +447,8 @@ usable result.
 of truth.
 
 - [x] Define signed, versioned webhook contracts for `session.completed`,
-  `feedback.requested`, and `daily-quests.refresh` — one literal route per event
-  type under `/api/webhooks/v1/`, HMAC-SHA256 signed over the exact request
+  `feedback.requested`, `daily-quests.refresh`, and `audio.retention.cleanup` —
+  one literal route per event type under `/api/webhooks/v1/`, HMAC-SHA256 over exact request
   bytes (`X-Webhook-Signature: sha256=<hex>`, keyed by `WEBHOOK_SECRET`).
 - [x] Make every n8n-triggered endpoint authenticated, idempotent, replay-safe,
   and observable: a `webhook_events` ledger keyed by caller-supplied
@@ -447,8 +457,9 @@ of truth.
 - [x] Build the happy-path webhooks: `session.completed` verifies the attempt
   and returns its outcome, `feedback.requested` returns the persisted examiner
   feedback and can synthesize (cache-backed) voice on demand, and
-  `daily-quests.refresh` returns the computed board for notification. A
-  versioned n8n workflow export lives in `n8n/workflows/`.
+  `daily-quests.refresh` returns the computed board and
+  `audio.retention.cleanup` removes expired audio. Versioned n8n workflow exports
+  live in `n8n/workflows/`; raw-body HMAC configuration has an offline contract test.
 - [x] Build nightly decay/quest refresh as a call to the existing SRS service;
   n8n schedules it but does not reimplement decay math or write quest rows behind
   the API. The board is computed on read, so a nightly refresh never double-writes
@@ -475,8 +486,8 @@ unavailable.
 - [x] Exercise scores are generated rather than hand-written
   (`app/evaluation/score_generator.py`), from a node's own title and difficulty,
   with an optional `score_compose` LLM upgrade that returns a note list the
-  deterministic renderer turns into MusicXML. Every published curriculum node
-  now has something playable.
+  deterministic renderer turns into MusicXML. Every assessable published node
+  gets a generated lesson set; structural/non-assessable nodes are not playable.
 - [x] Dynamics are parsed from the score (`<dynamics>`, `<wedge>`,
   `<sound dynamics>`) and scored relatively — median-centred levels plus a
   gain-invariant contrast measure. Inapplicable yields NULL, never 0.
@@ -493,9 +504,12 @@ unavailable.
 
 **Outcome:** the new loop feels like a tutor rather than an upload form.
 
-- [ ] Add an instrument picker, piano tree view, exercise screen, recording state,
-  score breakdown, technique confidence, examiner feedback, voice control, and
-  next-quest call to action.
+- [x] Add an instrument picker, shared skill-tree view, exercise selection,
+  recording state, score breakdown, technique confidence, examiner feedback,
+  voice control, and next-quest call to action in the existing Next.js app.
+- [x] Distinguish microphone permission denial, unavailable hardware, unsupported
+  capture, and generic failure; distinguish camera hardware failure from model
+  runtime failure without blocking audio practice.
 - [ ] Use the existing design-system redesign work and keep the skill tree's five
   distinct node states accessible. Practice-critical controls must work by
   keyboard and with reduced motion.
@@ -505,8 +519,8 @@ unavailable.
   error/polling states, auth, accessibility, and provider fallback requirements.
   If not, implement the agreed screen in Next.js rather than creating a second
   production frontend.
-- [ ] Add loading, empty, error, retry, permission-denied, and low-confidence
-  states before visual polish.
+- [x] Add loading, empty, error, retry, permission-denied, capture failure, and
+  low-confidence states. Browser/device coverage and accessibility audit remain.
 
 **Acceptance:** a new learner can complete the entire piano demo without reading
 API docs; the UI distinguishes processing from grading and low confidence from
@@ -523,15 +537,22 @@ failure; mobile and desktop layouts are usable.
   `GET /api/health/providers` reports the configured LLM/voice/research/email
   providers, storage backend, webhook arm status, and deployed flag — never a
   key or secret.
-- [ ] Define Render service/environment configuration, health checks, timeouts,
-  storage, logs, and rollback notes. Do not auto-migrate on process start.
+- [x] Define the hosted deployment — service/environment configuration, health
+  checks, storage, logs, and rollback notes in `docs/deployment-hosted.md`
+  (Supabase + Upstash + Koyeb + Vercel). Do not auto-migrate on process start.
 - [x] Add n8n and ElevenLabs as opt-in deployment profiles: fake implementations
   remain the default for CI and local development, and the live providers are
   enabled purely by configuration (`WEBHOOK_SECRET` + `DEV_WEBHOOKS_ENABLED`,
   `VOICE_PROVIDER` + `ELEVENLABS_API_KEY`), with the deployed validator
   refusing to start without them configured.
-- [ ] Verify data deletion and retention for recordings, derived metrics, and
-  voice artifacts.
+- [ ] Verify production data deletion and retention behavior. Policy is 30 days
+  for raw recordings and synthesized audio, and indefinite for attempts, metrics,
+  feedback, and progress. Audio bytes currently live in PostgreSQL `LargeBinary`
+  rows; the cleanup service removes those rows,
+  but audio is not wired to external object storage and has no object-deletion path.
+  The n8n schedule remains an inactive template pending operator configuration
+  and a live execution check.
+
 - [ ] Capture a short golden demo recording and document the exact seed/config
   needed to reproduce it.
 
@@ -560,19 +581,22 @@ pipeline, and generated candidates never change learner progression without revi
   evidence; the backend API is ready for it.
 - [ ] Handle explicit skill split, merge, rename, and retirement mappings across
   revisions rather than relying only on stable `(instrument, slug)` identities.
-- [ ] Add quality gates: assessment coverage, confidence thresholds, and a small
-  hand-labeled edge set for precision/recall regression testing.
+- [ ] Add quality gates: evidence-backed assessment coverage (generated
+  exercises exist for every assessable published node), confidence thresholds,
+  and a small hand-labeled edge set for precision/recall regression testing.
 - [ ] Let n8n schedule compiler jobs and notifications only; backend services own
   extraction, validation, publication, and projection writes.
 
-**Current proof (2026-08-20):** piano, guitar, trumpet, and drums are seeded as
+**Current proof (2026-09-28):** piano, guitar, trumpet, drums, and banjo are seeded as
 published, versioned curriculum graphs; violin is generated from source-section
-data through the same generic source compiler and publication service — and all
-five now carry a working evaluator and score-backed exercise. The lifecycle
+data through the same generic source compiler and publication service — all six have deterministic score-backed lessons; piano, guitar, violin, trumpet,
+and drums have evaluator paths, while banjo shares guitar scoring. The lifecycle
 stores stable skill definitions, immutable versions, candidate edges, exact
 chunk quotes, extractor/prompt/source hashes, and review decisions. Drafts
-cannot change learner unlocks, EXP, SRS, or quests. The remaining work in this
-phase is mostly UI and long-term identity migration policy.
+cannot change learner unlocks, EXP, SRS, or quests; publication ensures each
+assessable node gets a deterministic lesson set. The browser candidate-review
+surface, explicit skill identity migration policy, and empirical quality gates
+remain open.
 
 **Acceptance:** a new guitar curriculum can be drafted and reviewed without a
 Python code change; only a published version appears in learner unlocks; a graph
@@ -583,28 +607,35 @@ remain auditable.
 
 ## Instrument rollout
 
-- **Guitar — shipped:** standard-tuned six-string guitar with two evaluators
-  (`app/evaluation/guitar.py`). Single-note string/fret scoring adds
+- **Banjo — shipped curriculum and shared guitar-style evaluator:** a learner-
+  selectable banjo campaign exists and uses the fretted/strummed position scorer;
+  instrument-specific audio pitch detection and banjo-specific pedagogy remain
+  follow-on work.
+- **Guitar — shipped evaluator path:** standard-tuned six-string guitar with two
+  evaluators (`app/evaluation/guitar.py`). Browser autocorrelation currently
+  supplies pitch only; string/fret observations are supported by contract and
+  fixture paths, not inferred from the microphone. Single-note scoring adds
   `technique_accuracy` and `position_error_count` from MusicXML/tablature
   string/fret metadata (low-E fretting drill). Open-chord/strumming scoring
   groups written notes by shared onset and observed notes by strum spread into
   chord events, scoring pitch-set coverage, rhythm, and fret position
   (G-C-D strum on the `open-chords` node). Pick-attack scoring remains
   follow-on, and fingering is never inferred from audio alone.
-- **Violin — shipped (`app/evaluation/violin.py`):** the source-generated
-  curriculum now has a practice loop. A DTW scorer over the shared
+- **Violin — shipped evaluator path (`app/evaluation/violin.py`):** the
+  source-generated curriculum has a practice loop. A DTW scorer over the shared
   pitch/rhythm core adds `intonation_accuracy` and
-  `intonation_deviation_cents` from per-note cents deviation (the same future
-  audio adapter that emits pitch can emit cents), and an open-string scale
+  `intonation_deviation_cents` from per-note cents deviation. Current browser
+  autocorrelation emits pitch only, so cents must be measured by a future
+  instrument-aware capture adapter; and an open-string scale
   exercise is seeded onto the `open-string-bow` node. Bowing, posture, and
   wrist checks remain camera (MediaPipe) work: audio cannot see them, and the
   evaluator does not pretend otherwise.
-- **Trumpet — shipped (`app/evaluation/trumpet.py`):** a fixed-pitch
+- **Trumpet — shipped evaluator path (`app/evaluation/trumpet.py`):** a fixed-pitch
   monophonic instrument, so it routes through the shared pitch/rhythm/tempo
   core with its own evaluator version and a C-major arpeggio exercise, rather
   than duplicating the DTW machinery. Embouchure and breath signals are not yet
   observable from audio in this stack and are not claimed.
-- **Drums — shipped (`app/evaluation/drums.py`):** rhythm and drum identity
+- **Drums — shipped evaluator path (`app/evaluation/drums.py`):** rhythm and drum identity
   first, with pitch explicitly inapplicable. The score is a sequence of
   unpitched rhythmic events (display-step/display-octave names the drum, like
   guitar tab names the position), `pitch_accuracy` is stored as NULL rather
@@ -612,10 +643,11 @@ remain auditable.
   `eighth-note-groove` node. Limb coordination from camera landmarks remains
   follow-on.
 
-Every instrument now gets a versioned curriculum and exercise fixtures. Shared
-contracts cover session lifecycle, metric provenance, feedback, EXP, SRS, and
-quests; instrument-specific evaluators may add metrics but must not silently
-reinterpret piano fields.
+Every supported curriculum has deterministic score-backed exercise generation;
+not every instrument has dedicated browser audio analysis. Shared contracts cover
+session lifecycle, metric provenance, feedback, EXP, SRS, and quests;
+instrument-specific evaluators may add metrics but must not silently reinterpret
+piano fields.
 
 ---
 
@@ -631,14 +663,16 @@ These items are valuable but do not block the piano demo:
 - **Generated API types:** FastAPI already emits OpenAPI, while
   `frontend/lib/types.ts` is maintained by hand. Add code generation when the
   instrument contract settles, and narrow the existing contract test accordingly.
-- **Deployment guard:** include `cors_origin_regex` in the deployed-default checks.
-- **Frontend redesign:** continue the celestial-atlas token, primitive, responsive,
-  and accessibility work, but make the practice loop a first-class screen rather
-  than styling the textbook screens in isolation.
+- **Deployment guard:** deployed startup now rejects loopback allowances in
+  `cors_origin_regex`; review the exact production allowlist before release.
+- **Frontend redesign:** continue the celestial-atlas token, responsive, keyboard,
+  and reduced-motion audits; practice is now a first-class course surface, but no
+  external accessibility audit has been completed.
 - **URL dedupe:** raw-byte dedupe intentionally does not guarantee stable URL
   dedupe for changing HTML.
 - **Production credentials:** deployed environments still require real JWT,
-  OAuth/email, and any enabled provider credentials.
+  OAuth/email, storage and enabled provider credentials. Render deployment is
+  not currently verified; migrations remain an explicit operator step.
 
 ---
 

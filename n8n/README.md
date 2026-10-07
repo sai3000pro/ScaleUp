@@ -16,6 +16,7 @@ same endpoints without n8n at all.
 | `session.completed` | Attempt finished → notify/badge/downstream | `POST /api/webhooks/v1/session.completed` |
 | `feedback.requested` | Fetch (or synthesize) the examiner feedback | `POST /api/webhooks/v1/feedback.requested` |
 | `daily-quests.refresh` | Nightly quest board computation | `POST /api/webhooks/v1/daily-quests.refresh` |
+| `audio.retention.cleanup` | Purge raw recordings and synthesized audio cache after 30 days | `POST /api/webhooks/v1/audio.retention.cleanup` |
 
 Full payloads, response shapes, and the dedupe semantics are in
 `docs/api_contract.md` (Webhooks section).
@@ -53,8 +54,12 @@ X-Webhook-Signature: sha256=<hex>
 ```
 
 The signature covers the raw body — pretty-printing the JSON changes the
-signature. In the shipped workflow the body is serialized once in a Code node
-and the same string is both signed and sent, so they can never drift.
+signature. In the shipped workflows the body is serialized once in a Code node
+and the same string is both signed and sent. For HTTP Request nodes, use the
+**Raw** body content type with `application/json`; do not parse the signed string
+into a JSON object, because n8n's JSON mode reserializes it and can change the
+signed bytes. The cleanup template is exported with `contentType: "raw"`,
+`rawContentType: "application/json"`, and `body: "={{ $json.body }}"`.
 
 Local development without n8n: set `DEV_WEBHOOKS_ENABLED=true` (accepts
 unsigned requests) or export `WEBHOOK_SECRET` and sign manually:
@@ -75,8 +80,16 @@ python -c "import hmac,hashlib,sys; print('sha256='+hmac.new(b'<WEBHOOK_SECRET>'
 4. Set the Schedule Trigger to the desired local time (it ships as every 24h).
 5. Activate the workflow.
 
-The other two events (`session.completed`, `feedback.requested`) follow the
-same shape — see the smoke runner for ready-made payloads.
+The inbound `session.completed`, `feedback.requested`, `daily-quests.refresh`,
+and `audio.retention.cleanup` requests follow the same signed envelope shape.
+The cleanup workflow is `workflows/audio-retention-cleanup.json`; import it,
+replace the webhook secret and API host, then activate it. Verify one execution
+against the backend before enabling the schedule: a signature mismatch means
+the n8n version or node export did not preserve the raw body as configured. It removes only recording bytes and generated
+voice artifacts older than 30 days. Attempts, metrics, feedback, and progress
+are retained indefinitely. Run daily; each scheduled run gets a fresh event ID
+and retries reuse the same ID. The cleanup endpoint is callable manually with a
+signed envelope too.
 
 ## Verification without n8n
 

@@ -69,6 +69,12 @@ jobs:
       - name: Arrow coherence
         run: python scripts/check_arrow.py
 
+      # @spec OPS-INTEG-008
+      # The integration report gates CI as it advertises: exits 0 with no keys,
+      # and the CI variable keeps platform detection from arming hosted mode.
+      - name: Integration report
+        run: python scripts/check_integrations.py
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}

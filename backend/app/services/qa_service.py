@@ -33,6 +33,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
+from app.domain.wire_formats import passage_block
 from app.llm.base import BudgetExceededError, LLMRole, RefusalError, SchemaValidationError
 from app.models import Chunk, Course, SkillNode
 from app.schemas.drill import SourceRef
@@ -69,10 +70,7 @@ def render_passages(passages: list[tuple[SkillNode, Chunk]]) -> str:
     is only useful if it resolves to a node the UI can select.
     """
     return "\n\n".join(
-        f"### `{node.slug}` — {node.title}\n"
-        f"node_id: {node.id}\n"
-        f"chunk_id: {chunk.id}\n"
-        f"{_flat(chunk.text)[:PASSAGE_CHARS]}"
+        passage_block(node.slug, node.title, node.id, chunk.id, _flat(chunk.text)[:PASSAGE_CHARS])
         for node, chunk in passages
     )
 

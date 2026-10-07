@@ -86,6 +86,12 @@ def test_webhook_routes_are_registered_with_the_result_contract(event_type: str)
     assert schema["$ref"] == "#/components/schemas/WebhookResult"
 
 
+def test_audio_retention_route_uses_the_shared_webhook_result_contract() -> None:
+    operation = OPENAPI["paths"]["/api/webhooks/v1/audio.retention.cleanup"]["post"]
+    schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert schema["$ref"] == "#/components/schemas/WebhookResult"
+
+
 def test_unknown_event_types_are_not_registered() -> None:
     assert "/api/webhooks/v1/unknown.event" not in OPENAPI["paths"]
 

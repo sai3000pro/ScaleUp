@@ -22,7 +22,7 @@ import {
   GRAPH_STRUCTURAL_ACCENT,
 } from "@/lib/graphTheme";
 import { STATE_STYLES } from "@/lib/nodeState";
-import { BUTTON_PRIMARY, MUTED } from "@/lib/ui";
+import { BUTTON_PRIMARY } from "@/lib/ui";
 
 const CSS = readFileSync(
   fileURLToPath(new URL("../app/globals.css", import.meta.url)),
@@ -161,7 +161,8 @@ describe("contrast", () => {
 
   // @spec UI-A11Y-007
   it("clears AA for muted text on the page AND on a raised card", () => {
-    const ink = classToken(MUTED, "text");
+    // slate-400 is the muted ink -- see the note in lib/ui.ts.
+    const ink = classToken("text-slate-400", "text");
     expect(contrast(ink, PAGE())).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrast(ink, CARD())).toBeGreaterThanOrEqual(AA_TEXT);
   });

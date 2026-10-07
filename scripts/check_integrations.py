@@ -20,6 +20,7 @@ BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
 from app.config import get_settings  # noqa: E402
+from app.llm.registry import superseded_prompt_versions  # noqa: E402
 from app.integrations import (  # noqa: E402
     BROWSER_DEPENDENCIES,
     integration_statuses,
@@ -33,6 +34,11 @@ MARK = {"live": "[LIVE]", "off": "[ off]", "misconfigured": "[  ! ]"}
 def main() -> int:
     settings = get_settings()
     statuses = integration_statuses(settings)
+
+    if settings.hosting_signal:
+        print(f"\nHosting: {settings.hosting_signal}")
+    else:
+        print("\nHosting: not detected (developer machine or CI)")
 
     print("\nExternal integrations\n")
     print(f"  {'':6} {'INTEGRATION':<24} {'DETAIL'}")
@@ -75,14 +81,23 @@ def main() -> int:
     else:
         pass
 
+    superseded = superseded_prompt_versions()
+    if superseded:
+        print(f"\nSuperseded prompt versions kept on disk: {', '.join(f'{p}/{v}' for p, v in superseded)}")
+
     print("\nTo turn one on: set the variables above in .env and restart the API")
     print("(and the Celery worker, which reads the same file).")
 
     if not settings.deployed:
-        pending = missing_for_deployment(settings)
-        if pending:
+        hosted_missing = missing_for_deployment(settings, tier="hosted")
+        deployed_missing = missing_for_deployment(settings, tier="deployed")
+        if hosted_missing:
+            print("\nBefore hosting (any platform), these must change or startup will refuse:\n")
+            for item in hosted_missing:
+                print(f"  {item}")
+        if deployed_missing:
             print("\nBefore DEPLOYED=true, these must be live or startup will refuse:\n")
-            for item in pending:
+            for item in deployed_missing:
                 print(f"  {item}")
 
     if broken:

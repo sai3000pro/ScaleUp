@@ -35,7 +35,7 @@ system itself.
 - [x] **UI-SYS-002**: Every shared class constant shall be a literal string, never assembled from a variable, so the compiler's source scan can see it.
 - [x] **UI-SYS-003**: A shared class constant shall carry the reason it exists, so a later reader can tell a considered value from an arbitrary one.
 - [ ] **UI-SYS-004**: Where a shared constant exists for a purpose, components shall use it rather than restating its classes inline.
-- [ ] **UI-SYS-005**: A shared constant that no component uses shall be adopted or deleted.
+- [x] **UI-SYS-005**: A shared constant that no component uses shall be adopted or deleted.
 
 ## Typography
 
@@ -66,7 +66,7 @@ system itself.
 - [x] **UI-GRAPH3D-006**: Orbiting the graph shall not select a skill, and releasing a drag over a skill shall not be read as a click on it.
 - [x] **UI-GRAPH3D-007**: Every skill shall be reachable and openable by keyboard, without a pointer.
 - [x] **UI-GRAPH3D-008**: The graph shall derive no progression of its own; locked, ready, fading and mastered shall come from the snapshot.
-- [ ] **UI-GRAPH3D-009**: Where the browser cannot provide a WebGL context, the learner shall be offered the skill outline in place of the graph rather than an empty panel.
+- [x] **UI-GRAPH3D-009**: Where the browser cannot provide a WebGL context, the learner shall be offered the skill outline in place of the graph rather than an empty panel.
 - [ ] **UI-GRAPH3D-010**: The graph shall remain usable at the node counts a compiled textbook produces, not only at the size a curriculum produces.
 - [x] **UI-GRAPH3D-011**: A tree small enough to read shall be laid out on one plane, and only a tier too wide to read on one row shall use depth to wrap.
 - [x] **UI-GRAPH3D-012**: A skill shall be drawn centred over the prerequisites that converge on it.
@@ -134,6 +134,7 @@ system itself.
 - [x] **UI-PAGE-006**: A container and the component it frames shall not both declare the frame; the container shall own chrome and size, and the component shall fill it.
 - [ ] **UI-PAGE-007**: No two panels visible at once shall report the same figure.
 - [x] **UI-PAGE-008**: The learner's surfaces shall offer no way to supply source documents, and shall describe no skill tree as something a document builds. Compiling a tree from source material is an authoring capability, not a step this product asks a learner to perform.
+- [x] **UI-PAGE-009**: Every view inside a lesson workspace shall be pinned to the lesson's exercise, so switching between ways to play never silently changes what is being played.
 
 ## The shell
 
@@ -144,4 +145,4 @@ system itself.
 - [x] **UI-SHELL-005**: Ambient page decoration shall be painted in CSS rather than loaded as an image.
 - [x] **UI-SHELL-006**: Ambient decoration shall be non-interactive and shall sit behind all content.
 - [ ] **UI-SHELL-007**: Wide content shall scroll within its own container, so the page body never scrolls sideways.
-- [x] **UI-SHELL-008**: After a scored take awards experience, the header shall re-read the account's level, experience and streak rather than wait for the next full page load.
+- [x] **UI-SHELL-008**: When a take or drill is graded, the header shall re-read the account figures from the server rather than keep the values from sign-in.

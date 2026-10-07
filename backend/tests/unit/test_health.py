@@ -21,6 +21,8 @@ def test_providers_reports_what_is_selected() -> None:
     assert selected["email"] in {"fake", "resend"}
     assert selected["storage"] in {"local", "gcs"}
     assert isinstance(result["deployed"], bool)
+    assert isinstance(result["hosted"], bool)
+    assert result["hosting_signal"] is None or isinstance(result["hosting_signal"], str)
     assert isinstance(result["all_ready"], bool)
 
 

@@ -30,7 +30,13 @@ from app.models import (
     SkillDefinition,
     SkillNode,
 )
-from app.schemas.curriculum import CurriculumCandidateOut, CurriculumPublishOut, CurriculumVersionCreate, CurriculumVersionOut
+from app.schemas.curriculum import (
+    CurriculumCandidateOut,
+    CurriculumEvidenceOut,
+    CurriculumPublishOut,
+    CurriculumVersionCreate,
+    CurriculumVersionOut,
+)
 from app.services import score_service
 from app.services.graph_service import ConceptSpec, persist_graph
 
@@ -705,8 +711,13 @@ def _project_candidate(session: Session, candidate_id: uuid.UUID) -> CurriculumC
         .where(PrerequisiteCandidate.id == candidate_id)
     ).one()
     candidate = row[0]
-    evidence_count = session.scalar(
-        select(func.count(CurriculumEvidence.id)).where(CurriculumEvidence.candidate_id == candidate.id)
+    evidence_rows = list(
+        session.execute(
+            select(CurriculumEvidence, Chunk)
+            .join(Chunk, Chunk.id == CurriculumEvidence.chunk_id)
+            .where(CurriculumEvidence.candidate_id == candidate.id)
+            .order_by(CurriculumEvidence.created_at, CurriculumEvidence.id)
+        )
     )
     return CurriculumCandidateOut(
         id=candidate.id,
@@ -719,7 +730,16 @@ def _project_candidate(session: Session, candidate_id: uuid.UUID) -> CurriculumC
         rationale=candidate.rationale,
         rejection_reason=candidate.rejection_reason,
         cycle_path=list(candidate.cycle_path),
-        evidence_count=int(evidence_count or 0),
+        evidence_count=len(evidence_rows),
+        evidence=[
+            CurriculumEvidenceOut(
+                chunk_id=evidence.chunk_id,
+                quote=evidence.quote,
+                section_path=chunk.section_path,
+                page_start=chunk.page_start,
+            )
+            for evidence, chunk in evidence_rows
+        ],
     )
 
 
@@ -754,6 +774,20 @@ def _project_candidates(session: Session, version_id: uuid.UUID) -> list[Curricu
         )
     )
     return [_project_candidate(session, candidate_id) for candidate_id in candidate_ids]
+
+
+async def list_versions_api(session: AsyncSession, course: Course) -> list[CurriculumVersionOut]:
+    def operation(sync: Session) -> list[CurriculumVersionOut]:
+        version_ids = list(
+            sync.scalars(
+                select(CurriculumVersion.id)
+                .where(CurriculumVersion.course_id == course.id)
+                .order_by(CurriculumVersion.created_at.desc(), CurriculumVersion.id)
+            )
+        )
+        return [_project_version(sync, version_id) for version_id in version_ids]
+
+    return await session.run_sync(operation)
 
 
 async def list_candidates_api(

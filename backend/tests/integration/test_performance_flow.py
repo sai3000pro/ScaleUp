@@ -86,6 +86,8 @@ async def test_piano_performance_submission_is_idempotent(
     assert second.json()["id"] == first.json()["id"]
     assert first.json()["metrics"]["overall_score"] == 1.0
     assert first.json()["metrics"]["low_confidence"] is False
+    assert first.json()["metrics"]["dynamics_accuracy"] is None
+    assert first.json()["metrics"]["posture_metrics"] is None
     assert second.json()["exp_awarded"] == first.json()["exp_awarded"]
 
     attempt_id = first.json()["id"]

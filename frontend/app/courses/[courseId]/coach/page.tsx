@@ -79,6 +79,7 @@ function CoachingStudioView() {
   const [error, setError] = useState<string | null>(null);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
   const [customBpm, setCustomBpm] = useState<number | null>(null);
   const [geminiVoice, setGeminiVoice] = useState<string>("21m00Tcm4TlvDq8ikWAM");
   const [aiTip, setAiTip] = useState<CoachLiveTipResponse | null>(null);
@@ -297,6 +298,7 @@ function CoachingStudioView() {
     }
   }, [courseId, selectedExercise, course, tempoBpm, currentActiveNote, cue, addStreamLog]);
 
+  // @spec UI-SHELL-008
   const startTake = useCallback(async () => {
     if (selectedExerciseId === null || !selectedExercise) return;
     stopDebriefVoice();
@@ -348,7 +350,7 @@ function CoachingStudioView() {
           onResult: (result) => {
             addStreamLog("in", `take.result <- Finalized with overall score: ${((result.metrics?.overall_score ?? 0) * 100).toFixed(0)}%`);
             setAttempt(result);
-            void useAuthStore.getState().refreshUser();
+            void refreshUser();
             setStage("result");
           },
           onError: (err) => {
@@ -379,7 +381,7 @@ function CoachingStudioView() {
       socketRef.current?.close();
       socketRef.current = null;
     }
-  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice]);
+  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice, refreshUser]);
 
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -422,6 +424,7 @@ function CoachingStudioView() {
     }, tickIntervalMs);
   }, [selectedExerciseId, startTake]);
 
+  // @spec UI-SHELL-008
   const stopTake = useCallback(async () => {
     setStage("scoring");
     stopDebriefVoice();
@@ -444,7 +447,7 @@ function CoachingStudioView() {
           posture,
         );
         setAttempt(result);
-        void useAuthStore.getState().refreshUser();
+        void refreshUser();
         setStage("result");
       } catch (caught: unknown) {
         setError(caught instanceof Error ? caught.message : "The take could not be scored.");
@@ -452,7 +455,7 @@ function CoachingStudioView() {
       }
     }
     recorderRef.current = null;
-  }, [selectedExerciseId, stopDebriefVoice]);
+  }, [selectedExerciseId, stopDebriefVoice, refreshUser]);
 
   stopTakeRef.current = stopTake;
 

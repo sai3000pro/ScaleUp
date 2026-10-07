@@ -246,3 +246,53 @@ async def test_the_board_is_stable_across_reads(
             quest["node_id"] for quest in first["quests"]
         ]
         assert again["total_reward_exp"] == first["total_reward_exp"]
+
+
+async def _submit_a_take(client: AsyncClient, headers: dict[str, str]) -> dict:
+    """One graded instrument take against the seeded piano exercise."""
+    exercises = (
+        await client.get(f"/api/courses/{PIANO_COURSE_ID}/practice/exercises", headers=headers)
+    ).json()
+    practice = await client.post(
+        "/api/practice/sessions", headers=headers, json={"exercise_id": exercises[0]["id"]}
+    )
+    scored = await client.post(
+        f"/api/practice/sessions/{practice.json()['id']}/attempts",
+        headers={**headers, "Idempotency-Key": str(uuid.uuid4())},
+        json={"observed_notes": [{"pitch_midi": 60, "onset_seconds": 0.0}]},
+    )
+    assert scored.status_code == 201, scored.text
+    return scored.json()
+
+
+# @spec PROG-META-006
+async def test_a_graded_take_continues_the_streak(
+    client: AsyncClient, dev_headers: dict[str, str], seeded: dict
+) -> None:
+    """Playing an instrument is practice; a take must count like a drill does."""
+    before = (await client.get("/api/quests/daily", headers=dev_headers)).json()
+    assert before["streak_days"] == 0
+
+    await _submit_a_take(client, dev_headers)
+    after = (await client.get("/api/quests/daily", headers=dev_headers)).json()
+    assert after["streak_days"] == 1
+
+
+# @spec PROG-EXP-007
+async def test_account_exp_reconciles_with_the_award_ledger(
+    client: AsyncClient, dev_headers: dict[str, str], seeded: dict
+) -> None:
+    """total_exp is a running counter; the ledger of awards must reproduce it."""
+    from app.db.session import _async_session_factory
+    from app.models import User
+    from app.services.progress_service import reconcile_total_exp
+
+    await drill_and_pass(client, dev_headers, seeded["root_id"])
+    await _submit_a_take(client, dev_headers)
+
+    async with _async_session_factory()() as session:
+        user = await session.scalar(select(User).where(User.id == DEV_USER_ID))
+        assert user is not None
+        assert user.total_exp > 0
+        ledger = await reconcile_total_exp(session, DEV_USER_ID)
+    assert ledger == user.total_exp

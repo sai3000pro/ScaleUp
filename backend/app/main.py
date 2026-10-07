@@ -23,6 +23,7 @@ from app.api.routers import (
     webhooks,
 )
 from app.config import get_settings
+from app.core.request_limits import ScoringRequestLimitMiddleware
 from app.llm.base import BudgetExceededError, ProviderError
 
 
@@ -36,6 +37,7 @@ def create_app() -> FastAPI:
         summary="Scores instrument practice against digital scores, coaches it, and decays it.",
     )
 
+    app.add_middleware(ScoringRequestLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origin_regex=settings.cors_origin_regex,

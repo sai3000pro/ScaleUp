@@ -6,8 +6,7 @@ a ledger, and a deterministic floor that needs no credentials.
 ## Status
 
 **AUDITED** — last audited 2026-08-22 (git SHA `dc77249`). The seam holds: the whole product
-runs and is tested with no credentials. Two invariants it depends on are unstated, and one
-budget path can be bypassed.
+runs and is tested with no credentials.
 
 ## References
 
@@ -22,6 +21,11 @@ budget path can be bypassed.
 
 ### Tests
 - `backend/tests/unit/test_course_budget.py`, `test_fake_provider.py`
+- `backend/tests/unit/test_stream_usage.py` — streamed usage recorded when reported
+- `backend/tests/unit/test_render_refusal.py` — a prompt that will not render is refused
+- `backend/tests/unit/test_vectors.py` — unit-normalised embeddings at the seam
+- `backend/tests/unit/test_wire_formats.py` — shared render/parse formats round-trip
+- `backend/tests/unit/test_superseded_prompts.py` — superseded versions derivable from the store
 - `backend/tests/unit/test_gemini_provider.py` — provider selection, per-provider pricing, streaming
 - `backend/tests/unit/test_prompt_placeholders.py` — every prompt interpolates in the renderer's syntax
 - `backend/tests/integration/test_cost_ledger.py`, `test_ledger_links.py`
@@ -51,59 +55,49 @@ working answer with no provider configured.
 | Category | Spec IDs | Implemented | Deferred | Gaps |
 |---|---|---|---|---|
 | Role addressing | `LLM-ROLE-001` – `006` | 5 | 1 | 0 |
-| Provider selection | `LLM-PROV-001` – `010` | 9 | 0 | 1 |
-| Prompt versioning | `LLM-PROMPT-001` – `005` | 4 | 0 | 1 |
-| Budget | `LLM-BUDGET-001` – `005` | 4 | 0 | 1 |
-| Ledger | `LLM-LEDGER-001` – `006` | 5 | 0 | 1 |
-| Deterministic floor | `LLM-FAKE-001` – `008` | 6 | 1 | 1 |
-| Embeddings | `LLM-EMBED-001` – `004` | 3 | 0 | 1 |
+| Provider selection | `LLM-PROV-001` – `010` | 10 | 0 | 0 |
+| Prompt versioning | `LLM-PROMPT-001` – `005` | 5 | 0 | 0 |
+| Budget | `LLM-BUDGET-001` – `005` | 5 | 0 | 0 |
+| Ledger | `LLM-LEDGER-001` – `006` | 6 | 0 | 0 |
+| Deterministic floor | `LLM-FAKE-001` – `008` | 7 | 1 | 0 |
+| Embeddings | `LLM-EMBED-001` – `004` | 4 | 0 | 0 |
 
-**Summary:** 36 of 44 implemented; 2 deliberate non-wants; 6 active gaps.
+**Summary:** 42 of 44 implemented; 2 deliberate non-wants; 0 active gaps.
 
 ## Key Findings
 
-1. **An unstated invariant holds up similarity scoring.** `ingestion/extract.py:157` defines
-   `_cosine` as a bare dot product with no normalisation. It is correct only because every
-   embedding provider currently returns unit vectors — `fake_provider.py:981` normalises, and
-   OpenAI's embeddings arrive normalised. Nothing states that requirement: not a type, not a
-   docstring, not a test. A provider that returned unnormalised vectors would silently change
-   what the concept-merge thresholds mean rather than fail (`LLM-EMBED-004`).
+1. **Wire formats are shared mechanically.** `app/domain/wire_formats.py` holds each
+   prompt listing's render function next to the parse regex that must round-trip with
+   it. The renderers in `drill_service`, `segment`, `prereqs`, `summarise`, and
+   `qa_service` call the domain functions; the deterministic provider imports the
+   regexes (`LLM-FAKE-008`).
 
-2. **Budget enforcement can be skipped.** `_enforce_budget` returns without checking when
-   prompt rendering raises, so a rendering failure bypasses the ceiling instead of refusing
-   the call (`LLM-BUDGET-005`).
+2. **Embedding vectors are unit length at the seam.** `embed_texts_recorded`
+   normalises every provider vector through `domain.vectors.unit_normalise`, so
+   `extract._cosine` is an honest dot product and similarity thresholds mean the
+   same for every provider (`LLM-EMBED-004`).
 
-3. **The deterministic provider is the most tightly coupled component in the system.** It
-   reverse-parses the wire format of four renderers in other segments — the drill rubric, the
-   ingestion fragments, the skill list, and the QA passages. Two carry explicit "these must
-   change together" comments. The coupling is real, load-bearing, and guarded only by comment:
-   no shared constant, no shared parser, no failing test (`LLM-FAKE-008`).
+3. **A prompt that will not render is refused.** `_enforce_budget` lets the render
+   error propagate after recording exactly one failure row — refused before any
+   provider spend (`LLM-BUDGET-005`).
 
-4. **Superseded prompts carry no marker.** Several prompt versions and schemas remain with
-   nothing indicating they are superseded; only the registry's silence distinguishes live from
-   dead, so the prompts directory cannot be read on its own (`LLM-PROMPT-004`).
+4. **Streamed calls record reported usage.** A provider that reports token counts
+   ends its stream with a `StreamDelta` carrying `usage`; the ledger prefers it and
+   falls back to the character estimate only when nothing was reported
+   (`LLM-PROV-006`).
 
-5. **The ledger is complete and unread.** One row per call including failures and
-   cancellations, with prompt identifier, version and hash — precisely the data needed to
-   answer whether a prompt change helped. One endpoint reads it for cost; nothing reads it for
-   quality (`LLM-LEDGER-006`).
+5. **Superseded prompts are derivable.** `prompts.registry.superseded_prompts`
+   returns every version on disk no live role references; `check_integrations.py`
+   prints the list (`LLM-PROMPT-004`).
 
-6. **The floor is real, not a mock.** The whole product — ingestion, grading, feedback,
+6. **The ledger answers "did the edit help?".** `GET /courses/{id}/cost` groups
+   outcomes by `(role, prompt_id, prompt_version)` into `by_prompt_version`
+   (`LLM-LEDGER-006`).
+
+7. **The floor is real, not a mock.** The whole product — ingestion, grading, feedback,
    coaching, curriculum compilation — runs with no credentials, and CI runs that way.
 
 ## Work Required
 
-### Must Fix
-1. Refuse the call when prompt rendering fails, rather than proceeding unchecked
-   (`LLM-BUDGET-005`).
-
-### Should Fix
-2. State and enforce the unit-vector requirement for embedding providers — as a type, a test,
-   or a normalisation at the seam (`LLM-EMBED-004`).
-3. Share the rendered wire formats mechanically between the renderers and the deterministic
-   parser (`LLM-FAKE-008`).
-
 ### Consider
-4. Mark superseded prompt versions in the prompt store (`LLM-PROMPT-004`).
-5. Build the prompt evaluation harness the ledger was designed to feed (`LLM-LEDGER-006`).
-6. Decide whether voice synthesis belongs in the same ledger as model calls.
+1. Decide whether voice synthesis belongs in the same ledger as model calls.

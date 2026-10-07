@@ -27,6 +27,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from app.api.deps import DbSession
 from app.config import get_settings
 from app.schemas.webhook import (
+    AudioRetentionCleanupPayload,
     DailyQuestsRefreshPayload,
     FeedbackRequestedPayload,
     SessionCompletedPayload,
@@ -45,7 +46,12 @@ router = APIRouter(prefix="/api/webhooks/v1", tags=["webhooks"])
 # @spec OPS-HOOK-005
 async def _dispatch(
     event_type: str,
-    payload_model: type[SessionCompletedPayload | FeedbackRequestedPayload | DailyQuestsRefreshPayload],
+    payload_model: type[
+        SessionCompletedPayload
+        | FeedbackRequestedPayload
+        | DailyQuestsRefreshPayload
+        | AudioRetentionCleanupPayload
+    ],
     request: Request,
     session: DbSession,
     signature: str | None,
@@ -100,6 +106,19 @@ async def feedback_requested(
     correlation_id: Annotated[str | None, Header(alias="X-Correlation-ID")] = None,
 ) -> WebhookResult:
     return await _dispatch("feedback.requested", FeedbackRequestedPayload, request, session, signature, correlation_id)
+
+
+@router.post("/audio.retention.cleanup", response_model=WebhookResult)
+async def audio_retention_cleanup(
+    request: Request,
+    session: DbSession,
+    signature: Annotated[str | None, Header(alias="X-Webhook-Signature")] = None,
+    correlation_id: Annotated[str | None, Header(alias="X-Correlation-ID")] = None,
+) -> WebhookResult:
+    """Delete expired audio while retaining attempts, metrics, and progress."""
+    return await _dispatch(
+        "audio.retention.cleanup", AudioRetentionCleanupPayload, request, session, signature, correlation_id
+    )
 
 
 @router.post("/daily-quests.refresh", response_model=WebhookResult)

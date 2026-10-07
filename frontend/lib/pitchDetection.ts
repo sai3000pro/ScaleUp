@@ -14,6 +14,15 @@
  */
 
 import type { PerformedNote } from "@/lib/types";
+import {
+  DEFAULT_SEGMENTER_CONFIG,
+  finalizeSegments,
+  initialSegmenterState,
+  pushFrame,
+  type PitchFrame,
+  type SegmenterConfig,
+  type SegmenterState,
+} from "@/lib/noteSegmentation";
 
 export interface PitchDetection {
   frequency: number;
@@ -115,17 +124,44 @@ const NEW_NOTE_CONFIRM_FRAMES = 3;
 // so this threshold is what separates coaching from talking over someone.
 const SILENCE_LEVEL_DB = -48;
 
-import {
-  DEFAULT_SEGMENTER_CONFIG,
-  finalizeSegments,
-  initialSegmenterState,
-  pushFrame,
-  type PitchFrame,
-  type SegmenterConfig,
-  type SegmenterState,
-} from "@/lib/noteSegmentation";
-
 export type RecordingStatus = "idle" | "requesting" | "listening" | "stopping";
+export type CaptureFailure = "permission_denied" | "unavailable" | "unsupported" | "failed";
+
+export class CaptureError extends Error {
+  constructor(readonly reason: CaptureFailure) {
+    const messages: Record<CaptureFailure, string> = {
+      permission_denied: "Microphone permission was denied. Allow microphone access in your browser settings, or use the fixture performance.",
+      unavailable: "No usable microphone is available. Connect or select a microphone, or use the fixture performance.",
+      unsupported: "Microphone capture is not supported here. Use a supported browser on HTTPS, or use the fixture performance.",
+      failed: "Microphone capture could not start. Try again or use the fixture performance.",
+    };
+    super(messages[reason]);
+    this.name = "CaptureError";
+  }
+}
+
+export function classifyCaptureFailure(error: unknown, mediaApiAvailable = true): CaptureFailure {
+  if (error instanceof CaptureError) return error.reason;
+  if (!mediaApiAvailable) return "unsupported";
+  const errorName = error instanceof Error ? error.name : "";
+  if (errorName === "NotAllowedError" || errorName === "SecurityError") return "permission_denied";
+  if (["NotFoundError", "DevicesNotFoundError", "OverconstrainedError", "NotReadableError", "AbortError"].includes(errorName)) {
+    return "unavailable";
+  }
+  return "failed";
+}
+
+export const CAPTURE_FAILURE_LABEL: Record<CaptureFailure, string> = {
+  permission_denied: "Microphone permission denied",
+  unavailable: "Microphone unavailable",
+  unsupported: "Microphone capture unsupported",
+  failed: "Microphone capture failed",
+};
+
+/** @spec CAP-PERM-001 */
+
+/**
+ * Records a monophonic performance from the microphone and segments it into
 
 /** The preserved raw take plus the canonical notes the scorer will use. */
 export interface RecordingTake {
@@ -215,9 +251,9 @@ export class MicRecorder {
 
     const AudioContextCtor = window.AudioContext
       ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (AudioContextCtor === undefined) {
+    if (AudioContextCtor === undefined || navigator.mediaDevices?.getUserMedia === undefined) {
       this.setStatus("idle");
-      throw new Error("Web Audio is not supported in this browser.");
+      throw new CaptureError("unsupported");
     }
 
     try {
@@ -246,9 +282,9 @@ export class MicRecorder {
           channelCount: 1,
         },
       });
-    } catch {
+    } catch (error: unknown) {
       this.setStatus("idle");
-      throw new Error("Microphone access was denied or unavailable.");
+      throw new CaptureError(classifyCaptureFailure(error));
     }
 
     this.context = new AudioContextCtor();

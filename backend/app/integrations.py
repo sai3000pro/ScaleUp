@@ -26,9 +26,9 @@ print in a terminal someone is screen-sharing.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Literal
 
-from app.config import Settings, get_settings
+from app.config import PLACEHOLDER_JWT_SECRET, Settings, get_settings
 
 __all__ = [
     "BROWSER_DEPENDENCIES",
@@ -38,6 +38,7 @@ __all__ = [
     "IntegrationStatus",
     "integration_statuses",
     "missing_for_deployment",
+    "violated_requirements",
 ]
 
 
@@ -344,16 +345,113 @@ def integration_statuses(settings: Settings | None = None) -> tuple[IntegrationS
     return tuple(statuses)
 
 
-# @spec OPS-CONFIG-007
-def missing_for_deployment(settings: Settings | None = None) -> tuple[str, ...]:
-    """Integrations a deployed environment needs that are not live.
+@dataclass(frozen=True, slots=True)
+class DeploymentRequirement:
+    """One thing a hosted or deployed environment must change to start.
 
-    Advisory: `Settings` already refuses to start with `DEPLOYED=true` and a
-    development default in place. This is the same question asked early enough
-    to answer before a deploy rather than during one.
+    The single authority for both the startup refusal and the pre-deploy
+    report: two rule sets for one question means one of them is wrong at any
+    moment, so there is one.
     """
+
+    tier: Literal["hosted", "deployed"]
+    violated: Callable[[Settings], bool]
+    message: str
+
+
+# @spec OPS-CONFIG-003, OPS-CONFIG-007, OPS-CONFIG-008
+DEPLOYMENT_REQUIREMENTS: tuple[DeploymentRequirement, ...] = (
+    # hosted tier -- armed by platform detection, HOSTED=true, or DEPLOYED=true.
+    DeploymentRequirement(
+        "hosted",
+        lambda s: s.jwt_secret == PLACEHOLDER_JWT_SECRET,
+        "JWT_SECRET is still the committed placeholder; generate a real one",
+    ),
+    DeploymentRequirement(
+        "hosted",
+        lambda s: s.dev_auth_enabled,
+        "DEV_AUTH_ENABLED must be false when hosted",
+    ),
+    DeploymentRequirement(
+        "hosted",
+        lambda s: s.dev_webhooks_enabled,
+        "DEV_WEBHOOKS_ENABLED must be false when hosted; unsigned webhooks must not be accepted",
+    ),
+    DeploymentRequirement(
+        "hosted",
+        lambda s: s.url_fetch_allow_private_hosts,
+        "URL_FETCH_ALLOW_PRIVATE_HOSTS must be false when hosted; "
+        "it disables the SSRF address check and makes the cloud metadata "
+        "endpoint reachable through the URL ingest form",
+    ),
+    DeploymentRequirement(
+        "hosted",
+        lambda s: "localhost" in s.cors_origin_regex or "127.0.0.1" in s.cors_origin_regex,
+        "CORS_ORIGIN_REGEX still allows loopback origins when hosted; "
+        "set an explicit production origin allowlist",
+    ),
+    # deployed tier -- the full DEPLOYED=true production shape adds durability
+    # and integration requirements on top.
+    DeploymentRequirement(
+        "deployed",
+        lambda s: s.email_provider == "fake",
+        "EMAIL_PROVIDER must not be fake when DEPLOYED=true",
+    ),
+    DeploymentRequirement(
+        "deployed",
+        lambda s: s.email_provider == "resend" and not s.resend_api_key,
+        "RESEND_API_KEY is required when EMAIL_PROVIDER=resend",
+    ),
+    DeploymentRequirement(
+        "deployed",
+        lambda s: not s.google_oauth_client_id or not s.google_oauth_client_secret,
+        "Google OAuth credentials must be configured when DEPLOYED=true",
+    ),
+    DeploymentRequirement(
+        "deployed",
+        lambda s: s.storage_backend != "gcs",
+        "STORAGE_BACKEND must be gcs when DEPLOYED=true; local uploads are ephemeral",
+    ),
+    DeploymentRequirement(
+        "deployed",
+        lambda s: s.storage_backend == "gcs" and not s.gcs_bucket,
+        "GCS_BUCKET is required when STORAGE_BACKEND=gcs",
+    ),
+    DeploymentRequirement(
+        "deployed",
+        lambda s: not s.webhook_secret,
+        "WEBHOOK_SECRET must be set when DEPLOYED=true; n8n webhooks would be unauthenticated",
+    ),
+)
+
+
+# @spec OPS-CONFIG-003, OPS-CONFIG-007, OPS-CONFIG-008
+def violated_requirements(settings: Settings) -> list[str]:
+    """Deployment requirements the current settings violate, for the tier(s) that apply."""
+    return [
+        requirement.message
+        for requirement in DEPLOYMENT_REQUIREMENTS
+        if requirement.violated(settings)
+        and (requirement.tier == "hosted" and settings.is_hosted or requirement.tier == "deployed" and settings.deployed)
+    ]
+
+
+# @spec OPS-CONFIG-007
+def missing_for_deployment(
+    settings: Settings | None = None, tier: Literal["hosted", "deployed"] | None = None
+) -> tuple[str, ...]:
+    """What would refuse to start if the flag were flipped now.
+
+    Advisory: `Settings` refuses to start when its tier applies and a
+    development default is in place. This is the same table read early enough
+    to answer before a deploy rather than during one -- predicates are
+    evaluated regardless of the current flags, because the question is what a
+    flip would refuse.
+    """
+    if settings is None:
+        settings = get_settings()
     return tuple(
-        f"{status.title} ({status.enable_hint})"
-        for status in integration_statuses(settings)
-        if status.required_when_deployed and status.mode != "live"
+        requirement.message
+        for requirement in DEPLOYMENT_REQUIREMENTS
+        if requirement.violated(settings) and (tier is None or requirement.tier == tier)
     )

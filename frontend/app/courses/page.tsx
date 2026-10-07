@@ -37,6 +37,7 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [title, setTitle] = useState("");
   const [campaignGoal, setCampaignGoal] = useState("");
+  const [campaignInstrument, setCampaignInstrument] = useState("piano");
   const [startingCampaign, setStartingCampaign] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +85,7 @@ export default function CoursesPage() {
     setStartingCampaign(true);
     setError(null);
     try {
-      const course = await api.createCourseFromGoal(goal);
+      const course = await api.createCourseFromGoal(`I want to learn ${campaignInstrument}: ${goal}`);
       router.push(`/courses/${course.id}`);
     } catch (caught) {
       setError((caught as Error).message);
@@ -124,22 +125,38 @@ export default function CoursesPage() {
             Start a skill campaign
           </h2>
           <p className="mt-1 max-w-2xl text-xs text-slate-400">
-            Name the instrument you want to learn and we will build your skill tree now — shared skills
-            like reading, pulse and phrasing come from the same catalogue every instrument draws on, so
-            what you learn here counts everywhere.
+            Choose an instrument and a learning goal. Shared skills like reading, pulse and phrasing come
+            from the same catalogue every instrument draws on, so what you learn here counts everywhere.
           </p>
         </div>
         <form onSubmit={startCampaign} className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="campaignInstrument" className="sr-only">
+            Instrument
+          </label>
+          <select
+            id="campaignInstrument"
+            value={campaignInstrument}
+            onChange={(event) => setCampaignInstrument(event.target.value)}
+            disabled={startingCampaign}
+            className={`${INPUT} sm:w-44`}
+          >
+            <option value="piano">Piano</option>
+            <option value="guitar">Guitar</option>
+            <option value="violin">Violin</option>
+            <option value="trumpet">Trumpet</option>
+            <option value="drums">Drums</option>
+            <option value="banjo">Banjo</option>
+          </select>
           <label htmlFor="campaignGoal" className="sr-only">
-            Campaign learning goal
+            What do you want to learn?
           </label>
           <input
             id="campaignGoal"
             className={`${INPUT} min-w-0 flex-1`}
-            placeholder="I want to learn how to play guitar"
+            placeholder="e.g. read notation, play a blues progression"
             value={campaignGoal}
             onChange={(event) => setCampaignGoal(event.target.value)}
-            maxLength={500}
+            maxLength={450}
             disabled={startingCampaign}
           />
           <button type="submit" disabled={startingCampaign || !campaignGoal.trim()} className={`${BUTTON_PRIMARY} shrink-0`}>

@@ -58,7 +58,7 @@ const RECORD_STATUS_LABEL: Record<string, string> = {
   stopping: "Scoring take…",
 };
 
-// @spec CAP-PERM-002, UI-SHELL-008
+// @spec CAP-PERM-002
 export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, pinned = false }: PracticePanelProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
@@ -73,6 +73,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
   const [error, setError] = useState<string | null>(null);
   const [recordStatus, setRecordStatus] = useState<string>("idle");
   const recorderRef = useRef<MicRecorder | null>(null);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +99,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
     };
   }, []);
 
+  // @spec UI-SHELL-008
   async function submitNotes(notes: PerformedNote[], label: string, recordingId: string | null = null) {
     if (selectedExerciseId === null) return;
     setLoading(true);
@@ -116,7 +118,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
         recordingId === null && label === "fixture" ? "score-fixture" : ANALYZER_ID,
       );
       setResult(attempt);
-      void useAuthStore.getState().refreshUser();
+      void refreshUser();
       setRecordStatus(`Recorded ${label} · ${attempt.metrics.observed_note_count} notes detected`);
       onCompleted();
     } catch (caught: unknown) {

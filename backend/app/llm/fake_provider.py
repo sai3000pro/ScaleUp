@@ -23,6 +23,14 @@ from decimal import Decimal
 from typing import Any, AsyncIterator, Mapping, Sequence
 
 from app.config import get_settings
+from app.domain.wire_formats import (
+    CANDIDATE_HEAD,
+    PASSAGE_BLOCK,
+    RUBRIC_LINE,
+    SEGMENT_FRAGMENT,
+    SEGMENT_LEAD_IN_NAME,
+    SKILL_LINE,
+)
 from app.llm.base import LLMRole, StreamDelta, StructuredResult, Usage
 from app.llm.support import prepare, validate_or_raise
 
@@ -42,17 +50,8 @@ WORD = re.compile(r"[A-Za-z][A-Za-z-]{2,}")
 # words of which only one -- "direction" -- is the thing actually being tested.
 RUBRIC_SCAFFOLD = frozenset("explains explain role weight point key states describes mentions".split())
 
-# `kp1: <point text> (weight 0.5)`, the shape `drill_service._render_rubric` emits.
-RUBRIC_LINE = re.compile(r"^\s*(kp[0-9]+)\s*:\s*(.*?)\s*(?:\(weight[^)]*\))?\s*$", re.IGNORECASE)
-
-# `[fragment 3] lead-in: Definition: Subgradient`, the shape
-# `app.ingestion.segment.render_fragments` emits, followed by that fragment's text.
-SEGMENT_FRAGMENT = re.compile(
-    r"^\[fragment (\d+)\] lead-in: ([^\n]*)\n(.*?)(?=^\[fragment \d+\] lead-in:|\Z)",
-    re.M | re.S,
-)
-# The part of a lead-in after `:` or a dash -- the name the author already wrote.
-SEGMENT_LEAD_IN_NAME = re.compile(r"^[A-Za-z]+\s*\d*(?:\.\d+)*\s*[:–—-]\s*(\S.*)$")
+# The wire formats this provider parses live in `app.domain.wire_formats`,
+# beside the render functions that emit them.
 
 
 def _stem(word: str) -> str:
@@ -123,10 +122,7 @@ TITLE_FILLER = frozenset("a an the of for and or in on to with as by its".split(
 # The title is read back from between the bold markers, NOT up to the first
 # colon. A colon-separated title truncated "Formulations: Overview" to
 # "Formulations", which then matched every section in that chapter. See
-# `prereqs._render_skill_list`; the two must change together.
-SKILL_LINE = re.compile(r"^-\s*`([a-z0-9-]+)`\s*—\s*\*\*(.+?)\*\*\s*—\s*(.*)$")
-CANDIDATE_HEAD = re.compile(r"^###\s*`([a-z0-9-]+)`\s*—\s*(.+)$", re.M)
-
+# `app.domain.wire_formats`, beside the render functions that emit them.
 # (kind, words, weight). kind is "phrase" | "proximity" | "term".
 Cue = tuple[str, tuple[str, ...], float]
 # (lowercased single-spaced text, folded word -> offsets in it, original text).
@@ -358,14 +354,6 @@ def _parse_candidates(block: str) -> list[tuple[str, str, str]]:
     ]
 
 
-# `### \`slug\` — Title` / `node_id:` / `chunk_id:` / the passage, which is what
-# `qa_service._render_passages` emits. The fake reads back the shipping
-# rendering rather than a shortcut, so a change to the prompt's wire format
-# breaks a test instead of silently degrading the answer.
-PASSAGE_BLOCK = re.compile(
-    r"^###\s*`([a-z0-9-]+)`\s*—\s*(.+?)\n\s*node_id:\s*(\S+)\n\s*chunk_id:\s*(\S+)\n(.*?)(?=^###\s*`|\Z)",
-    re.M | re.S,
-)
 SENTENCE = re.compile(r"(?<=[.!?])\s+")
 # Below this a "sentence" is a fragment, and the summary schema's 20-character
 # floor would reject the whole batch over it.
@@ -953,7 +941,15 @@ class FakeLLMClient:
             if delay > 0:
                 await asyncio.sleep(delay)
             yield StreamDelta(text=word if index == 0 else f" {word}")
-        del call
+        # @spec LLM-PROV-006
+        yield StreamDelta(
+            text="",
+            usage=Usage(
+                input_tokens=len(call.prompt_text) // 4,
+                output_tokens=len(text) // 4,
+                cost_usd=Decimal(0),
+            ),
+        )
 
     def _grade(self, variables: Mapping[str, Any]) -> dict[str, Any]:
         answer = str(variables.get("answer", ""))

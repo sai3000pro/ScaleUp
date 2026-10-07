@@ -154,7 +154,9 @@ async def get_cost(course_id: uuid.UUID, user: CurrentUser, session: DbSession) 
     still burned output tokens.
     """
     course = await course_service.get_owned(session, course_id, user.id)
-    return CourseCost(**await llm_calls.cost_summary(session, course.id, get_settings().course_llm_budget_usd))
+    summary = await llm_calls.cost_summary(session, course.id, get_settings().course_llm_budget_usd)
+    summary["by_prompt_version"] = await llm_calls.prompt_version_outcomes(session, course.id)
+    return CourseCost(**summary)
 
 
 @router.post(
@@ -315,6 +317,20 @@ async def create_curriculum_version(
         return await curriculum_graph_service.create_version_api(session, course, payload)
     except ValueError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
+
+@router.get(
+    "/{course_id}/curriculum/versions",
+    response_model=list[CurriculumVersionOut],
+)
+async def list_curriculum_versions(
+    course_id: uuid.UUID,
+    user: CurrentUser,
+    session: DbSession,
+) -> list[CurriculumVersionOut]:
+    """List every draft, review, published, or retired version for review."""
+    course = await course_service.get_owned(session, course_id, user.id)
+    return await curriculum_graph_service.list_versions_api(session, course)
 
 
 @router.get(

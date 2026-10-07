@@ -122,9 +122,16 @@ class StructuredResult:
 
 @dataclass(frozen=True, slots=True)
 class StreamDelta:
-    """One chunk of a streamed reply. Text only -- never partial JSON."""
+    """One chunk of a streamed reply. Text only -- never partial JSON.
+
+    A provider that reports token counts yields one final delta with empty
+    text and `usage` set; a provider that does not simply never sets it.
+
+    # @spec LLM-PROV-006
+    """
 
     text: str
+    usage: Usage | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -205,7 +212,12 @@ class EmbeddingProvider(Protocol):
     dimensions: int
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
-        """Batched. Returns one vector per input, in order."""
+        """Batched. Returns one vector per input, in order.
+
+        Vectors reaching callers are unit length: the gateway normalises at
+        the seam (`services/llm_gateway.embed_texts_recorded`), so similarity
+        thresholds mean the same for every provider.
+        """
         ...
 
 

@@ -273,6 +273,13 @@ export interface CurriculumVersion {
   published_at: string | null;
 }
 
+export interface CurriculumEvidence {
+  chunk_id: string;
+  quote: string;
+  section_path: string | null;
+  page_start: number;
+}
+
 export interface CurriculumCandidate {
   id: string;
   version_id: string;
@@ -285,6 +292,7 @@ export interface CurriculumCandidate {
   rejection_reason: string | null;
   cycle_path: string[];
   evidence_count: number;
+  evidence: CurriculumEvidence[];
 }
 
 export interface CurriculumPublishResult {
@@ -371,6 +379,15 @@ export interface PostureObservation {
   coverage: number;
 }
 
+export interface PostureMetricResult {
+  key: string;
+  value: number;
+  confidence: number;
+  status: string;
+  raw: number | null;
+  unit: string | null;
+}
+
 export interface PerformanceMetrics {
   evaluator_version: string;
   expected_note_count: number;
@@ -397,6 +414,8 @@ export interface PerformanceMetrics {
   /** Physical form from browser landmarks. Null when the camera was off. */
   posture_accuracy: number | null;
   posture_version: string | null;
+  /** Per-reading confidence and status; absent when posture was not measured. */
+  posture_metrics: PostureMetricResult[] | null;
   /** Which pitch detector produced the observations. */
   analyzer: string | null;
   tempo_bpm: number | null;
@@ -833,6 +852,20 @@ export interface RoleCost {
   avg_latency_ms: number | null;
 }
 
+// @spec LLM-LEDGER-006
+export interface PromptVersionOutcome {
+  role: string;
+  prompt_id: string;
+  prompt_version: string;
+  calls: number;
+  ok: number;
+  /** Anything that is neither `ok` nor `cancelled`. */
+  failed: number;
+  cancelled: number;
+  avg_latency_ms: number | null;
+  cost_usd: number;
+}
+
 export interface CourseCost {
   course_id: string;
   total_calls: number;
@@ -844,6 +877,7 @@ export interface CourseCost {
   budget_remaining_usd: number;
   budget_exceeded: boolean;
   by_role: RoleCost[];
+  by_prompt_version: PromptVersionOutcome[];
 }
 
 // ── admin surface ──────────────────────────────────────────────────────────

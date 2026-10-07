@@ -25,7 +25,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-PROV-003**: Each provider shall name its own model for every role, and no call shall be priced at a model identifier other than the one that served it.
 - [x] **LLM-PROV-004**: At least one credentialed provider shall support streaming generation, so live coaching can be served by a model rather than only by the deterministic floor.
 - [x] **LLM-PROV-005**: Where the selected provider cannot stream, the system shall report that the provider cannot stream, rather than reporting the call as failed.
-- [ ] **LLM-PROV-006**: A streamed call shall be recorded against the token counts its provider reported, where the provider reports them.
+- [x] **LLM-PROV-006**: A streamed call shall be recorded against the token counts its provider reported, where the provider reports them.
 - [x] **LLM-PROV-007**: The system shall accept a distinct provider credential per workload lane, so a quota exhausted by one lane does not stop the others.
 - [x] **LLM-PROV-009**: Where a workload lane has no credential for the selected provider, that lane shall run on the deterministic provider rather than refusing, so a deployment can pay for one lane at a time.
 - [x] **LLM-PROV-010**: Every recorded call shall name the provider that actually served it, including where a lane fell back to the deterministic provider.
@@ -41,7 +41,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-PROMPT-001**: Prompts shall be stored as versioned files.
 - [x] **LLM-PROMPT-002**: A change to a prompt shall be published as a new version file rather than editing an existing one.
 - [x] **LLM-PROMPT-003**: Every recorded call shall carry its prompt identifier, prompt version, and prompt content hash.
-- [ ] **LLM-PROMPT-004**: A prompt version no longer referenced by any role shall be identifiable as superseded from the prompt store itself.
+- [x] **LLM-PROMPT-004**: A prompt version no longer referenced by any role shall be identifiable as superseded from the prompt store itself.
 - [x] **LLM-PROMPT-005**: A prompt shall interpolate its variables in the one syntax the renderer substitutes, and a prompt that does not shall be identifiable without calling a provider.
 
 ## Budget
@@ -50,7 +50,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-BUDGET-002**: The system shall check the ceiling before dispatching a call, not after.
 - [x] **LLM-BUDGET-003**: When the ceiling is exhausted, the system shall refuse the call with a distinct, catchable condition.
 - [x] **LLM-BUDGET-004**: The system shall report accumulated spend per course, broken down by role.
-- [ ] **LLM-BUDGET-005**: When prompt rendering fails, the system shall refuse the call rather than proceeding without a budget check.
+- [x] **LLM-BUDGET-005**: When prompt rendering fails, the system shall refuse the call rather than proceeding without a budget check.
 
 ## Ledger
 
@@ -59,7 +59,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-LEDGER-003**: The system shall record a ledger row even when the caller abandons a stream mid-generation.
 - [x] **LLM-LEDGER-004**: The system shall record token counts and estimated cost per call.
 - [x] **LLM-LEDGER-005**: The system shall link a ledger row to the work that caused it.
-- [ ] **LLM-LEDGER-006**: The system shall be able to compare outcomes across prompt versions from the recorded ledger.
+- [x] **LLM-LEDGER-006**: The system shall be able to compare outcomes across prompt versions from the recorded ledger.
 
 ## The deterministic floor
 
@@ -70,11 +70,11 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-FAKE-005**: The deterministic provider shall stream incrementally, so streaming consumers are exercised without credentials.
 - [x] **LLM-FAKE-006**: The continuous integration suite shall run with no provider credentials configured.
 - [D] **LLM-FAKE-007**: No test shall depend on a live provider except those explicitly marked as opt-in.
-- [ ] **LLM-FAKE-008**: Where the deterministic provider parses a renderer's output format, that format shall be shared mechanically rather than restated on each side.
+- [x] **LLM-FAKE-008**: Where the deterministic provider parses a renderer's output format, that format shall be shared mechanically rather than restated on each side.
 
 ## Embeddings
 
 - [x] **LLM-EMBED-001**: The system shall support an embedding provider selected independently of the generation provider.
 - [x] **LLM-EMBED-002**: The deterministic embedding provider shall produce vectors whose similarity behaves directionally like a real provider's.
 - [x] **LLM-EMBED-003**: The system shall record embedding spend in the same ledger as generation.
-- [ ] **LLM-EMBED-004**: Every embedding provider shall return unit-normalised vectors, so that similarity thresholds carry the same meaning across providers.
+- [x] **LLM-EMBED-004**: Every embedding provider shall return unit-normalised vectors, so that similarity thresholds carry the same meaning across providers.

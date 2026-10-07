@@ -34,6 +34,7 @@ from app.domain.states import (
     gating_masteries,
     overdue_days,
 )
+from app.domain.wire_formats import rubric_line
 from app.llm.base import BudgetExceededError, LLMRole
 from app.llm.registry import ROLES
 from app.models import Attempt, Chunk, NodeProgress, Question, SkillEdge, SkillNode, User
@@ -44,6 +45,10 @@ from app.services.llm_gateway import embed_texts_recorded, recording_llm_client
 from app.vector.chroma_store import get_vector_store
 
 RETRIEVAL_K = 5
+
+# A rubric-word score at or above this reads "correct" rather than "partial" --
+# a grading verdict, deliberately not the mastery threshold.
+CORRECT_SCORE = 0.85
 
 
 async def _load_node(session: AsyncSession, node_id: uuid.UUID, user_id: uuid.UUID) -> SkillNode:
@@ -325,7 +330,8 @@ async def _project_drill(
 
 
 def _render_rubric(rubric: list[dict]) -> str:
-    return "\n".join(f"{point['id']}: {point['point']} (weight {point['weight']})" for point in rubric)
+    """One line per rubric point, in the shared wire format the grader parses."""
+    return "\n".join(rubric_line(point["id"], point["point"], point["weight"]) for point in rubric)
 
 
 def _normalise_answer(value: str) -> str:
@@ -371,7 +377,7 @@ def _grade_code(question: Question, answer: str) -> dict[str, object]:
             missed.append(requirement)
 
     score = round(len(hit) / max(len(requirements), 1), 3)
-    verdict = "correct" if score >= 0.85 else ("partial" if score > 0 else "incorrect")
+    verdict = "correct" if score >= CORRECT_SCORE else ("partial" if score > 0 else "incorrect")
     if not missed:
         feedback = "The snippet contains all required concepts. Runtime behavior was not executed."
     else:

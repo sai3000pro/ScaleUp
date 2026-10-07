@@ -189,6 +189,9 @@ def provider_report() -> dict[str, object]:
         },
         "llm_lanes": _llm_lanes(),
         "deployed": settings.deployed,
+        # @spec OPS-CONFIG-009
+        "hosted": settings.is_hosted,
+        "hosting_signal": settings.hosting_signal,
         "all_ready": all(status.ready for status in statuses),
         "integrations": [
             {

@@ -32,7 +32,7 @@ from typing import Any, Mapping
 import httpx
 
 from app.config import get_settings
-from app.services.webhook_service import sign_payload
+from app.services.webhook_signing import sign_payload
 
 logger = logging.getLogger(__name__)
 

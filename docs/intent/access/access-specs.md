@@ -18,7 +18,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **ACCESS-AUTH-005**: The system shall answer a failed sign-in without revealing whether the account exists.
 - [D] **ACCESS-AUTH-006**: No token issued by the system shall be stored in a form that can be replayed.
 - [x] **ACCESS-AUTH-007**: Where development sign-in is disabled, its route shall not be registered at all.
-- [x] **ACCESS-AUTH-008**: The system shall refuse to start with a placeholder signing secret when marked as deployed.
+- [ ] **ACCESS-AUTH-008**: The system shall refuse to start with a placeholder signing secret when hosted.
 
 ## Sessions
 

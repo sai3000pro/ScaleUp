@@ -171,3 +171,44 @@ async def cost_summary(session: AsyncSession, course_id: uuid.UUID, budget_usd: 
         "budget_exceeded": total_cost_usd >= budget_float,
         "by_role": by_role,
     }
+
+
+# @spec LLM-LEDGER-006
+async def prompt_version_outcomes(session: AsyncSession, course_id: uuid.UUID) -> list[dict]:
+    """Outcome counts per prompt version, for "did the edit help?" comparisons.
+
+    Grouped by (role, prompt_id, prompt_version) so the same role before and
+    after a prompt edit lands in different rows -- the comparison the ledger
+    stores prompt identity for. `failed` is anything that is neither `ok` nor
+    `cancelled`: a barge-in is a real outcome, not a failure.
+    """
+    rows = (await session.execute(
+        select(
+            LlmCall.role,
+            LlmCall.prompt_id,
+            LlmCall.prompt_version,
+            func.count().label("calls"),
+            func.sum(case((LlmCall.status == "ok", 1), else_=0)).label("ok"),
+            func.sum(case((LlmCall.status == "cancelled", 1), else_=0)).label("cancelled"),
+            func.avg(LlmCall.latency_ms).label("avg_latency_ms"),
+            func.coalesce(func.sum(LlmCall.cost_usd), 0).label("cost_usd"),
+        )
+        .where(LlmCall.course_id == course_id)
+        .group_by(LlmCall.role, LlmCall.prompt_id, LlmCall.prompt_version)
+        .order_by(LlmCall.role, LlmCall.prompt_version)
+    )).all()
+
+    return [
+        {
+            "role": row.role,
+            "prompt_id": row.prompt_id,
+            "prompt_version": row.prompt_version,
+            "calls": int(row.calls),
+            "ok": int(row.ok or 0),
+            "failed": int(row.calls) - int(row.ok or 0) - int(row.cancelled or 0),
+            "cancelled": int(row.cancelled or 0),
+            "avg_latency_ms": int(row.avg_latency_ms) if row.avg_latency_ms is not None else None,
+            "cost_usd": float(row.cost_usd or 0),
+        }
+        for row in rows
+    ]

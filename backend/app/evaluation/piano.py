@@ -8,6 +8,7 @@ produces deterministic metrics from those values and a normalized MusicXML score
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from math import isfinite
 
@@ -17,7 +18,7 @@ from app.evaluation.musicxml import MusicXMLScore
 
 @dataclass(frozen=True, slots=True)
 class PerformedNote:
-    """One note observation emitted by a future audio feature extractor."""
+    """One canonical note observation emitted by the browser feature extractor."""
 
     pitch_midi: float
     onset_seconds: float
@@ -68,7 +69,10 @@ class PianoPerformanceScore:
         return self.alignment_confidence < 0.5
 
 
-def _expected_notes(score: MusicXMLScore, observed_count: int = 0) -> list[_ExpectedNote]:
+def _expected_notes(
+    score: MusicXMLScore,
+    observed_notes: Sequence[PerformedNote] = (),
+) -> list[_ExpectedNote]:
     seconds_per_beat = 60.0 / score.tempo_bpm
     base = [
         _ExpectedNote(
@@ -84,9 +88,19 @@ def _expected_notes(score: MusicXMLScore, observed_count: int = 0) -> list[_Expe
 
     max_onset = max(n.onset_beats for n in base)
     measure_beats = max(4.0, math.ceil((max_onset + 0.1) / 4.0) * 4.0)
+    # Only extend the expected phrase when note count AND elapsed duration
+    # support repeated cycles. Without the duration check, extra notes after a
+    # short phrase caused the evaluator to invent repetitions that were never
+    # written, changing the denominator and hiding extras.
+    seconds_per_measure = measure_beats * seconds_per_beat
+    observed_duration = (
+        observed_notes[-1].onset_seconds - observed_notes[0].onset_seconds
+        if len(observed_notes) >= 2
+        else 0.0
+    )
     num_repeats = 1
-    if max_onset < 12.0 and observed_count >= len(base) * 2:
-        num_repeats = max(1, round(observed_count / len(base)))
+    if max_onset < 12.0 and len(observed_notes) >= len(base) * 2 and observed_duration >= seconds_per_measure * 1.5:
+        num_repeats = max(1, round(observed_duration / seconds_per_measure))
 
     result: list[_ExpectedNote] = []
     for r in range(num_repeats):
@@ -182,8 +196,8 @@ def score_performance(
     keeps feedback specific: "three missed, one extra" is more actionable than a
     single opaque percentage.
     """
-    expected = _expected_notes(score, observed_count=len(observed_notes))
     observed = sorted(observed_notes, key=lambda note: (note.onset_seconds, note.pitch_midi))
+    expected = _expected_notes(score, observed)
     if not expected:
         raise ValueError("A piano score must contain at least one pitched note.")
 

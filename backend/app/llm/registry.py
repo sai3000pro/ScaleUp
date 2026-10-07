@@ -50,6 +50,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.llm.base import LLMRole
+from app.prompts.registry import superseded_prompts
 
 
 @dataclass(frozen=True, slots=True)
@@ -372,3 +373,15 @@ def price_for(model: str, input_tokens: int, output_tokens: int) -> Decimal:
     rate_in, rate_out = PRICES.get(model, (Decimal(0), Decimal(0)))
     million = Decimal(1_000_000)
     return (rate_in * Decimal(input_tokens) / million) + (rate_out * Decimal(output_tokens) / million)
+
+
+# @spec LLM-PROMPT-004
+def live_prompt_versions() -> dict[str, str]:
+    """prompt_id -> the version the live role table points at."""
+    return {config.prompt_id: config.prompt_version for config in ROLES.values()}
+
+
+# @spec LLM-PROMPT-004
+def superseded_prompt_versions() -> list[tuple[str, str]]:
+    """Every prompt file on disk no live role uses -- the superseded set."""
+    return superseded_prompts(live_prompt_versions())

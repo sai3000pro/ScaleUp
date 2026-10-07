@@ -31,6 +31,7 @@ from app.evaluation.guitar import GuitarNote, score_guitar_chords_performance, s
 from app.evaluation.musicxml import MusicXMLScore
 from app.evaluation.piano import PerformedNote, score_performance
 from app.evaluation.posture import PostureScore
+from app.evaluation.scoring_limits import MAX_OBSERVED_NOTES
 from app.evaluation.trumpet import score_trumpet_performance
 from app.evaluation.violin import ViolinNote, score_violin_performance
 
@@ -367,6 +368,8 @@ def evaluate(
     happens to agree. That is the property that lets new dimensions ship against
     a table of stored attempts without reinterpreting any of them.
     """
+    if len(observations) > MAX_OBSERVED_NOTES:
+        raise ValueError(f"At most {MAX_OBSERVED_NOTES} observed notes are allowed per scoring request.")
     evaluator = EVALUATORS_BY_VERSION.get(evaluator_version) or EVALUATORS_BY_INSTRUMENT.get(
         instrument, DEFAULT_EVALUATOR
     )
