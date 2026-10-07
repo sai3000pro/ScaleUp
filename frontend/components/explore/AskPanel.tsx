@@ -46,11 +46,7 @@ export function AskPanel({
       setAnswer(await api.askCourse(courseId, wanted, controller.signal));
     } catch (caught: unknown) {
       if (!controller.signal.aborted) {
-        setError(
-          caught instanceof ApiError
-            ? caught.message
-            : "Could not answer that.",
-        );
+        setError(caught instanceof ApiError ? caught.message : "Could not answer that.");
         setAnswer(null);
       }
     } finally {
@@ -75,11 +71,7 @@ export function AskPanel({
           aria-label="Your question"
           className={`${INPUT} resize-y`}
         />
-        <button
-          type="submit"
-          disabled={busy || question.trim().length < 3}
-          className={`${BUTTON_PRIMARY} w-full`}
-        >
+        <button type="submit" disabled={busy || question.trim().length < 3} className={`${BUTTON_PRIMARY} w-full`}>
           {busy ? "Reading the material…" : "Ask"}
         </button>
       </form>
@@ -92,15 +84,11 @@ export function AskPanel({
 
       {answer && (
         <div className="mt-3 border-t border-slate-800 pt-3">
-          <p className="whitespace-pre-line text-xs leading-relaxed text-slate-300">
-            {answer.answer}
-          </p>
+          <p className="whitespace-pre-line text-xs leading-relaxed text-slate-300">{answer.answer}</p>
 
           {answer.citations.length > 0 ? (
             <>
-              <h3 className={`mt-3 text-mini font-semibold ${MUTED}`}>
-                From these skills
-              </h3>
+              <h3 className={`mt-3 text-mini font-semibold ${MUTED}`}>From these skills</h3>
               <ul className="mt-1 space-y-1.5">
                 {answer.citations.map((citation) => (
                   <li key={`${citation.node_id}:${citation.chunk_id}`}>
@@ -109,12 +97,8 @@ export function AskPanel({
                       onClick={() => focusNode(citation.node_id)}
                       className={`block w-full rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2 text-left transition hover:border-slate-700 hover:bg-slate-800/60 ${FOCUS_RING}`}
                     >
-                      <span className="block text-mini font-semibold text-sky-300">
-                        {citation.node_title}
-                      </span>
-                      <span
-                        className={`mt-0.5 block text-mini italic leading-snug ${MUTED}`}
-                      >
+                      <span className="block text-mini font-semibold text-sky-300">{citation.node_title}</span>
+                      <span className={`mt-0.5 block text-mini italic leading-snug ${MUTED}`}>
                         “{citation.quote}”
                       </span>
                       <span className="mt-0.5 block text-tiny text-slate-500">

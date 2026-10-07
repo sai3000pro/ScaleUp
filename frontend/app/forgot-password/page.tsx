@@ -27,23 +27,14 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="flex min-h-screen items-center justify-center px-4 outline-none"
-    >
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Recover your account
-        </h1>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Recover your account</h1>
         <p className={`mt-2 text-sm ${MUTED}`}>
-          Enter your email and we&apos;ll send a one-time password reset link if
-          an account exists.
+          Enter your email and we&apos;ll send a one-time password reset link if an account exists.
         </p>
         <form onSubmit={submit} className="mt-6 space-y-3">
-          <label htmlFor="email" className="sr-only">
-            Email address
-          </label>
+          <label htmlFor="email" className="sr-only">Email address</label>
           <input
             id="email"
             className={INPUT}
@@ -54,21 +45,9 @@ export default function ForgotPasswordPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-          {message && (
-            <p role="status" className="text-xs text-emerald-400">
-              {message}
-            </p>
-          )}
-          {error && (
-            <p role="alert" className="text-xs text-rose-400">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={busy}
-            className={`w-full ${BUTTON_PRIMARY}`}
-          >
+          {message && <p role="status" className="text-xs text-emerald-400">{message}</p>}
+          {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+          <button type="submit" disabled={busy} className={`w-full ${BUTTON_PRIMARY}`}>
             {busy ? "Sending…" : "Send reset link"}
           </button>
         </form>

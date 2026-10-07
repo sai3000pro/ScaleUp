@@ -65,43 +65,28 @@ export default function SharePage() {
       tabIndex={-1}
       className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-10 outline-none"
     >
-      <Link
-        href="/"
-        className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
-      >
+      <Link href="/" className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}>
         ← ScaleUp
       </Link>
 
       {error && (
         <div className={`mt-6 ${CARD}`}>
-          <h1 className="font-display text-lg font-semibold">
-            This share link is no longer valid
-          </h1>
+          <h1 className="font-display text-lg font-semibold">This share link is no longer valid</h1>
           <p className={`mt-2 text-sm ${MUTED}`}>
-            {error} The course owner may have revoked it, or the link may be
-            mistyped.
+            {error} The course owner may have revoked it, or the link may be mistyped.
           </p>
         </div>
       )}
 
       {preview && (
         <div className={`mt-6 ${CARD}`}>
-          <h1 className="font-display text-xl font-semibold tracking-tight">
-            {preview.title}
-          </h1>
-          {preview.description && (
-            <p className={`mt-2 text-sm leading-relaxed ${MUTED}`}>
-              {preview.description}
-            </p>
-          )}
+          <h1 className="font-display text-xl font-semibold tracking-tight">{preview.title}</h1>
+          {preview.description && <p className={`mt-2 text-sm leading-relaxed ${MUTED}`}>{preview.description}</p>}
           <p className="mt-2 text-xs text-slate-500">
-            Shared by {preview.shared_by} · {preview.node_count} skills ·{" "}
-            {preview.edge_count} prerequisite links
+            Shared by {preview.shared_by} · {preview.node_count} skills · {preview.edge_count} prerequisite links
           </p>
 
-          <div
-            className={`mt-4 rounded-lg border border-slate-800 bg-slate-950 p-3 text-mini leading-relaxed ${MUTED}`}
-          >
+          <div className={`mt-4 rounded-lg border border-slate-800 bg-slate-950 p-3 text-mini leading-relaxed ${MUTED}`}>
             Copying takes the whole course into your account — the skill tree,
             the source material, and the question bank. Progress is never
             copied: you start this tree fresh and earn it yourself.
@@ -109,9 +94,7 @@ export default function SharePage() {
 
           {copiedCourse ? (
             <div className="mt-4">
-              <p className="text-sm text-emerald-300">
-                Copied to your account.
-              </p>
+              <p className="text-sm text-emerald-300">Copied to your account.</p>
               <Link
                 href={`/courses/${copiedCourse.id}`}
                 className={`mt-2 inline-block w-full text-center ${BUTTON_PRIMARY}`}
@@ -120,17 +103,8 @@ export default function SharePage() {
               </Link>
             </div>
           ) : (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void copy()}
-              className={`mt-4 w-full ${BUTTON_PRIMARY}`}
-            >
-              {busy
-                ? "Copying…"
-                : user
-                  ? "Copy to my account"
-                  : "Sign in and copy to my account"}
+            <button type="button" disabled={busy} onClick={() => void copy()} className={`mt-4 w-full ${BUTTON_PRIMARY}`}>
+              {busy ? "Copying…" : user ? "Copy to my account" : "Sign in and copy to my account"}
             </button>
           )}
         </div>

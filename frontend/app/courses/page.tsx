@@ -85,9 +85,7 @@ export default function CoursesPage() {
     setStartingCampaign(true);
     setError(null);
     try {
-      const course = await api.createCourseFromGoal(
-        `I want to learn ${campaignInstrument}: ${goal}`,
-      );
+      const course = await api.createCourseFromGoal(`I want to learn ${campaignInstrument}: ${goal}`);
       router.push(`/courses/${course.id}`);
     } catch (caught) {
       setError((caught as Error).message);
@@ -96,19 +94,12 @@ export default function CoursesPage() {
   }
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="mx-auto max-w-6xl px-4 py-8 outline-none"
-    >
+    <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 outline-none">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-xl font-semibold tracking-tight">
-            Your courses
-          </h1>
+          <h1 className="font-display text-xl font-semibold tracking-tight">Your courses</h1>
           <p className={`mt-1 text-sm ${MUTED}`}>
-            Each campaign is an RPG skill tree: learn skills, unlock
-            prerequisites, earn EXP, and defeat decay with quests.
+            Each campaign is an RPG skill tree: learn skills, unlock prerequisites, earn EXP, and defeat decay with quests.
           </p>
         </div>
         <form onSubmit={create} className="flex gap-2">
@@ -128,27 +119,17 @@ export default function CoursesPage() {
         </form>
       </div>
 
-      <section
-        className={`${CARD} mt-6 border-sky-900/60 bg-sky-950/10`}
-        aria-labelledby="start-campaign-heading"
-      >
+      <section className={`${CARD} mt-6 border-sky-900/60 bg-sky-950/10`} aria-labelledby="start-campaign-heading">
         <div>
-          <h2
-            id="start-campaign-heading"
-            className="font-display text-sm font-semibold text-sky-100"
-          >
+          <h2 id="start-campaign-heading" className="font-display text-sm font-semibold text-sky-100">
             Start a skill campaign
           </h2>
           <p className={`mt-1 max-w-2xl text-xs ${MUTED}`}>
-            Choose an instrument and a learning goal. Shared skills like
-            reading, pulse and phrasing come from the same catalogue every
-            instrument draws on, so what you learn here counts everywhere.
+            Choose an instrument and a learning goal. Shared skills like reading, pulse and phrasing come
+            from the same catalogue every instrument draws on, so what you learn here counts everywhere.
           </p>
         </div>
-        <form
-          onSubmit={startCampaign}
-          className="mt-4 flex flex-col gap-2 sm:flex-row"
-        >
+        <form onSubmit={startCampaign} className="mt-4 flex flex-col gap-2 sm:flex-row">
           <label htmlFor="campaignInstrument" className="sr-only">
             Instrument
           </label>
@@ -178,11 +159,7 @@ export default function CoursesPage() {
             maxLength={450}
             disabled={startingCampaign}
           />
-          <button
-            type="submit"
-            disabled={startingCampaign || !campaignGoal.trim()}
-            className={`${BUTTON_PRIMARY} shrink-0`}
-          >
+          <button type="submit" disabled={startingCampaign || !campaignGoal.trim()} className={`${BUTTON_PRIMARY} shrink-0`}>
             {startingCampaign ? "Opening campaign…" : "Begin campaign"}
           </button>
         </form>
@@ -194,11 +171,7 @@ export default function CoursesPage() {
         </p>
       )}
 
-      <div
-        className="mt-8 flex items-center gap-1 border-b border-slate-800"
-        role="tablist"
-        aria-label="Which courses to show"
-      >
+      <div className="mt-8 flex items-center gap-1 border-b border-slate-800" role="tablist" aria-label="Which courses to show">
         {SHELVES.map((option) => (
           <button
             key={option.key}
@@ -225,9 +198,7 @@ export default function CoursesPage() {
       ) : shown.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-slate-800 p-10 text-center">
           <p className="text-sm text-slate-300">
-            {shelf === "mine"
-              ? "No courses yet."
-              : "Nothing prebuilt is available."}
+            {shelf === "mine" ? "No courses yet." : "Nothing prebuilt is available."}
           </p>
           <p className={`mt-1 text-xs ${MUTED}`}>
             {shelf === "mine"
@@ -244,9 +215,7 @@ export default function CoursesPage() {
                 className={`block ${CARD} transition hover:border-slate-700 hover:bg-slate-900 ${FOCUS_RING}`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-display text-sm font-semibold">
-                    {course.title}
-                  </h2>
+                  <h2 className="font-display text-sm font-semibold">{course.title}</h2>
                   <span
                     className={`shrink-0 rounded-md px-2 py-0.5 text-mini font-medium ${statusStyle(course.status)}`}
                   >
@@ -254,13 +223,10 @@ export default function CoursesPage() {
                   </span>
                 </div>
                 {course.description && (
-                  <p className={`mt-1 line-clamp-2 text-xs ${MUTED}`}>
-                    {course.description}
-                  </p>
+                  <p className={`mt-1 line-clamp-2 text-xs ${MUTED}`}>{course.description}</p>
                 )}
                 <p className={`mt-3 text-mini ${MUTED}`}>
-                  {course.node_count} skills · {course.edge_count} links ·{" "}
-                  {course.mastered_count} mastered
+                  {course.node_count} skills · {course.edge_count} links · {course.mastered_count} mastered
                 </p>
               </Link>
             </li>

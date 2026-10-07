@@ -3,13 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import {
-  BUTTON_PRIMARY,
-  BUTTON_SECONDARY,
-  CARD,
-  FOCUS_RING,
-  MUTED,
-} from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import type { ShareStatus } from "@/lib/types";
 
 /**
@@ -20,13 +14,7 @@ import type { ShareStatus } from "@/lib/types";
  * therefore how you recover a lost link, and it silently invalidates the old
  * one, exactly like rotating a password.
  */
-export function SharePanel({
-  courseId,
-  shareable,
-}: {
-  courseId: string;
-  shareable: boolean;
-}) {
+export function SharePanel({ courseId, shareable }: { courseId: string; shareable: boolean }) {
   const [status, setStatus] = useState<ShareStatus | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,11 +44,7 @@ export function SharePanel({
     try {
       const created = await api.shareCourse(courseId);
       setLink(created.url);
-      setStatus({
-        course_id: created.course_id,
-        shared: true,
-        created_at: created.created_at,
-      });
+      setStatus({ course_id: created.course_id, shared: true, created_at: created.created_at });
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -103,11 +87,7 @@ export function SharePanel({
           onClick={() => void createLink()}
           className={`mt-3 w-full ${BUTTON_PRIMARY}`}
         >
-          {busy
-            ? "Working…"
-            : status?.shared
-              ? "Regenerate link"
-              : "Create share link"}
+          {busy ? "Working…" : status?.shared ? "Regenerate link" : "Create share link"}
         </button>
       )}
 
@@ -143,9 +123,7 @@ export function SharePanel({
               Revoke link
             </button>
             <span className="text-tiny text-slate-500">
-              {copied
-                ? "Link copied — send it to anyone."
-                : "Shown once; regenerate to get a new one."}
+              {copied ? "Link copied — send it to anyone." : "Shown once; regenerate to get a new one."}
             </span>
           </div>
         </div>

@@ -28,34 +28,20 @@ function outlineOrder(nodes: GraphNode[]): GraphNode[] {
  * intentionally plain HTML. The same selection callback feeds the inspector,
  * so mobile and desktop still enter the identical drill loop.
  */
-export function SkillTreeOutline({
-  snapshot,
-  selectedNodeId,
-  onSelect,
-}: Props) {
-  const orderedNodes = useMemo(
-    () => outlineOrder(snapshot.nodes),
-    [snapshot.nodes],
-  );
+export function SkillTreeOutline({ snapshot, selectedNodeId, onSelect }: Props) {
+  const orderedNodes = useMemo(() => outlineOrder(snapshot.nodes), [snapshot.nodes]);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const selected =
-    snapshot.nodes.find((node) => node.id === selectedNodeId) ?? null;
+  const selected = snapshot.nodes.find((node) => node.id === selectedNodeId) ?? null;
 
   function moveFocus(index: number, delta: number): void {
-    const nextIndex = Math.min(
-      orderedNodes.length - 1,
-      Math.max(0, index + delta),
-    );
+    const nextIndex = Math.min(orderedNodes.length - 1, Math.max(0, index + delta));
     const nextNode = orderedNodes[nextIndex];
     if (nextNode) {
       buttonRefs.current[nextNode.id]?.focus();
     }
   }
 
-  function handleKeyDown(
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    index: number,
-  ): void {
+  function handleKeyDown(event: React.KeyboardEvent<HTMLButtonElement>, index: number): void {
     if (event.key === "ArrowDown" || event.key === "ArrowRight") {
       event.preventDefault();
       moveFocus(index, 1);
@@ -72,37 +58,22 @@ export function SkillTreeOutline({
   }
 
   return (
-    <section
-      aria-labelledby="skill-outline-heading"
-      className="rounded-xl border border-slate-800 bg-slate-950 p-3"
-    >
+    <section aria-labelledby="skill-outline-heading" className="rounded-xl border border-slate-800 bg-slate-950 p-3">
       <div className="flex items-baseline justify-between gap-2">
         <div>
-          <h2
-            id="skill-outline-heading"
-            className="font-display text-sm font-semibold"
-          >
-            Skill outline
-          </h2>
+          <h2 id="skill-outline-heading" className="font-display text-sm font-semibold">Skill outline</h2>
           <p className={`mt-1 text-mini ${MUTED}`}>
-            Select a skill to inspect it. Use arrow keys to move through the
-            outline.
+            Select a skill to inspect it. Use arrow keys to move through the outline.
           </p>
         </div>
-        <span className="shrink-0 text-mini text-slate-500">
-          {orderedNodes.length} nodes
-        </span>
+        <span className="shrink-0 text-mini text-slate-500">{orderedNodes.length} nodes</span>
       </div>
 
       <p className="sr-only" aria-live="polite">
         {selected ? `${selected.title} selected.` : "No skill selected."}
       </p>
 
-      <div
-        className="mt-3 max-h-[60vh] overflow-y-auto pr-1"
-        role="list"
-        aria-label="Course skills"
-      >
+      <div className="mt-3 max-h-[60vh] overflow-y-auto pr-1" role="list" aria-label="Course skills">
         {orderedNodes.map((node, index) => {
           const structural = !node.assessable;
           const style = nodeStyle(node);
@@ -113,11 +84,7 @@ export function SkillTreeOutline({
             : `${status} · ${difficultyLabel(node.difficulty)}`;
 
           return (
-            <div
-              key={node.id}
-              role="listitem"
-              className="border-b border-slate-900 last:border-b-0"
-            >
+            <div key={node.id} role="listitem" className="border-b border-slate-900 last:border-b-0">
               <button
                 ref={(element) => {
                   buttonRefs.current[node.id] = element;
@@ -138,26 +105,17 @@ export function SkillTreeOutline({
                   style={{ backgroundColor: style.accent }}
                 />
                 <span className="min-w-0 flex-1">
-                  <span
-                    className={`block truncate font-display text-xs font-semibold ${structural ? `${MUTED}` : "text-slate-100"}`}
-                  >
+                  <span className={`block truncate font-display text-xs font-semibold ${structural ? `${MUTED}` : "text-slate-100"}`}>
                     {node.title}
                   </span>
-                  <span className={`mt-0.5 block text-tiny ${MUTED}`}>
-                    {details}
-                  </span>
+                  <span className={`mt-0.5 block text-tiny ${MUTED}`}>{details}</span>
                   {node.blocked_by.length > 0 && (
                     <span className="mt-0.5 block truncate text-tiny text-slate-500">
-                      Needs{" "}
-                      {node.blocked_by
-                        .map((blocker) => blocker.title)
-                        .join(", ")}
+                      Needs {node.blocked_by.map((blocker) => blocker.title).join(", ")}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-tiny text-slate-500">
-                  Depth {node.depth}
-                </span>
+                <span className="shrink-0 text-tiny text-slate-500">Depth {node.depth}</span>
               </button>
             </div>
           );
@@ -165,14 +123,8 @@ export function SkillTreeOutline({
       </div>
 
       {selected && selected.blocked_by.length > 0 && (
-        <div
-          className="mt-3 border-t border-slate-800 pt-3"
-          aria-labelledby="outline-prerequisites-heading"
-        >
-          <h3
-            id="outline-prerequisites-heading"
-            className="text-mini font-semibold text-slate-300"
-          >
+        <div className="mt-3 border-t border-slate-800 pt-3" aria-labelledby="outline-prerequisites-heading">
+          <h3 id="outline-prerequisites-heading" className="text-mini font-semibold text-slate-300">
             Prerequisites for {selected.title}
           </h3>
           <div className="mt-1.5 flex flex-wrap gap-1.5">

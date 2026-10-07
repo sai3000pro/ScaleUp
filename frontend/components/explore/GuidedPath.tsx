@@ -60,11 +60,8 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
   if (error) return <p className={`${CARD} text-xs text-rose-400`}>{error}</p>;
   if (!path || path.total === 0) return null;
 
-  const next =
-    path.steps.find((step) => step.node_id === path.next_node_id) ?? null;
-  const upcoming = next
-    ? path.steps.filter((step) => !step.done && step.order > next.order)
-    : [];
+  const next = path.steps.find((step) => step.node_id === path.next_node_id) ?? null;
+  const upcoming = next ? path.steps.filter((step) => !step.done && step.order > next.order) : [];
   const shown = expanded ? upcoming : upcoming.slice(0, PREVIEW);
 
   return (
@@ -99,9 +96,7 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
                   onClick={() => setExpanded((open) => !open)}
                   className={`mt-2 rounded-sm text-mini ${MUTED} underline underline-offset-2 hover:text-slate-200 ${FOCUS_RING}`}
                 >
-                  {expanded
-                    ? "Show fewer"
-                    : `Show all ${upcoming.length} remaining`}
+                  {expanded ? "Show fewer" : `Show all ${upcoming.length} remaining`}
                 </button>
               )}
             </>
@@ -109,23 +104,15 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
         </>
       ) : (
         <p className="mt-2 text-xs text-slate-300">
-          Every skill on this path is above the mastery threshold. Keep them
-          there — the Daily Quest board is where decay shows up.
+          Every skill on this path is above the mastery threshold. Keep them there — the Daily Quest
+          board is where decay shows up.
         </p>
       )}
     </div>
   );
 }
 
-function StepButton({
-  step,
-  onGo,
-  primary = false,
-}: {
-  step: PathStep;
-  onGo: (id: string) => void;
-  primary?: boolean;
-}) {
+function StepButton({ step, onGo, primary = false }: { step: PathStep; onGo: (id: string) => void; primary?: boolean }) {
   const style = stateStyle(step.state);
   return (
     <button
@@ -143,9 +130,7 @@ function StepButton({
         style={{ backgroundColor: style.accent }}
       />
       <span className="min-w-0">
-        <span className="block truncate text-xs font-semibold text-slate-100">
-          {step.title}
-        </span>
+        <span className="block truncate text-xs font-semibold text-slate-100">{step.title}</span>
         <span className={`block truncate text-tiny ${MUTED}`}>
           {style.label} · step {step.order + 1}
         </span>

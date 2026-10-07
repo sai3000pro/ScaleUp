@@ -66,9 +66,7 @@ export default function LoginPage() {
       } else {
         await register(email, password, displayName);
       }
-      router.replace(
-        redirectTo ?? (mode === "register" ? "/character" : "/courses"),
-      );
+      router.replace(redirectTo ?? (mode === "register" ? "/character" : "/courses"));
     } catch {
       // The store already holds the message; keep the form mounted.
     } finally {
@@ -98,11 +96,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="flex min-h-screen items-center justify-center px-4 outline-none"
-    >
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-semibold tracking-tight">
           Scale<span className="text-sky-400">Up</span>
@@ -173,9 +167,7 @@ export default function LoginPage() {
               id="password"
               className={INPUT}
               type="password"
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               placeholder="Password (8+ characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -190,22 +182,12 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className={`w-full ${BUTTON_PRIMARY}`}
-          >
-            {busy
-              ? "Working…"
-              : mode === "login"
-                ? "Sign in"
-                : "Create account"}
+          <button type="submit" disabled={busy} className={`w-full ${BUTTON_PRIMARY}`}>
+            {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
 
-        <div
-          className={`mt-4 flex items-center justify-between text-xs ${MUTED}`}
-        >
+        <div className={`mt-4 flex items-center justify-between text-xs ${MUTED}`}>
           <button type="button" className={NAV_LINK} onClick={switchMode}>
             {mode === "login" ? "Need an account?" : "Already have one?"}
           </button>
@@ -215,12 +197,7 @@ export default function LoginPage() {
                 Forgot password?
               </a>
             )}
-            <button
-              type="button"
-              className={NAV_LINK}
-              onClick={useDevAccount}
-              disabled={busy}
-            >
+            <button type="button" className={NAV_LINK} onClick={useDevAccount} disabled={busy}>
               Use the seeded dev account
             </button>
           </div>

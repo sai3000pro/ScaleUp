@@ -34,8 +34,7 @@ export const metadata: Metadata = {
   // which is what a crawler needs. @spec LAND-ROUTE-005
   metadataBase: new URL(SITE_URL),
   title: "ScaleUp",
-  description:
-    "Pick a skill, play it, and get coached on what you actually played.",
+  description: "Pick a skill, play it, and get coached on what you actually played.",
   icons: {
     icon: "/icon.svg",
   },
@@ -46,11 +45,7 @@ export const metadata: Metadata = {
  *
  * @spec UI-TYPE-001, UI-A11Y-003, UI-A11Y-004
  */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${sora.variable} ${spaceGrotesk.variable}`}>
       <body className="min-h-screen bg-slate-950 font-body antialiased">

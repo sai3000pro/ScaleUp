@@ -5,24 +5,11 @@ interface PianoKeyboardProps {
   activeMidi?: number | null;
   highlightedMidis?: number[];
   startMidi?: number; // default 48 = C3
-  endMidi?: number; // default 72 = C5
+  endMidi?: number;   // default 72 = C5
   onKeyClick?: (midi: number) => void;
 }
 
-const PITCH_NAMES = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-];
+const PITCH_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const BLACK_KEY_PITCHES = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A#
 
 function isBlackKey(midi: number): boolean {
@@ -46,17 +33,12 @@ export const PianoKeyboard = memo(function PianoKeyboard({
   activeMidi,
   highlightedMidis = [],
   startMidi = 48, // C3
-  endMidi = 72, // C5
+  endMidi = 72,   // C5
   onKeyClick,
 }: PianoKeyboardProps) {
   // Generate keys structure in range
   const { whiteKeys, blackKeys } = useMemo(() => {
-    const white: Array<{
-      midi: number;
-      name: string;
-      isMiddleC: boolean;
-      index: number;
-    }> = [];
+    const white: Array<{ midi: number; name: string; isMiddleC: boolean; index: number }> = [];
     const black: Array<{ midi: number; name: string; whiteIndex: number }> = [];
 
     let whiteIndex = 0;
@@ -88,15 +70,12 @@ export const PianoKeyboard = memo(function PianoKeyboard({
     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 shadow-inner">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-            🎹 Piano Keyboard
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-200">🎹 Piano Keyboard</span>
           <span className={`text-mini ${MUTED}`}>(Middle C = C4)</span>
         </div>
         <div className={`flex items-center gap-3 text-mini ${MUTED}`}>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />{" "}
-            Active Key
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Active Key
           </span>
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-400/60" /> Target Keys
@@ -117,13 +96,12 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                   key={key.midi}
                   type="button"
                   onClick={() => onKeyClick?.(key.midi)}
-                  className={`group relative flex-1 rounded-b-md border transition-all ${
-                    isActive
-                      ? "z-10 border-red-500 bg-gradient-to-b from-red-400 to-red-600 text-white shadow-lg shadow-red-500/60 scale-[1.02]"
-                      : isTarget
-                        ? "border-red-300 bg-red-50 text-red-950 hover:bg-red-100 hover:border-red-400"
-                        : "border-neutral-300 bg-white text-neutral-800 hover:bg-red-50 hover:border-red-400 hover:text-red-600 active:bg-red-100"
-                  }`}
+                  className={`group relative flex-1 rounded-b-md border transition-all ${isActive
+                    ? "z-10 border-red-500 bg-gradient-to-b from-red-400 to-red-600 text-white shadow-lg shadow-red-500/60 scale-[1.02]"
+                    : isTarget
+                      ? "border-red-300 bg-red-50 text-red-950 hover:bg-red-100 hover:border-red-400"
+                      : "border-neutral-300 bg-white text-neutral-800 hover:bg-red-50 hover:border-red-400 hover:text-red-600 active:bg-red-100"
+                    }`}
                   title={`${key.name} (MIDI ${key.midi})`}
                 >
                   {/* Middle C Dot */}

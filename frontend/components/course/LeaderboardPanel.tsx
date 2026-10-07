@@ -14,13 +14,7 @@ import type { CourseLeaderboard } from "@/lib/types";
  * Refetched whenever `refreshKey` changes (the course page bumps it after
  * every grade), because the caller's own rank moves with their EXP.
  */
-export function LeaderboardPanel({
-  courseId,
-  refreshKey,
-}: {
-  courseId: string;
-  refreshKey: number;
-}) {
+export function LeaderboardPanel({ courseId, refreshKey }: { courseId: string; refreshKey: number }) {
   const [board, setBoard] = useState<CourseLeaderboard | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -46,9 +40,7 @@ export function LeaderboardPanel({
   if (entries.length <= 1) {
     return (
       <div className={CARD}>
-        <h2 className="font-display text-sm font-semibold">
-          Cohort leaderboard
-        </h2>
+        <h2 className="font-display text-sm font-semibold">Cohort leaderboard</h2>
         <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>
           No cohort yet — you are the only learner on this tree. Share the
           course link and anyone who copies it joins your leaderboard.
@@ -74,21 +66,13 @@ export function LeaderboardPanel({
               entry.me ? "bg-sky-950/40 ring-1 ring-sky-800/60" : ""
             }`}
           >
-            <span className="w-5 shrink-0 text-right text-slate-500">
-              {index + 1}
-            </span>
-            <span
-              className={`min-w-0 flex-1 truncate ${entry.me ? "font-semibold text-sky-200" : "text-slate-300"}`}
-            >
+            <span className="w-5 shrink-0 text-right text-slate-500">{index + 1}</span>
+            <span className={`min-w-0 flex-1 truncate ${entry.me ? "font-semibold text-sky-200" : "text-slate-300"}`}>
               {entry.display_name}
               {entry.me && <span className="ml-1 text-sky-400">(you)</span>}
             </span>
-            <span className={`shrink-0 tabular-nums ${MUTED}`}>
-              Lv {entry.level}
-            </span>
-            <span className="shrink-0 tabular-nums text-amber-300">
-              {entry.total_exp} EXP
-            </span>
+            <span className={`shrink-0 tabular-nums ${MUTED}`}>Lv {entry.level}</span>
+            <span className="shrink-0 tabular-nums text-amber-300">{entry.total_exp} EXP</span>
             <span className="hidden w-16 shrink-0 text-right text-slate-500 sm:block">
               {entry.mastered_count}/{entry.started_count} mastered
             </span>

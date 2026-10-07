@@ -10,15 +10,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense
-      fallback={
-        <main
-          className={`flex min-h-screen items-center justify-center px-4 text-sm ${MUTED}`}
-        >
-          Loading…
-        </main>
-      }
-    >
+    <Suspense fallback={<main className={`flex min-h-screen items-center justify-center px-4 text-sm ${MUTED}`}>Loading…</main>}>
       <ResetPasswordView />
     </Suspense>
   );
@@ -30,9 +22,7 @@ function ResetPasswordView() {
   const token = searchParams.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [error, setError] = useState<string | null>(
-    token ? null : "This reset link is missing its token.",
-  );
+  const [error, setError] = useState<string | null>(token ? null : "This reset link is missing its token.");
   const [busy, setBusy] = useState(false);
   const acceptToken = useAuthStore((state) => state.acceptToken);
 
@@ -57,22 +47,12 @@ function ResetPasswordView() {
   }
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="flex min-h-screen items-center justify-center px-4 outline-none"
-    >
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">
-          Choose a new password
-        </h1>
-        <p className={`mt-2 text-sm ${MUTED}`}>
-          This link can be used once and expires shortly.
-        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Choose a new password</h1>
+        <p className={`mt-2 text-sm ${MUTED}`}>This link can be used once and expires shortly.</p>
         <form onSubmit={submit} className="mt-6 space-y-3">
-          <label htmlFor="password" className="sr-only">
-            New password
-          </label>
+          <label htmlFor="password" className="sr-only">New password</label>
           <input
             id="password"
             className={INPUT}
@@ -84,9 +64,7 @@ function ResetPasswordView() {
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-          <label htmlFor="confirmation" className="sr-only">
-            Confirm new password
-          </label>
+          <label htmlFor="confirmation" className="sr-only">Confirm new password</label>
           <input
             id="confirmation"
             className={INPUT}
@@ -98,16 +76,8 @@ function ResetPasswordView() {
             onChange={(event) => setConfirmation(event.target.value)}
             required
           />
-          {error && (
-            <p role="alert" className="text-xs text-rose-400">
-              {error}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={busy || !token}
-            className={`w-full ${BUTTON_PRIMARY}`}
-          >
+          {error && <p role="alert" className="text-xs text-rose-400">{error}</p>}
+          <button type="submit" disabled={busy || !token} className={`w-full ${BUTTON_PRIMARY}`}>
             {busy ? "Updating…" : "Set new password"}
           </button>
         </form>

@@ -26,8 +26,7 @@ export default function AuthCallbackPage() {
         if (active) router.replace("/courses");
       })
       .catch(() => {
-        if (active)
-          setError("Google sign-in could not be completed. Please try again.");
+        if (active) setError("Google sign-in could not be completed. Please try again.");
       });
 
     return () => {
@@ -36,24 +35,13 @@ export default function AuthCallbackPage() {
   }, [exchangeGoogleCode, router]);
 
   return (
-    <main
-      id="main-content"
-      tabIndex={-1}
-      className="flex min-h-screen items-center justify-center px-4 outline-none"
-    >
+    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm text-center">
         {error ? (
           <>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">
-              Sign-in failed
-            </h1>
-            <p role="alert" className="mt-2 text-sm text-rose-400">
-              {error}
-            </p>
-            <Link
-              href="/login"
-              className={`mt-5 inline-block text-xs ${NAV_LINK}`}
-            >
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Sign-in failed</h1>
+            <p role="alert" className="mt-2 text-sm text-rose-400">{error}</p>
+            <Link href="/login" className={`mt-5 inline-block text-xs ${NAV_LINK}`}>
               Back to sign in
             </Link>
           </>

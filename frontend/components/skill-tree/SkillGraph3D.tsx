@@ -41,7 +41,6 @@ import * as THREE from "three";
 import {
   GRAPH_GROUND,
   GRAPH_SELECTED,
-  graphEdgeStyle,
   graphNodeStyle,
 } from "@/lib/graphTheme";
 import { neighboursOf } from "@/lib/graphNeighbours";
@@ -328,20 +327,9 @@ export function SkillGraph3D({
     // @spec UI-GRAPH3D-010
     const packed = packEdges(edges, positions, lookup);
     const edgeGeometry = new THREE.BufferGeometry();
-    edgeGeometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(packed.positions, 3),
-    );
-    edgeGeometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(packed.colors, 3),
-    );
-    scene.add(
-      new THREE.LineSegments(
-        edgeGeometry,
-        new THREE.LineBasicMaterial({ vertexColors: true }),
-      ),
-    );
+    edgeGeometry.setAttribute("position", new THREE.BufferAttribute(packed.positions, 3));
+    edgeGeometry.setAttribute("color", new THREE.BufferAttribute(packed.colors, 3));
+    scene.add(new THREE.LineSegments(edgeGeometry, new THREE.LineBasicMaterial({ vertexColors: true })));
 
     // ── orbit ─────────────────────────────────────────────────────────────
     // Starts at a three-quarter tilt -- cos(phi) puts the camera about a third
@@ -1185,8 +1173,7 @@ export function SkillGraph3D({
       {webglUnavailable && (
         <div className="absolute inset-0 overflow-y-auto p-3">
           <p className="mb-2 text-xs text-graph-ink-quiet">
-            3D view unavailable in this browser — showing the skill outline
-            instead.
+            3D view unavailable in this browser — showing the skill outline instead.
           </p>
           <SkillTreeOutline
             snapshot={snapshot}

@@ -418,9 +418,7 @@ function CourseView() {
       <div className="mt-5 grid min-h-0 gap-4 lg:flex-1 lg:grid-cols-[1fr_340px]">
         <div className="relative hidden min-h-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:block lg:h-full max-lg:h-[70vh]">
           {status === "loading" && (
-            <div
-              className={`flex h-full items-center justify-center text-sm ${MUTED}`}
-            >
+            <div className={`flex h-full items-center justify-center text-sm ${MUTED}`}>
               Loading the tree…
             </div>
           )}
@@ -483,9 +481,7 @@ function CourseView() {
 
         <div className="md:hidden">
           {status === "loading" && (
-            <p
-              className={`rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm ${MUTED}`}
-            >
+            <p className={`rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm ${MUTED}`}>
               Loading the skill outline…
             </p>
           )}
@@ -638,7 +634,10 @@ function CourseView() {
                           (node) => node.id === edge.source,
                         );
                         return (
-                          <li key={edge.id} className={`text-tiny ${MUTED}`}>
+                          <li
+                            key={edge.id}
+                            className={`text-tiny ${MUTED}`}
+                          >
                             <p className="text-slate-300">
                               {prerequisite?.title ?? "Prerequisite"} ·{" "}
                               {Math.round(edge.confidence * 100)}% confidence ·{" "}

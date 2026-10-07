@@ -1135,13 +1135,7 @@ export function SkillRealm3D({
 
       {/* A canvas is one focusable element, so the run is also a list.
           No WebGL: this list IS the realm, so it shows rather than hides. */}
-      <ul
-        className={
-          webglUnavailable
-            ? "absolute inset-0 space-y-2 overflow-y-auto p-4"
-            : "sr-only"
-        }
-      >
+      <ul className={webglUnavailable ? "absolute inset-0 space-y-2 overflow-y-auto p-4" : "sr-only"}>
         {webglUnavailable && (
           <li className="list-none text-xs text-graph-ink-quiet">
             3D view unavailable in this browser — lessons are listed instead.

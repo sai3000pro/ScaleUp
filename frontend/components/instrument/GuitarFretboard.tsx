@@ -35,9 +35,7 @@ const KNOWN_CHORDS: Record<string, { frets: number[]; fingers: string[] }> = {
   a: { frets: [-1, 0, 2, 2, 2, 0], fingers: ["X", "O", "1", "2", "3", "O"] },
 };
 
-function getNotePosition(
-  note: ExerciseNote,
-): { stringNum: number; fret: number } | null {
+function getNotePosition(note: ExerciseNote): { stringNum: number; fret: number } | null {
   if (note.string !== null && note.fret !== null) {
     return { stringNum: note.string, fret: note.fret };
   }
@@ -71,12 +69,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
   const activePos = activeNote ? getNotePosition(activeNote) : null;
 
   const notePositions = useMemo(() => {
-    const list: Array<{
-      stringNum: number;
-      fret: number;
-      name: string;
-      midi: number;
-    }> = [];
+    const list: Array<{ stringNum: number; fret: number; name: string; midi: number }> = [];
     for (const n of allNotes) {
       const pos = getNotePosition(n);
       if (pos && n.pitch_midi !== null) {
@@ -90,9 +83,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 shadow-inner">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">
-            🎸 Guitar Fretboard
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-400">🎸 Guitar Fretboard</span>
           {detectedChord && (
             <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-300 border border-amber-500/30">
               {detectedChord.name} Chord Shape
@@ -101,12 +92,10 @@ export const GuitarFretboard = memo(function GuitarFretboard({
         </div>
         <div className={`flex items-center gap-3 text-mini ${MUTED}`}>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />{" "}
-            Active Note
+            <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Active Note
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-rose-500/60" /> Target
-            Notes
+            <span className="h-2 w-2 rounded-full bg-rose-500/60" /> Target Notes
           </span>
         </div>
       </div>
@@ -120,9 +109,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
               <div key={i + 1} className="flex-1 font-semibold">
                 {i + 1}
                 {FRET_MARKERS.includes(i + 1) && (
-                  <span className={`ml-0.5 ${MUTED}`}>
-                    {i + 1 === 12 ? "••" : "•"}
-                  </span>
+                  <span className={`ml-0.5 ${MUTED}`}>{i + 1 === 12 ? "••" : "•"}</span>
                 )}
               </div>
             ))}
@@ -132,15 +119,10 @@ export const GuitarFretboard = memo(function GuitarFretboard({
           <div className="relative rounded-lg border-2 border-amber-900/60 bg-gradient-to-r from-amber-950/40 via-slate-900 to-amber-950/30 p-2">
             {STRINGS.map((guitarString, sIndex) => {
               const stringThickness = `${1 + (6 - guitarString.stringNum) * 0.4}px`;
-              const chordFret = detectedChord
-                ? detectedChord.frets[6 - guitarString.stringNum]
-                : undefined;
+              const chordFret = detectedChord ? detectedChord.frets[6 - guitarString.stringNum] : undefined;
 
               return (
-                <div
-                  key={guitarString.stringNum}
-                  className="relative flex items-center h-8 my-0.5"
-                >
+                <div key={guitarString.stringNum} className="relative flex items-center h-8 my-0.5">
                   {/* String Line Behind Frets */}
                   <div
                     className="absolute left-10 right-0 bg-gradient-to-r from-amber-200/50 via-slate-300/40 to-amber-200/50"
@@ -149,17 +131,11 @@ export const GuitarFretboard = memo(function GuitarFretboard({
 
                   {/* Open String Label & Marker */}
                   <div className="w-10 z-10 flex items-center gap-1 pr-2 border-r-4 border-amber-400/80 bg-slate-950/90 h-full">
-                    <span className="font-mono text-xs font-bold text-amber-300 w-3">
-                      {guitarString.name}
-                    </span>
+                    <span className="font-mono text-xs font-bold text-amber-300 w-3">{guitarString.name}</span>
                     {chordFret !== undefined && (
                       <span
                         className={`text-tiny font-bold ${
-                          chordFret === -1
-                            ? "text-rose-400"
-                            : chordFret === 0
-                              ? "text-emerald-400"
-                              : "text-slate-500"
+                          chordFret === -1 ? "text-rose-400" : chordFret === 0 ? "text-emerald-400" : "text-slate-500"
                         }`}
                       >
                         {chordFret === -1 ? "✕" : chordFret === 0 ? "◯" : ""}
@@ -175,14 +151,10 @@ export const GuitarFretboard = memo(function GuitarFretboard({
                       const isDoubleMarker = fretNum === 12;
 
                       // Is active note on this string & fret?
-                      const isActive =
-                        activePos?.stringNum === guitarString.stringNum &&
-                        activePos.fret === fretNum;
+                      const isActive = activePos?.stringNum === guitarString.stringNum && activePos.fret === fretNum;
                       // Is note in piece target?
                       const isTarget = notePositions.some(
-                        (np) =>
-                          np.stringNum === guitarString.stringNum &&
-                          np.fret === fretNum,
+                        (np) => np.stringNum === guitarString.stringNum && np.fret === fretNum,
                       );
                       // Is in chord diagram?
                       const isChordFinger = chordFret === fretNum;
@@ -218,9 +190,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
                             </div>
                           ) : isChordFinger ? (
                             <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950 font-bold text-tiny shadow-md shadow-amber-400/50">
-                              {detectedChord?.fingers[
-                                6 - guitarString.stringNum
-                              ] || "●"}
+                              {detectedChord?.fingers[6 - guitarString.stringNum] || "●"}
                             </div>
                           ) : isTarget ? (
                             <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/80 text-white font-bold text-tiny shadow">

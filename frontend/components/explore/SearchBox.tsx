@@ -69,9 +69,7 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
         .catch((caught: unknown) => {
           // An abort is this component superseding itself, not a failure.
           if (controller.signal.aborted) return;
-          setError(
-            caught instanceof ApiError ? caught.message : "Search failed.",
-          );
+          setError(caught instanceof ApiError ? caught.message : "Search failed.");
           setHits([]);
           onMatches(new Set());
         });
@@ -116,9 +114,7 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
           {error && <p className="px-3 py-2 text-xs text-rose-400">{error}</p>}
 
           {!error && hits.length === 0 && (
-            <p className={`px-3 py-2 text-xs ${MUTED}`}>
-              Nothing in this course matches “{query.trim()}”.
-            </p>
+            <p className={`px-3 py-2 text-xs ${MUTED}`}>Nothing in this course matches “{query.trim()}”.</p>
           )}
 
           {/* Reported rather than hidden: title-only results and "the book does
@@ -138,18 +134,12 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
                   className={`block w-full px-3 py-2 text-left hover:bg-slate-800/70 ${FOCUS_RING}`}
                 >
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-xs font-semibold text-slate-100">
-                      {hit.title}
-                    </span>
+                    <span className="truncate text-xs font-semibold text-slate-100">{hit.title}</span>
                     <span className={`shrink-0 text-tiny ${MUTED}`}>
-                      {hit.assessable
-                        ? (MATCH_LABEL[hit.match] ?? "match")
-                        : "section"}
+                      {hit.assessable ? MATCH_LABEL[hit.match] ?? "match" : "section"}
                     </span>
                   </span>
-                  <span
-                    className={`mt-0.5 line-clamp-2 block text-mini leading-snug ${MUTED}`}
-                  >
+                  <span className={`mt-0.5 line-clamp-2 block text-mini leading-snug ${MUTED}`}>
                     {hit.snippet}
                   </span>
                   {hit.source && (

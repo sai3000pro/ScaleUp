@@ -5,13 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ANALYZER_ID, MicRecorder } from "@/lib/pitchDetection";
 import type { Exercise, PerformanceAttempt, PerformedNote } from "@/lib/types";
-import {
-  BUTTON_PRIMARY,
-  BUTTON_RECORDING,
-  CARD,
-  FOCUS_RING,
-  MUTED,
-} from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_RECORDING, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 interface PracticePanelProps {
@@ -65,17 +59,9 @@ const RECORD_STATUS_LABEL: Record<string, string> = {
 };
 
 // @spec CAP-PERM-002
-export function PracticePanel({
-  courseId,
-  refreshKey,
-  onCompleted,
-  exerciseId,
-  pinned = false,
-}: PracticePanelProps) {
+export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, pinned = false }: PracticePanelProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
-    null,
-  );
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
 
   // A realm choosing a lesson wins over whatever the dropdown was showing:
   // the learner just clicked the thing they want to play.
@@ -100,12 +86,7 @@ export function PracticePanel({
         }
       })
       .catch((caught: unknown) => {
-        if (!cancelled)
-          setError(
-            caught instanceof Error
-              ? caught.message
-              : "Could not load exercises.",
-          );
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Could not load exercises.");
       });
     return () => {
       cancelled = true;
@@ -119,11 +100,7 @@ export function PracticePanel({
   }, []);
 
   // @spec UI-SHELL-008
-  async function submitNotes(
-    notes: PerformedNote[],
-    label: string,
-    recordingId: string | null = null,
-  ) {
+  async function submitNotes(notes: PerformedNote[], label: string, recordingId: string | null = null) {
     if (selectedExerciseId === null) return;
     setLoading(true);
     setError(null);
@@ -138,39 +115,27 @@ export function PracticePanel({
         // Which detector heard this. The fixture path replays the written score
         // rather than hearing anything, so it says so instead of claiming a
         // microphone was involved.
-        recordingId === null && label === "fixture"
-          ? "score-fixture"
-          : ANALYZER_ID,
+        recordingId === null && label === "fixture" ? "score-fixture" : ANALYZER_ID,
       );
       setResult(attempt);
       void refreshUser();
-      setRecordStatus(
-        `Recorded ${label} · ${attempt.metrics.observed_note_count} notes detected`,
-      );
+      setRecordStatus(`Recorded ${label} · ${attempt.metrics.observed_note_count} notes detected`);
       onCompleted();
     } catch (caught: unknown) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Performance submission failed.",
-      );
+      setError(caught instanceof Error ? caught.message : "Performance submission failed.");
     } finally {
       setLoading(false);
     }
   }
 
   async function runFixturePerformance() {
-    const exercise = exercises.find(
-      (candidate) => candidate.id === selectedExerciseId,
-    );
+    const exercise = exercises.find((candidate) => candidate.id === selectedExerciseId);
     if (exercise === undefined) return;
     const take = perfectTakeOf(exercise);
     if (take.length === 0) {
       // A rhythm-only score has no pitches to replay. Saying so beats
       // submitting an empty take and showing the learner a 0%.
-      setError(
-        "This exercise has no written pitches, so there is nothing to replay. Record it instead.",
-      );
+      setError("This exercise has no written pitches, so there is nothing to replay. Record it instead.");
       return;
     }
     await submitNotes(take, "fixture");
@@ -197,35 +162,22 @@ export function PracticePanel({
     try {
       const artifact = await api.speakAttemptFeedback(result.id);
       if (artifact.audio_base64 !== null) {
-        const audio = new Audio(
-          `data:audio/${artifact.format};base64,${artifact.audio_base64}`,
-        );
+        const audio = new Audio(`data:audio/${artifact.format};base64,${artifact.audio_base64}`);
         activeAudioRef.current = audio;
-        audio.onended = () => {
-          if (activeAudioRef.current === audio) activeAudioRef.current = null;
-        };
-        audio.onerror = () => {
-          if (activeAudioRef.current === audio) activeAudioRef.current = null;
-        };
+        audio.onended = () => { if (activeAudioRef.current === audio) activeAudioRef.current = null; };
+        audio.onerror = () => { if (activeAudioRef.current === audio) activeAudioRef.current = null; };
         void audio.play();
       } else if (typeof window !== "undefined" && "speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(artifact.spoken_text);
         window.speechSynthesis.speak(utterance);
       }
     } catch (caught: unknown) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Could not speak the feedback.",
-      );
+      setError(caught instanceof Error ? caught.message : "Could not speak the feedback.");
     }
   }
 
   async function toggleRecording() {
-    if (
-      recorderRef.current !== null &&
-      recorderRef.current.currentStatus === "listening"
-    ) {
+    if (recorderRef.current !== null && recorderRef.current.currentStatus === "listening") {
       const recorder = recorderRef.current;
       recorderRef.current = null;
       setRecordStatus("stopping");
@@ -238,11 +190,7 @@ export function PracticePanel({
       let recordingId: string | null = null;
       if (take.blob !== null) {
         try {
-          const recording = await api.uploadRecording(
-            courseId,
-            take.blob,
-            take.durationSeconds,
-          );
+          const recording = await api.uploadRecording(courseId, take.blob, take.durationSeconds);
           recordingId = recording.id;
         } catch (caught: unknown) {
           // A failed upload must not sink the take — the notes are the score.
@@ -262,11 +210,7 @@ export function PracticePanel({
     } catch (caught: unknown) {
       recorderRef.current = null;
       setRecordStatus("idle");
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Could not start the microphone.",
-      );
+      setError(caught instanceof Error ? caught.message : "Could not start the microphone.");
     }
   }
 
@@ -276,16 +220,10 @@ export function PracticePanel({
     <section className={CARD} aria-labelledby="practice-heading">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2
-            id="practice-heading"
-            className="font-display text-sm font-semibold"
-          >
-            Practice
-          </h2>
+          <h2 id="practice-heading" className="font-display text-sm font-semibold">Practice</h2>
           <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>
-            Record with your microphone and the browser turns the take into note
-            observations, or run the deterministic fixture. Both use the same
-            submission contract.
+            Record with your microphone and the browser turns the take into note observations, or run the
+            deterministic fixture. Both use the same submission contract.
           </p>
         </div>
         <span className="rounded-full border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-tiny text-cyan-300">
@@ -297,10 +235,7 @@ export function PracticePanel({
         <>
           {pinned ? null : (
             <>
-              <label
-                className={`mt-3 block text-mini ${MUTED}`}
-                htmlFor="practice-exercise"
-              >
+              <label className={`mt-3 block text-mini ${MUTED}`} htmlFor="practice-exercise">
                 Exercise
               </label>
               <select
@@ -319,11 +254,7 @@ export function PracticePanel({
           )}
           <button
             type="button"
-            disabled={
-              loading ||
-              selectedExerciseId === null ||
-              recordStatus === "requesting"
-            }
+            disabled={loading || selectedExerciseId === null || recordStatus === "requesting"}
             onClick={() => void toggleRecording()}
             // Solid, not tinted. This is the panel's primary control and it is
             // pressed by someone holding an instrument, so it has to be found
@@ -334,63 +265,40 @@ export function PracticePanel({
           >
             {listening ? "Stop and score recording" : "Record performance"}
           </button>
-          <p className="mt-1.5 text-center text-tiny text-slate-500">
-            {RECORD_STATUS_LABEL[recordStatus] ?? "Ready"}
-          </p>
+          <p className="mt-1.5 text-center text-tiny text-slate-500">{RECORD_STATUS_LABEL[recordStatus] ?? "Ready"}</p>
           <button
             type="button"
             disabled={loading || selectedExerciseId === null || listening}
             onClick={() => void runFixturePerformance()}
             className={`mt-2 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 ${FOCUS_RING}`}
           >
-            {loading
-              ? "Scoring performance…"
-              : "Run perfect fixture performance"}
+            {loading ? "Scoring performance…" : "Run perfect fixture performance"}
           </button>
         </>
       ) : (
-        <p className="mt-3 text-xs text-slate-500">
-          No score-backed exercises are seeded for this course yet.
-        </p>
+        <p className="mt-3 text-xs text-slate-500">No score-backed exercises are seeded for this course yet.</p>
       )}
 
-      {error && (
-        <p className="mt-2 text-xs text-rose-300" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <p className="mt-2 text-xs text-rose-300" role="alert">{error}</p>}
       {result && (
         <div className="mt-3 rounded-md border border-emerald-900/60 bg-emerald-950/20 p-2.5 text-xs">
           <p className="font-medium text-emerald-200">
-            Score {Math.round(result.overall_score * 100)}% · +
-            {result.exp_awarded} EXP
+            Score {Math.round(result.overall_score * 100)}% · +{result.exp_awarded} EXP
           </p>
           <p className={`mt-1 text-mini ${MUTED}`}>
             {result.metrics.pitch_accuracy !== null && (
               <>Pitch {Math.round(result.metrics.pitch_accuracy * 100)}% · </>
             )}
-            rhythm {Math.round(result.metrics.rhythm_accuracy * 100)}% ·{" "}
-            {result.metrics.missed_note_count} missed ·{" "}
-            {result.metrics.extra_note_count} extra
+            rhythm {Math.round(result.metrics.rhythm_accuracy * 100)}% · {result.metrics.missed_note_count} missed · {result.metrics.extra_note_count} extra
             {result.metrics.technique_accuracy !== null && (
-              <>
-                {" "}
-                · technique{" "}
-                {Math.round(result.metrics.technique_accuracy * 100)}%
-              </>
+              <> · technique {Math.round(result.metrics.technique_accuracy * 100)}%</>
             )}
             {result.metrics.intonation_accuracy !== null && (
-              <>
-                {" "}
-                · intonation{" "}
-                {Math.round(result.metrics.intonation_accuracy * 100)}%
-              </>
+              <> · intonation {Math.round(result.metrics.intonation_accuracy * 100)}%</>
             )}
           </p>
           {result.metrics.low_confidence && (
-            <p className="mt-1 text-mini text-amber-300">
-              Low-confidence alignment — EXP was withheld for review.
-            </p>
+            <p className="mt-1 text-mini text-amber-300">Low-confidence alignment — EXP was withheld for review.</p>
           )}
           <p className="mt-2 text-mini italic leading-relaxed text-slate-300">
             {result.feedback.persona}: {result.feedback.summary}
@@ -409,9 +317,7 @@ export function PracticePanel({
               ))}
             </ul>
           )}
-          <p className="mt-2 text-mini text-cyan-300">
-            Next: {result.feedback.next_step}
-          </p>
+          <p className="mt-2 text-mini text-cyan-300">Next: {result.feedback.next_step}</p>
           <button
             type="button"
             onClick={() => void speakFeedback()}

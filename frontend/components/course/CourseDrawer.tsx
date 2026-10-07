@@ -87,9 +87,7 @@ export function CourseDrawer({
         className="relative flex h-full w-full max-w-md flex-col border-l border-slate-700 bg-slate-950 shadow-2xl outline-none"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
-          <h2 className="font-display text-sm font-semibold text-slate-100">
-            Course
-          </h2>
+          <h2 className="font-display text-sm font-semibold text-slate-100">Course</h2>
           <button
             type="button"
             onClick={onClose}
@@ -108,16 +106,9 @@ export function CourseDrawer({
             progress={campaignProgress}
             isBuilding={course?.status === "ingesting"}
           />
-          <CurriculumPlanner
-            courseId={courseId}
-            initialGoal={campaignGoal}
-            onComplete={onRefresh}
-          />
+          <CurriculumPlanner courseId={courseId} initialGoal={campaignGoal} onComplete={onRefresh} />
           <AskPanel courseId={courseId} documents={course?.documents ?? []} />
-          <SharePanel
-            courseId={courseId}
-            shareable={course?.status === "ready"}
-          />
+          <SharePanel courseId={courseId} shareable={course?.status === "ready"} />
           <LeaderboardPanel courseId={courseId} refreshKey={refreshKey} />
         </div>
       </div>

@@ -3,28 +3,16 @@
 import { useCallback, useState } from "react";
 
 import { api, pollJob } from "@/lib/api";
-import type {
-  IngestJob,
-  ProjectionStatus,
-  ReindexScope,
-  RejectionsPage,
-} from "@/lib/types";
+import type { IngestJob, ProjectionStatus, ReindexScope, RejectionsPage } from "@/lib/types";
 import { BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 
 const SCOPES: { scope: ReindexScope; label: string; hint: string }[] = [
   { scope: "graph", label: "Rebuild graph", hint: "Neo4j projection only" },
-  {
-    scope: "vectors",
-    label: "Rebuild vectors",
-    hint: "Chroma embeddings only",
-  },
+  { scope: "vectors", label: "Rebuild vectors", hint: "Chroma embeddings only" },
   { scope: "all", label: "Rebuild everything", hint: "Graph and vectors" },
 ];
 
-function healthLabel(status: ProjectionStatus): {
-  label: string;
-  className: string;
-} {
+function healthLabel(status: ProjectionStatus): { label: string; className: string } {
   if (!status.neo4j_reachable || !status.chroma_reachable) {
     return { label: "Unavailable", className: "text-rose-300" };
   }
@@ -91,20 +79,14 @@ export function DiagnosticsPanel({ courseId }: { courseId: string }) {
         if (event.currentTarget.open && !projection && !loading) void load();
       }}
     >
-      <summary
-        className={`cursor-pointer font-display text-sm font-semibold ${FOCUS_RING}`}
-      >
+      <summary className={`cursor-pointer font-display text-sm font-semibold ${FOCUS_RING}`}>
         Diagnostics
       </summary>
 
-      {loading && (
-        <p className={`mt-2 text-xs ${MUTED}`}>Checking derived stores…</p>
-      )}
+      {loading && <p className={`mt-2 text-xs ${MUTED}`}>Checking derived stores…</p>}
       {error && (
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p role="alert" className="text-xs text-rose-400">
-            {error}
-          </p>
+          <p role="alert" className="text-xs text-rose-400">{error}</p>
           {!busyScope && (
             <button
               type="button"
@@ -120,9 +102,7 @@ export function DiagnosticsPanel({ courseId }: { courseId: string }) {
       {projection && !loading && (
         <>
           <div className="mt-3 flex items-baseline justify-between gap-2">
-            <span
-              className={`text-sm font-semibold ${healthLabel(projection).className}`}
-            >
+            <span className={`text-sm font-semibold ${healthLabel(projection).className}`}>
               {healthLabel(projection).label}
             </span>
             <button
@@ -138,51 +118,37 @@ export function DiagnosticsPanel({ courseId }: { courseId: string }) {
           <dl className="mt-3 grid grid-cols-2 gap-2 text-mini">
             <div>
               <dt className={`${MUTED}`}>Postgres graph</dt>
-              <dd className="text-slate-200">
-                v{projection.graph_version} · {projection.node_count} nodes
-              </dd>
+              <dd className="text-slate-200">v{projection.graph_version} · {projection.node_count} nodes</dd>
             </div>
             <div>
               <dt className={`${MUTED}`}>Neo4j projection</dt>
               <dd className="text-slate-200">
-                {projection.neo4j_reachable
-                  ? `v${projection.projected_version ?? "—"}`
-                  : "unreachable"}
+                {projection.neo4j_reachable ? `v${projection.projected_version ?? "—"}` : "unreachable"}
               </dd>
             </div>
             <div>
               <dt className={`${MUTED}`}>Chunks</dt>
-              <dd className="text-slate-200">
-                {projection.chunk_count.toLocaleString()}
-              </dd>
+              <dd className="text-slate-200">{projection.chunk_count.toLocaleString()}</dd>
             </div>
             <div>
               <dt className={`${MUTED}`}>Chroma vectors</dt>
               <dd className="text-slate-200">
-                {projection.chroma_reachable
-                  ? (projection.vector_count ?? 0).toLocaleString()
-                  : "unreachable"}
+                {projection.chroma_reachable ? (projection.vector_count ?? 0).toLocaleString() : "unreachable"}
               </dd>
             </div>
           </dl>
 
           {projection.stale && (
             <p className="mt-3 text-mini text-amber-300">
-              The derived graph does not match Postgres. Rebuild the graph
-              projection below.
+              The derived graph does not match Postgres. Rebuild the graph projection below.
             </p>
           )}
-          {projection.detail && (
-            <p className="mt-2 break-words text-mini text-slate-500">
-              {projection.detail}
-            </p>
-          )}
+          {projection.detail && <p className="mt-2 break-words text-mini text-slate-500">{projection.detail}</p>}
 
           <div className="mt-4">
             <p className={`text-mini ${MUTED}`}>Safe rebuilds</p>
             <p className="mt-1 text-mini text-slate-500">
-              These rebuild derived stores only; they do not re-extract content
-              or reset learner progress.
+              These rebuild derived stores only; they do not re-extract content or reset learner progress.
             </p>
             <div className="mt-2 space-y-1.5">
               {SCOPES.map(({ scope, label, hint }) => (
@@ -194,9 +160,7 @@ export function DiagnosticsPanel({ courseId }: { courseId: string }) {
                   className={`flex w-full items-baseline justify-between gap-2 ${BUTTON_SECONDARY} py-1.5 text-xs`}
                 >
                   <span>{busyScope === scope ? "Rebuilding…" : label}</span>
-                  <span className={`text-tiny font-normal ${MUTED}`}>
-                    {hint}
-                  </span>
+                  <span className={`text-tiny font-normal ${MUTED}`}>{hint}</span>
                 </button>
               ))}
             </div>
@@ -211,48 +175,31 @@ export function DiagnosticsPanel({ courseId }: { courseId: string }) {
             <div className="mt-4">
               <div className="flex items-baseline justify-between gap-2">
                 <p className={`text-mini ${MUTED}`}>Rejected edges</p>
-                <span className="text-mini text-slate-300">
-                  {rejections.total.toLocaleString()} total
-                </span>
+                <span className="text-mini text-slate-300">{rejections.total.toLocaleString()} total</span>
               </div>
               {Object.keys(rejections.by_reason).length === 0 ? (
-                <p className="mt-2 text-mini text-emerald-300">
-                  No rejected prerequisite edges.
-                </p>
+                <p className="mt-2 text-mini text-emerald-300">No rejected prerequisite edges.</p>
               ) : (
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  {Object.entries(rejections.by_reason).map(
-                    ([reason, count]) => (
-                      <span
-                        key={reason}
-                        className="rounded-full border border-slate-700 px-2 py-1 text-tiny text-slate-300"
-                      >
-                        {rejectionLabel(reason)} · {count}
-                      </span>
-                    ),
-                  )}
+                  {Object.entries(rejections.by_reason).map(([reason, count]) => (
+                    <span key={reason} className="rounded-full border border-slate-700 px-2 py-1 text-tiny text-slate-300">
+                      {rejectionLabel(reason)} · {count}
+                    </span>
+                  ))}
                 </div>
               )}
               {rejections.rows.length > 0 && (
                 <ul className="mt-3 space-y-2">
                   {rejections.rows.slice(0, 5).map((row) => (
-                    <li
-                      key={row.id}
-                      className="border-l border-slate-700 pl-2 text-mini"
-                    >
+                    <li key={row.id} className="border-l border-slate-700 pl-2 text-mini">
                       <p className="text-slate-300">
                         {row.prereq_slug} → {row.target_slug}
                       </p>
                       <p className="text-slate-500">
                         {rejectionLabel(row.reason)}
-                        {row.confidence !== null &&
-                          ` · ${Math.round(row.confidence * 100)}% confidence`}
+                        {row.confidence !== null && ` · ${Math.round(row.confidence * 100)}% confidence`}
                       </p>
-                      {row.cycle_path.length > 0 && (
-                        <p className="break-words text-slate-500">
-                          Cycle: {row.cycle_path.join(" → ")}
-                        </p>
-                      )}
+                      {row.cycle_path.length > 0 && <p className="break-words text-slate-500">Cycle: {row.cycle_path.join(" → ")}</p>}
                     </li>
                   ))}
                 </ul>
