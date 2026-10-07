@@ -56,6 +56,8 @@ class CharacterProfileOut(BaseModel):
 
 
 class CharacterStatsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     focus: int = Field(ge=0, le=99)
     memory: int = Field(ge=0, le=99)
     resilience: int = Field(ge=0, le=99)

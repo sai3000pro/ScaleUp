@@ -1,4 +1,27 @@
 from app.domain.character import achievement_rows, calculate_stats, perk_definitions
+from app.schemas.character import CharacterStatsOut
+
+
+# @spec PROG-META-001
+def test_stats_serialise_to_the_character_sheet() -> None:
+    stats = calculate_stats(
+        level=3,
+        streak_days=2,
+        average_score=0.8,
+        started_skills=4,
+        mastered_skills=1,
+        course_count=1,
+        rescue_count=0,
+        unlocked_perks=set(),
+    )
+
+    out = CharacterStatsOut.model_validate(stats)
+    assert out.model_dump() == {
+        "focus": stats.focus,
+        "memory": stats.memory,
+        "resilience": stats.resilience,
+        "curiosity": stats.curiosity,
+    }
 
 
 def test_stats_are_deterministic_and_capped() -> None:
