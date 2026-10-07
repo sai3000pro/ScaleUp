@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { stateStyle } from "@/lib/nodeState";
 import type { CoursePath, PathStep } from "@/lib/types";
-import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 /**
@@ -60,29 +60,32 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
   if (error) return <p className={`${CARD} text-xs text-rose-400`}>{error}</p>;
   if (!path || path.total === 0) return null;
 
-  const next = path.steps.find((step) => step.node_id === path.next_node_id) ?? null;
-  const upcoming = next ? path.steps.filter((step) => !step.done && step.order > next.order) : [];
+  const next =
+    path.steps.find((step) => step.node_id === path.next_node_id) ?? null;
+  const upcoming = next
+    ? path.steps.filter((step) => !step.done && step.order > next.order)
+    : [];
   const shown = expanded ? upcoming : upcoming.slice(0, PREVIEW);
 
   return (
     <div className={CARD}>
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="font-display text-sm font-semibold">Guided path</h2>
-        <span className="text-[11px] text-slate-400">
+        <span className={`text-mini ${MUTED}`}>
           {path.completed} / {path.total}
         </span>
       </div>
 
       {next ? (
         <>
-          <p className="mt-0.5 text-[11px] text-slate-400">
+          <p className={`mt-0.5 text-mini ${MUTED}`}>
             {path.completed === 0 ? "Start here." : "Next up."}
           </p>
           <StepButton step={next} onGo={go} primary />
 
           {shown.length > 0 && (
             <>
-              <h3 className="mt-3 text-[11px] font-semibold text-slate-400">Then</h3>
+              <h3 className={`mt-3 text-mini font-semibold ${MUTED}`}>Then</h3>
               <ol className="mt-1 space-y-1">
                 {shown.map((step) => (
                   <li key={step.node_id}>
@@ -94,9 +97,11 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
                 <button
                   type="button"
                   onClick={() => setExpanded((open) => !open)}
-                  className={`mt-2 rounded-sm text-[11px] text-slate-400 underline underline-offset-2 hover:text-slate-200 ${FOCUS_RING}`}
+                  className={`mt-2 rounded-sm text-mini ${MUTED} underline underline-offset-2 hover:text-slate-200 ${FOCUS_RING}`}
                 >
-                  {expanded ? "Show fewer" : `Show all ${upcoming.length} remaining`}
+                  {expanded
+                    ? "Show fewer"
+                    : `Show all ${upcoming.length} remaining`}
                 </button>
               )}
             </>
@@ -104,15 +109,23 @@ export function GuidedPath({ courseId, refreshKey, onPathLoaded }: Props) {
         </>
       ) : (
         <p className="mt-2 text-xs text-slate-300">
-          Every skill on this path is above the mastery threshold. Keep them there — the Daily Quest
-          board is where decay shows up.
+          Every skill on this path is above the mastery threshold. Keep them
+          there — the Daily Quest board is where decay shows up.
         </p>
       )}
     </div>
   );
 }
 
-function StepButton({ step, onGo, primary = false }: { step: PathStep; onGo: (id: string) => void; primary?: boolean }) {
+function StepButton({
+  step,
+  onGo,
+  primary = false,
+}: {
+  step: PathStep;
+  onGo: (id: string) => void;
+  primary?: boolean;
+}) {
   const style = stateStyle(step.state);
   return (
     <button
@@ -130,8 +143,10 @@ function StepButton({ step, onGo, primary = false }: { step: PathStep; onGo: (id
         style={{ backgroundColor: style.accent }}
       />
       <span className="min-w-0">
-        <span className="block truncate text-xs font-semibold text-slate-100">{step.title}</span>
-        <span className="block truncate text-[10px] text-slate-400">
+        <span className="block truncate text-xs font-semibold text-slate-100">
+          {step.title}
+        </span>
+        <span className={`block truncate text-tiny ${MUTED}`}>
           {style.label} · step {step.order + 1}
         </span>
       </span>

@@ -48,6 +48,7 @@ import { neighboursOf } from "@/lib/graphNeighbours";
 import { graphShapeKey } from "@/lib/layout";
 import { framingCentre, framingDistance, layoutGraph3D } from "@/lib/layout3d";
 import { canOpenLesson } from "@/lib/lesson";
+import { MAX_PROJECTED_LABELS, packEdges } from "@/lib/graphEdges";
 import { nodeAriaLabel } from "@/lib/nodeState";
 import type { GraphNode, GraphSnapshot } from "@/lib/types";
 import { BUTTON_SECONDARY, FOCUS_RING } from "@/lib/ui";
@@ -321,29 +322,26 @@ export function SkillGraph3D({
     }
 
     // ── prerequisites ─────────────────────────────────────────────────────
-    for (const edge of edges) {
-      const from = positions[edge.source];
-      const to = positions[edge.target];
-      const target = lookup.get(edge.target);
-      if (from && to && target) {
-        // One palette for nodes and routes, coloured by what the edge leads TO
-        // (see lib/graphTheme.ts): gold into a ready skill, dimmed gold into
-        // what is in hand or done, orange into a fading skill, slate into the
-        // locked future. An available skill's prerequisites are mastered by
-        // definition, so target state fully determines the route.
-        const edgeStyle = graphEdgeStyle(target);
-        const geometry = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(from.x, from.y, from.z),
-          new THREE.Vector3(to.x, to.y, to.z),
-        ]);
-        const material = new THREE.LineBasicMaterial({
-          color: new THREE.Color(edgeStyle.accent),
-          transparent: true,
-          opacity: edgeStyle.opacity,
-        });
-        scene.add(new THREE.Line(geometry, material));
-      }
-    }
+    // One palette for nodes and routes, coloured by what the edge leads TO
+    // (see lib/graphTheme.ts). All routes share one buffer and one draw call,
+    // so a compiled textbook's hundreds of edges cost what a dozen do.
+    // @spec UI-GRAPH3D-010
+    const packed = packEdges(edges, positions, lookup);
+    const edgeGeometry = new THREE.BufferGeometry();
+    edgeGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(packed.positions, 3),
+    );
+    edgeGeometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(packed.colors, 3),
+    );
+    scene.add(
+      new THREE.LineSegments(
+        edgeGeometry,
+        new THREE.LineBasicMaterial({ vertexColors: true }),
+      ),
+    );
 
     // ── orbit ─────────────────────────────────────────────────────────────
     // Starts at a three-quarter tilt -- cos(phi) puts the camera about a third
@@ -1024,7 +1022,13 @@ export function SkillGraph3D({
         // Two titles printed over each other are worse than one title: the
         // overlap is unreadable AND it hides which skill each belongs to.
         // Nearest wins, which is also the one the learner is looking at.
+        // Past the cap, farther titles are dropped outright: the clash pass
+        // is quadratic, and a textbook-sized tree has more skills than any
+        // frame has room for titles. @spec UI-GRAPH3D-010
         candidates.sort((a, b) => a.depth - b.depth);
+        for (let i = MAX_PROJECTED_LABELS; i < candidates.length; i += 1) {
+          candidates[i].visible = false;
+        }
         const taken: { x: number; y: number; half: number }[] = [];
         for (const label of candidates) {
           if (label.visible) {
@@ -1181,7 +1185,8 @@ export function SkillGraph3D({
       {webglUnavailable && (
         <div className="absolute inset-0 overflow-y-auto p-3">
           <p className="mb-2 text-xs text-graph-ink-quiet">
-            3D view unavailable in this browser — showing the skill outline instead.
+            3D view unavailable in this browser — showing the skill outline
+            instead.
           </p>
           <SkillTreeOutline
             snapshot={snapshot}
@@ -1245,20 +1250,20 @@ export function SkillGraph3D({
               }}
               aria-label={`${card.badge === "parent" ? "Prerequisite" : "Unlocks"} ${card.title}. ${card.locked ? "Locked" : card.structural ? "Section heading" : card.label}.`}
             >
-              <span className="block text-[9px] font-bold uppercase tracking-wider text-graph-ink-quiet">
+              <span className="block text-micro font-bold uppercase tracking-wider text-graph-ink-quiet">
                 {card.badge === "parent" ? "▲ Prerequisite" : "▼ Unlocks"}
               </span>
               <span className="mt-0.5 block truncate font-display text-xs font-semibold text-graph-ink">
                 {card.locked ? `\u{1F512} ${card.title}` : card.title}
               </span>
-              <span className="mt-1 block truncate text-[10px] text-graph-ink-quiet">
+              <span className="mt-1 block truncate text-tiny text-graph-ink-quiet">
                 {card.structural
                   ? "Section heading"
                   : card.locked
                     ? `Locked — needs ${card.needs || "prerequisites"}`
                     : card.label}
               </span>
-              <span className="mt-1 block text-[10px] leading-snug text-graph-ink-quiet">
+              <span className="mt-1 block text-tiny leading-snug text-graph-ink-quiet">
                 {card.progress}
               </span>
             </button>
@@ -1278,14 +1283,14 @@ export function SkillGraph3D({
             {traversalNotice.message}
           </p>
           {traversalNotice.targetTitle && traversalNotice.currentTitle && (
-            <p className="mt-1 text-[10px] text-graph-learning">
+            <p className="mt-1 text-tiny text-graph-learning">
               Current skill: {traversalNotice.currentTitle}
             </p>
           )}
           <button
             type="button"
             onClick={() => setTraversalNotice(null)}
-            className={`mt-2 rounded-md border border-graph-line bg-graph-raised px-2.5 py-1 text-[11px] font-semibold text-graph-ink ${FOCUS_RING}`}
+            className={`mt-2 rounded-md border border-graph-line bg-graph-raised px-2.5 py-1 text-mini font-semibold text-graph-ink ${FOCUS_RING}`}
           >
             Close
           </button>
@@ -1297,11 +1302,11 @@ export function SkillGraph3D({
           <p className="font-display text-sm font-semibold text-graph-ink">
             {hovered.title}
           </p>
-          <p className="mt-0.5 text-[11px] text-graph-ink-quiet">
+          <p className="mt-0.5 text-mini text-graph-ink-quiet">
             {graphNodeStyle(hovered).label}
           </p>
           {hovered.summary && (
-            <p className="mt-1.5 text-[11px] leading-snug text-graph-ink-quiet">
+            <p className="mt-1.5 text-mini leading-snug text-graph-ink-quiet">
               {hovered.summary}
             </p>
           )}
@@ -1326,7 +1331,7 @@ export function SkillGraph3D({
             className="w-full max-w-sm rounded-xl border border-graph-line bg-graph-surface p-5 shadow-lg"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-graph-learning">
+            <p className="text-tiny font-semibold uppercase tracking-wider text-graph-learning">
               {graphNodeStyle(detailNode).label}
             </p>
             <h3
@@ -1340,7 +1345,7 @@ export function SkillGraph3D({
             </p>
             {detailNode.assessable &&
               detailNode.progress.state === "locked" && (
-                <p className="mt-2 text-[11px] text-graph-ink-quiet">
+                <p className="mt-2 text-mini text-graph-ink-quiet">
                   Blocked by{" "}
                   {detailNode.blocked_by
                     .map((blocker) => blocker.title)
@@ -1408,7 +1413,7 @@ export function SkillGraph3D({
         </div>
       )}
 
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11px] text-graph-ink-quiet">
+      <p className="pointer-events-none absolute bottom-3 left-3 text-mini text-graph-ink-quiet">
         {povNodeId
           ? "Click a card to walk the tree · Enter to open its world · Esc to return"
           : "Drag to orbit · scroll to zoom · double-click a skill to stand beside it"}

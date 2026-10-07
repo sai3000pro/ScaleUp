@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build:sprites": "tsx scripts/build-sprites.ts"
+    "build:sprites": "tsx scripts/build-sprites.ts",
+    "build:curricula": "tsx scripts/build-curricula.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",

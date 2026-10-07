@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 import {
   appendVisualFrame,
   isSupportedSelectedVideo,
@@ -36,16 +36,19 @@ const STATUS_COPY: Record<AnalysisStatus, string> = {
   "loading-model": "Loading the hand and body models…",
   analysing: "Analysing locally while the video plays.",
   paused: "Analysis paused. Resume when you are ready.",
-  completed: "Analysis complete. Review or export the derived observations below.",
-  cancelled: "Analysis cancelled. The selected video remains available to restart.",
+  completed:
+    "Analysis complete. Review or export the derived observations below.",
+  cancelled:
+    "Analysis cancelled. The selected video remains available to restart.",
   unsupported: "This file is not a supported MP4.",
-  failed: "Visual analysis could not run. Check network access to the MediaPipe models and try again.",
+  failed:
+    "Visual analysis could not run. Check network access to the MediaPipe models and try again.",
 };
 
 const STATUS_COLOR: Record<string, string> = {
   good: "text-emerald-300",
   needs_attention: "text-amber-300",
-  low_confidence: "text-slate-400",
+  low_confidence: `${MUTED}`,
   not_detected: "text-slate-500",
 };
 
@@ -62,8 +65,11 @@ const OUTCOME_COLOR = {
 } as const;
 
 function assessmentProfile(profileId: string) {
-  const selected = VISUAL_ASSESSMENT_PROFILES.find((profile) => profile.id === profileId);
-  if (selected === undefined) throw new Error(`Unknown visual assessment profile: ${profileId}`);
+  const selected = VISUAL_ASSESSMENT_PROFILES.find(
+    (profile) => profile.id === profileId,
+  );
+  if (selected === undefined)
+    throw new Error(`Unknown visual assessment profile: ${profileId}`);
   return selected;
 }
 
@@ -85,17 +91,28 @@ export function VideoAnalysisWorkspace() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<AnalysisStatus>("idle");
   const [frames, setFrames] = useState<VisualObservationFrame[]>([]);
-  const [latestFrame, setLatestFrame] = useState<VisualObservationFrame | null>(null);
+  const [latestFrame, setLatestFrame] = useState<VisualObservationFrame | null>(
+    null,
+  );
   const [durationMs, setDurationMs] = useState(0);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackerRef = useRef<VisualTracker | null>(null);
   const videoUrlRef = useRef<string | null>(null);
 
-  const selectedProfile = useMemo(() => assessmentProfile(profileId), [profileId]);
+  const selectedProfile = useMemo(
+    () => assessmentProfile(profileId),
+    [profileId],
+  );
   const summary = useMemo(() => summarizeVisualFrames(frames), [frames]);
-  const assessment = useMemo(() => assessVisualFrames(selectedProfile, frames), [selectedProfile, frames]);
-  const progress = durationMs > 0 ? Math.min(100, Math.round((currentTimeMs / durationMs) * 100)) : 0;
+  const assessment = useMemo(
+    () => assessVisualFrames(selectedProfile, frames),
+    [selectedProfile, frames],
+  );
+  const progress =
+    durationMs > 0
+      ? Math.min(100, Math.round((currentTimeMs / durationMs) * 100))
+      : 0;
 
   function stopTracker() {
     if (trackerRef.current !== null) {
@@ -239,7 +256,9 @@ export function VideoAnalysisWorkspace() {
       profile: selectedProfile,
       frames,
     });
-    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(result, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -251,26 +270,41 @@ export function VideoAnalysisWorkspace() {
   const busy = status === "loading-model" || status === "analysing";
 
   return (
-    <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 outline-none">
-      <Link href="/courses" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="mx-auto max-w-6xl px-4 py-8 outline-none"
+    >
+      <Link
+        href="/courses"
+        className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
+      >
         ← Back to courses
       </Link>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Video technique analysis</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-400">
-            Select an MP4 and run hand plus body analysis locally. The video and its audio track are never
-            uploaded or scored; only timestamped visual metrics exist outside the player.
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
+            Video technique analysis
+          </h1>
+          <p className={`mt-1 max-w-2xl text-sm leading-relaxed ${MUTED}`}>
+            Select an MP4 and run hand plus body analysis locally. The video and
+            its audio track are never uploaded or scored; only timestamped
+            visual metrics exist outside the player.
           </p>
         </div>
-        <span className="w-fit rounded-full border border-violet-900/60 bg-violet-950/30 px-3 py-1 text-[11px] text-violet-300">
+        <span className="w-fit rounded-full border border-violet-900/60 bg-violet-950/30 px-3 py-1 text-mini text-violet-300">
           VIDEO ONLY
         </span>
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.6fr)]">
         <section className={CARD} aria-labelledby="video-input-heading">
-          <h2 id="video-input-heading" className="font-display text-sm font-semibold">1. Choose the visual source</h2>
+          <h2
+            id="video-input-heading"
+            className="font-display text-sm font-semibold"
+          >
+            1. Choose the visual source
+          </h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <label className="text-xs text-slate-300">
               Skill assessment
@@ -286,8 +320,9 @@ export function VideoAnalysisWorkspace() {
                   </option>
                 ))}
               </select>
-              <span className="mt-1 block text-[10px] text-slate-500">
-                Only this skill&apos;s declared visual requirements affect the final verdict.
+              <span className="mt-1 block text-tiny text-slate-500">
+                Only this skill&apos;s declared visual requirements affect the
+                final verdict.
               </span>
             </label>
             <label className="text-xs text-slate-300">
@@ -302,10 +337,16 @@ export function VideoAnalysisWorkspace() {
             </label>
           </div>
 
-          <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/15 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
-            <strong className="font-semibold text-amber-300">MVP calibration:</strong> these visual bars are lighter demo defaults,
-            not teacher-validated technique standards. The verdict requires {Math.round(selectedProfile.coverageFloor * 100)}% visible evidence,
-            {` ${Math.round(selectedProfile.overallPassFloor * 100)}%`} overall, and {Math.round(selectedProfile.requirements[0].passFloor * 100)}% per critical requirement.
+          <div className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/15 px-3 py-2 text-mini leading-relaxed text-amber-200/80">
+            <strong className="font-semibold text-amber-300">
+              MVP calibration:
+            </strong>{" "}
+            these visual bars are lighter demo defaults, not teacher-validated
+            technique standards. The verdict requires{" "}
+            {Math.round(selectedProfile.coverageFloor * 100)}% visible evidence,
+            {` ${Math.round(selectedProfile.overallPassFloor * 100)}%`} overall,
+            and {Math.round(selectedProfile.requirements[0].passFloor * 100)}%
+            per critical requirement.
           </div>
 
           {videoUrl !== null && (
@@ -316,7 +357,9 @@ export function VideoAnalysisWorkspace() {
               playsInline
               controls={status !== "analysing"}
               preload="metadata"
-              onLoadedMetadata={(event) => setDurationMs(Math.round(event.currentTarget.duration * 1000))}
+              onLoadedMetadata={(event) =>
+                setDurationMs(Math.round(event.currentTarget.duration * 1000))
+              }
               onEnded={completeAnalysis}
               onError={() => setStatus("failed")}
               className="mt-4 aspect-video w-full rounded-lg border border-slate-800 bg-black object-contain"
@@ -324,7 +367,10 @@ export function VideoAnalysisWorkspace() {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {(status === "ready" || status === "cancelled" || status === "completed" || status === "failed") && (
+            {(status === "ready" ||
+              status === "cancelled" ||
+              status === "completed" ||
+              status === "failed") && (
               <button
                 type="button"
                 onClick={() => void startAnalysis()}
@@ -335,55 +381,106 @@ export function VideoAnalysisWorkspace() {
               </button>
             )}
             {status === "analysing" && (
-              <button type="button" onClick={pauseAnalysis} className={`rounded-md border border-slate-700 px-4 py-2 text-xs text-slate-200 ${FOCUS_RING}`}>
+              <button
+                type="button"
+                onClick={pauseAnalysis}
+                className={`rounded-md border border-slate-700 px-4 py-2 text-xs text-slate-200 ${FOCUS_RING}`}
+              >
                 Pause
               </button>
             )}
             {status === "paused" && (
-              <button type="button" onClick={() => void resumeAnalysis()} className={`rounded-md bg-violet-500 px-4 py-2 text-xs font-semibold text-white ${FOCUS_RING}`}>
+              <button
+                type="button"
+                onClick={() => void resumeAnalysis()}
+                className={`rounded-md bg-violet-500 px-4 py-2 text-xs font-semibold text-white ${FOCUS_RING}`}
+              >
                 Resume
               </button>
             )}
-            {(status === "analysing" || status === "paused" || status === "loading-model") && (
-              <button type="button" onClick={cancelAnalysis} className={`rounded-md border border-slate-700 px-4 py-2 text-xs text-slate-300 ${FOCUS_RING}`}>
+            {(status === "analysing" ||
+              status === "paused" ||
+              status === "loading-model") && (
+              <button
+                type="button"
+                onClick={cancelAnalysis}
+                className={`rounded-md border border-slate-700 px-4 py-2 text-xs text-slate-300 ${FOCUS_RING}`}
+              >
                 Cancel
               </button>
             )}
             {frames.length > 0 && (
-              <button type="button" onClick={exportAnalysis} className={`rounded-md border border-emerald-800 px-4 py-2 text-xs text-emerald-300 ${FOCUS_RING}`}>
+              <button
+                type="button"
+                onClick={exportAnalysis}
+                className={`rounded-md border border-emerald-800 px-4 py-2 text-xs text-emerald-300 ${FOCUS_RING}`}
+              >
                 Export visual JSON
               </button>
             )}
           </div>
 
           <div className="mt-4" aria-live="polite">
-            <div className="flex items-center justify-between text-[11px] text-slate-400">
+            <div
+              className={`flex items-center justify-between text-mini ${MUTED}`}
+            >
               <span>{STATUS_COPY[status]}</span>
-              <span>{formatTime(currentTimeMs)} / {formatTime(durationMs)}</span>
+              <span>
+                {formatTime(currentTimeMs)} / {formatTime(durationMs)}
+              </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-              <div className="h-full rounded-full bg-violet-400 transition-[width]" style={{ width: `${progress}%` }} />
+            <div
+              className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full rounded-full bg-violet-400 transition-[width]"
+                style={{ width: `${progress}%` }}
+              />
             </div>
           </div>
         </section>
 
         <aside className="space-y-5">
           <section className={CARD} aria-labelledby="live-feedback-heading">
-            <h2 id="live-feedback-heading" className="font-display text-sm font-semibold">2. Current visual feedback</h2>
+            <h2
+              id="live-feedback-heading"
+              className="font-display text-sm font-semibold"
+            >
+              2. Current visual feedback
+            </h2>
             {latestFrame === null ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">Feedback will appear as timestamped frames are analysed.</p>
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
+                Feedback will appear as timestamped frames are analysed.
+              </p>
             ) : (
               <>
-                <p className="mt-1 text-[11px] text-slate-500">At {formatTime(latestFrame.timestampMs)}</p>
+                <p className="mt-1 text-mini text-slate-500">
+                  At {formatTime(latestFrame.timestampMs)}
+                </p>
                 <ul className="mt-3 space-y-2">
                   {latestFrame.metrics.map((metric) => (
-                    <li key={metric.key} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-[11px]">
+                    <li
+                      key={metric.key}
+                      className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-mini"
+                    >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium capitalize text-slate-200">{metric.key.replace(/_/g, " ")}</span>
-                        <span className={STATUS_COLOR[metric.status]}>{metric.status.replace(/_/g, " ")}</span>
+                        <span className="font-medium capitalize text-slate-200">
+                          {metric.key.replace(/_/g, " ")}
+                        </span>
+                        <span className={STATUS_COLOR[metric.status]}>
+                          {metric.status.replace(/_/g, " ")}
+                        </span>
                       </div>
-                      <p className="mt-1 leading-relaxed text-slate-400">{metric.explanation}</p>
-                      <p className="mt-1 text-[10px] text-slate-500">confidence {Math.round(metric.confidence * 100)}%</p>
+                      <p className={`mt-1 leading-relaxed ${MUTED}`}>
+                        {metric.explanation}
+                      </p>
+                      <p className="mt-1 text-tiny text-slate-500">
+                        confidence {Math.round(metric.confidence * 100)}%
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -391,33 +488,46 @@ export function VideoAnalysisWorkspace() {
             )}
           </section>
 
-          <section className={CARD} aria-labelledby="summary-heading" aria-live="polite">
+          <section
+            className={CARD}
+            aria-labelledby="summary-heading"
+            aria-live="polite"
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 id="summary-heading" className="font-display text-sm font-semibold">3. Final skill verdict</h2>
-                <p className="mt-1 text-[11px] capitalize text-slate-500">
+                <h2
+                  id="summary-heading"
+                  className="font-display text-sm font-semibold"
+                >
+                  3. Final skill verdict
+                </h2>
+                <p className="mt-1 text-mini capitalize text-slate-500">
                   {selectedProfile.title} · {selectedProfile.instrument}
                 </p>
               </div>
               {status === "completed" && (
-                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${OUTCOME_COLOR[assessment.outcome]}`}>
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-tiny font-semibold uppercase tracking-wide ${OUTCOME_COLOR[assessment.outcome]}`}
+                >
                   {OUTCOME_COPY[assessment.outcome]}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-[11px] text-slate-500">
-              {summary.frameCount} sampled frames · {summary.measuredFrameCount} with countable visual evidence
+            <p className="mt-1 text-mini text-slate-500">
+              {summary.frameCount} sampled frames · {summary.measuredFrameCount}{" "}
+              with countable visual evidence
             </p>
             {status !== "completed" ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
                 Play the complete video to produce a take-level verdict.
               </p>
             ) : assessment.outcome === "insufficient_evidence" ? (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
-                The camera did not provide enough trustworthy evidence for every required metric. Reframe the player and instrument, then retry.
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
+                The camera did not provide enough trustworthy evidence for every
+                required metric. Reframe the player and instrument, then retry.
               </p>
             ) : (
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+              <p className={`mt-3 text-xs leading-relaxed ${MUTED}`}>
                 {assessment.outcome === "pass"
                   ? "The full-window aggregate met the overall bar and every critical requirement."
                   : "The video was measurable, but the aggregate or a critical requirement remained below its bar."}
@@ -427,38 +537,54 @@ export function VideoAnalysisWorkspace() {
               <>
                 <dl className="mt-4 grid grid-cols-2 gap-3 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-xs">
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Overall score</dt>
+                    <dt className="text-tiny uppercase tracking-wide text-slate-500">
+                      Overall score
+                    </dt>
                     <dd className="mt-1 font-semibold text-slate-200">
-                      {assessment.overallScore === null ? "Not graded" : `${Math.round(assessment.overallScore * 100)}%`}
+                      {assessment.overallScore === null
+                        ? "Not graded"
+                        : `${Math.round(assessment.overallScore * 100)}%`}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wide text-slate-500">Evidence coverage</dt>
-                    <dd className="mt-1 font-semibold text-slate-200">{Math.round(assessment.evidenceCoverage * 100)}%</dd>
+                    <dt className="text-tiny uppercase tracking-wide text-slate-500">
+                      Evidence coverage
+                    </dt>
+                    <dd className="mt-1 font-semibold text-slate-200">
+                      {Math.round(assessment.evidenceCoverage * 100)}%
+                    </dd>
                   </div>
                 </dl>
                 <ul className="mt-3 space-y-2">
                   {assessment.requirements.map((requirement) => (
-                    <li key={requirement.metricKey} className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-[11px]">
+                    <li
+                      key={requirement.metricKey}
+                      className="rounded-md border border-slate-800 bg-slate-950/70 p-2.5 text-mini"
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-slate-200">
-                          {requirement.label}{requirement.critical ? " · critical" : ""}
+                          {requirement.label}
+                          {requirement.critical ? " · critical" : ""}
                         </span>
-                        <span className={
-                          requirement.passState === "pass"
-                            ? "text-emerald-300"
-                            : requirement.passState === "retry"
-                              ? "text-amber-300"
-                              : "text-slate-400"
-                        }>
+                        <span
+                          className={
+                            requirement.passState === "pass"
+                              ? "text-emerald-300"
+                              : requirement.passState === "retry"
+                                ? "text-amber-300"
+                                : `${MUTED}`
+                          }
+                        >
                           {requirement.passState === "insufficient_evidence"
                             ? "not measured"
                             : `${Math.round((requirement.score as number) * 100)}%`}
                         </span>
                       </div>
-                      <p className="mt-1 text-[10px] text-slate-500">
+                      <p className="mt-1 text-tiny text-slate-500">
                         {Math.round(requirement.coverage * 100)}% coverage
-                        {requirement.goodFrameRatio === null ? "" : ` · ${Math.round(requirement.goodFrameRatio * 100)}% good frames`}
+                        {requirement.goodFrameRatio === null
+                          ? ""
+                          : ` · ${Math.round(requirement.goodFrameRatio * 100)}% good frames`}
                         {` · ${requirement.corrections.length} correction period${requirement.corrections.length === 1 ? "" : "s"}`}
                       </p>
                     </li>
@@ -473,22 +599,44 @@ export function VideoAnalysisWorkspace() {
       <section className={`${CARD} mt-5`} aria-labelledby="timeline-heading">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h2 id="timeline-heading" className="font-display text-sm font-semibold">Technique timeline</h2>
-            <p className="mt-1 text-[11px] text-slate-500">Adjacent frames with the same correction are grouped into one event.</p>
+            <h2
+              id="timeline-heading"
+              className="font-display text-sm font-semibold"
+            >
+              Technique timeline
+            </h2>
+            <p className="mt-1 text-mini text-slate-500">
+              Adjacent frames with the same correction are grouped into one
+              event.
+            </p>
           </div>
-          <span className="text-[11px] text-slate-500">{summary.highlights.length} corrections</span>
+          <span className="text-mini text-slate-500">
+            {summary.highlights.length} corrections
+          </span>
         </div>
         {summary.highlights.length === 0 ? (
-          <p className="mt-4 text-xs text-slate-400">No countable corrections have been observed.</p>
+          <p className={`mt-4 text-xs ${MUTED}`}>
+            No countable corrections have been observed.
+          </p>
         ) : (
           <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {summary.highlights.map((highlight, index) => (
-              <li key={`${highlight.key}-${highlight.startMs}-${index}`} className="rounded-lg border border-amber-900/50 bg-amber-950/10 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-                  {formatTime(highlight.startMs)}{highlight.endMs > highlight.startMs ? `–${formatTime(highlight.endMs)}` : ""}
+              <li
+                key={`${highlight.key}-${highlight.startMs}-${index}`}
+                className="rounded-lg border border-amber-900/50 bg-amber-950/10 p-3"
+              >
+                <p className="text-tiny font-semibold uppercase tracking-wide text-amber-300">
+                  {formatTime(highlight.startMs)}
+                  {highlight.endMs > highlight.startMs
+                    ? `–${formatTime(highlight.endMs)}`
+                    : ""}
                 </p>
-                <p className="mt-1 text-xs font-medium capitalize text-slate-200">{highlight.key.replace(/_/g, " ")}</p>
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{highlight.explanation}</p>
+                <p className="mt-1 text-xs font-medium capitalize text-slate-200">
+                  {highlight.key.replace(/_/g, " ")}
+                </p>
+                <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>
+                  {highlight.explanation}
+                </p>
               </li>
             ))}
           </ol>

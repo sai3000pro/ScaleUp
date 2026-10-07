@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { difficultyLabel, nodeStyle } from "@/lib/nodeState";
 import { dueLabelShort, isDueSoon } from "@/lib/time";
 import type { GraphNode } from "@/lib/types";
+import { MUTED } from "@/lib/ui";
 
 export interface SkillNodeData extends Record<string, unknown> {
   node: GraphNode;
@@ -67,7 +68,9 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
   const locked = !structural && state === "locked";
   const decaying = !structural && state === "decaying";
 
-  const proficiency = structural ? 0 : Math.min(1, Math.max(0, node.progress.proficiency));
+  const proficiency = structural
+    ? 0
+    : Math.min(1, Math.max(0, node.progress.proficiency));
   const filled = CIRCUMFERENCE * proficiency;
 
   // Locked nodes recede rather than disappear: the shape of what is still ahead
@@ -88,8 +91,8 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
       : // Surface the schedule while it can still be acted on, not only once
         // the node has already fallen over. Falls back to the state and
         // difficulty for anything not due in the next week.
-        (dueSoon ? dueLabelShort(node.progress.due_at) : null) ??
-        `${style.label} · ${difficultyLabel(node.difficulty)}`;
+        ((dueSoon ? dueLabelShort(node.progress.due_at) : null) ??
+        `${style.label} · ${difficultyLabel(node.difficulty)}`);
 
   return (
     <div
@@ -110,7 +113,11 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
             : node.summary
       }
     >
-      <Handle type="target" position={Position.Top} className="!h-1 !w-1 !border-0 !bg-transparent" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-1 !w-1 !border-0 !bg-transparent"
+      />
 
       <svg
         width={SIZE}
@@ -151,7 +158,14 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
         ) : (
           <>
             {/* Track, then the proficiency arc drawn over it. */}
-            <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="#e2dadc" strokeWidth="4" />
+            <circle
+              cx={CENTER}
+              cy={CENTER}
+              r={RADIUS}
+              fill="none"
+              stroke="#e2dadc"
+              strokeWidth="4"
+            />
             {proficiency > 0 && (
               <circle
                 cx={CENTER}
@@ -170,13 +184,29 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
                 otherwise show no accent at all -- the frontier must still read
                 as live, so give it a full thin rim. */}
             {proficiency === 0 && !locked && (
-              <circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke={style.accent} strokeWidth="2" opacity="0.75" />
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke={style.accent}
+                strokeWidth="2"
+                opacity="0.75"
+              />
             )}
           </>
         )}
 
         {selected && (
-          <circle cx={CENTER} cy={CENTER} r={RADIUS + 5} fill="none" stroke="#2c2629" strokeWidth="1.5" opacity="0.55" />
+          <circle
+            cx={CENTER}
+            cy={CENTER}
+            r={RADIUS + 5}
+            fill="none"
+            stroke="#2c2629"
+            strokeWidth="1.5"
+            opacity="0.55"
+          />
         )}
 
         {/* The route out of a locked node. Drawn in the same amber the
@@ -206,7 +236,11 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
             // SVG text does not inherit the Tailwind font utility, so without
             // this the level digit renders in the body face while the title
             // 6px below it is Sora.
-            style={{ fontSize: 15, fontWeight: 700, fontFamily: "var(--font-sora), system-ui, sans-serif" }}
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              fontFamily: "var(--font-sora), system-ui, sans-serif",
+            }}
           >
             {locked ? "\u{1F512}" : node.progress.level}
           </text>
@@ -218,27 +252,35 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
           on the canvas in place of the dependency structure. It is provenance,
           so it is shown as provenance: quiet, above the name, gating nothing. */}
       {node.section && !structural && (
-        <p className="mt-1.5 max-w-[132px] truncate text-center font-body text-[8px] uppercase tracking-wider text-slate-500">
+        <p className="mt-1.5 max-w-[132px] truncate text-center font-body text-nano uppercase tracking-wider text-slate-500">
           {node.section}
         </p>
       )}
 
       <p
         className={[
-          "max-w-[132px] text-center font-display text-[11px] leading-tight",
+          "max-w-[132px] text-center font-display text-mini leading-tight",
           node.section && !structural ? "" : "mt-1.5",
           // A heading is still a real label -- it is how you find your way
           // around -- so it stays legible, but at normal weight and one step
           // dimmer, so a rank of them does not out-shout the skills below.
-          structural ? "font-medium text-slate-400" : "font-semibold",
+          structural ? `font-medium ${MUTED}` : "font-semibold",
           locked ? "text-slate-600" : structural ? "" : "text-slate-100",
         ].join(" ")}
       >
         {node.title}
       </p>
-      <p className="text-center font-body text-[9px] uppercase tracking-wide text-slate-400">{caption}</p>
+      <p
+        className={`text-center font-body text-micro uppercase tracking-wide ${MUTED}`}
+      >
+        {caption}
+      </p>
 
-      <Handle type="source" position={Position.Bottom} className="!h-1 !w-1 !border-0 !bg-transparent" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!h-1 !w-1 !border-0 !bg-transparent"
+      />
     </div>
   );
 }

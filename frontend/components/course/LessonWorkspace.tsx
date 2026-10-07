@@ -29,11 +29,15 @@ import { useState } from "react";
 import { LiveCoachPanel } from "@/components/course/LiveCoachPanel";
 import { PracticePanel } from "@/components/course/PracticePanel";
 import { TechniquePanel } from "@/components/course/TechniquePanel";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 const VIEWS = [
   { key: "live", label: "Live coach", hint: "Be coached while you play" },
-  { key: "practice", label: "Practice", hint: "Record a take and be graded on it" },
+  {
+    key: "practice",
+    label: "Practice",
+    hint: "Record a take and be graded on it",
+  },
   { key: "technique", label: "Camera", hint: "Watch your hands and posture" },
 ] as const;
 
@@ -47,12 +51,21 @@ export interface LessonWorkspaceProps {
   onCompleted: () => void;
 }
 
-export function LessonWorkspace({ courseId, exerciseId, refreshKey, onCompleted }: LessonWorkspaceProps) {
+export function LessonWorkspace({
+  courseId,
+  exerciseId,
+  refreshKey,
+  onCompleted,
+}: LessonWorkspaceProps) {
   const [view, setView] = useState<View>("live");
 
   return (
     <div className="space-y-3">
-      <div role="tablist" aria-label="How to play this lesson" className="flex gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-1">
+      <div
+        role="tablist"
+        aria-label="How to play this lesson"
+        className="flex gap-1 rounded-lg border border-slate-800 bg-slate-900/60 p-1"
+      >
         {VIEWS.map((option) => (
           <button
             key={option.key}
@@ -63,10 +76,10 @@ export function LessonWorkspace({ courseId, exerciseId, refreshKey, onCompleted 
             aria-controls={`lesson-view-${option.key}`}
             title={option.hint}
             onClick={() => setView(option.key)}
-            className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition ${FOCUS_RING} ${
+            className={`flex-1 rounded-md px-2 py-1.5 text-mini font-semibold transition ${FOCUS_RING} ${
               view === option.key
                 ? "bg-sky-500 text-slate-950"
-                : "text-slate-400 hover:text-slate-200"
+                : `${MUTED} hover:text-slate-200`
             }`}
           >
             {option.label}

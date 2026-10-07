@@ -27,7 +27,7 @@ import { LeaderboardPanel } from "@/components/course/LeaderboardPanel";
 import { SharePanel } from "@/components/course/SharePanel";
 import { AskPanel } from "@/components/explore/AskPanel";
 import type { CourseDetail, CoursePath, ProgressAnalytics } from "@/lib/types";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 export interface CourseDrawerProps {
   open: boolean;
@@ -87,11 +87,13 @@ export function CourseDrawer({
         className="relative flex h-full w-full max-w-md flex-col border-l border-slate-700 bg-slate-950 shadow-2xl outline-none"
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
-          <h2 className="font-display text-sm font-semibold text-slate-100">Course</h2>
+          <h2 className="font-display text-sm font-semibold text-slate-100">
+            Course
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className={`rounded-md px-2 py-1 text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+            className={`rounded-md px-2 py-1 text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
           >
             Close
           </button>
@@ -106,9 +108,16 @@ export function CourseDrawer({
             progress={campaignProgress}
             isBuilding={course?.status === "ingesting"}
           />
-          <CurriculumPlanner courseId={courseId} initialGoal={campaignGoal} onComplete={onRefresh} />
+          <CurriculumPlanner
+            courseId={courseId}
+            initialGoal={campaignGoal}
+            onComplete={onRefresh}
+          />
           <AskPanel courseId={courseId} documents={course?.documents ?? []} />
-          <SharePanel courseId={courseId} shareable={course?.status === "ready"} />
+          <SharePanel
+            courseId={courseId}
+            shareable={course?.status === "ready"}
+          />
           <LeaderboardPanel courseId={courseId} refreshKey={refreshKey} />
         </div>
       </div>

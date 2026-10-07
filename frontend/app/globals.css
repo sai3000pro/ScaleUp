@@ -27,6 +27,16 @@
   --font-display: var(--font-sora), system-ui, sans-serif;
   --font-body: var(--font-space-grotesk), system-ui, sans-serif;
 
+  /* The type scale. Every size in the app is one of these steps -- Tailwind's
+     xs..3xl above, four quieter steps below for HUD readouts, chips and
+     captions. A rule says `var(--text-mini)`, a component says `text-mini`;
+     neither picks a size of its own. Enforced by lib/designSystem.test.ts.
+     @spec UI-TYPE-004 */
+  --text-nano: 0.5rem;
+  --text-micro: 0.5625rem;
+  --text-tiny: 0.625rem;
+  --text-mini: 0.6875rem;
+
   /* Inverted, warm-biased neutral ramp. 950 = page, 50 = strongest ink.
      500 and 400 are the two quiet inks, and both are set dark enough to clear
      4.5:1 against a raised card, not only against the page -- see lib/theme.test.ts. */
@@ -156,6 +166,10 @@
 body {
   background-color: #fdfbfb;
   color: #3a3335;
+  /* Wide content -- the HUD nav, a fretboard, a keyboard, an exercise strip --
+     scrolls inside its own container; the page itself never scrolls sideways.
+     @spec UI-SHELL-007 */
+  overflow-x: clip;
 }
 
 /* The plus-mark grid and a soft blossom wash, both painted rather than loaded,
@@ -274,7 +288,7 @@ h3 {
   gap: 0.5rem;
   color: #241f21;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: -0.04em;
 }
@@ -310,7 +324,7 @@ h3 {
   border-radius: 0.4rem;
   background: rgb(200 110 140 / 0.15);
   color: #c96b8c;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 .hud-level-pill small,
@@ -322,7 +336,7 @@ h3 {
 }
 .hud-level-pill small {
   color: #c96b8c;
-  font-size: 0.48rem;
+  font-size: var(--text-nano);
   font-weight: 700;
   letter-spacing: 0.12em;
 }
@@ -330,21 +344,21 @@ h3 {
   margin-top: 0.14rem;
   color: #241f21;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
 }
 .hud-exp-track {
   max-width: 25rem;
 }
 .hud-exp-label {
   color: #938a8d;
-  font-size: 0.55rem;
+  font-size: var(--text-micro);
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .hud-exp-value {
   color: #4b4346;
-  font-size: 0.58rem;
+  font-size: var(--text-micro);
   font-weight: 700;
 }
 .hud-exp-value span {
@@ -376,18 +390,18 @@ h3 {
   padding-left: 0.8rem;
 }
 .hud-streak > span:first-child {
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   filter: drop-shadow(0 0 5px rgb(176 125 12 / 0.35));
 }
 .hud-streak strong {
   color: #a8760a;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.7rem;
+  font-size: var(--text-mini);
 }
 .hud-streak small {
   margin-top: 0.14rem;
   color: #938a8d;
-  font-size: 0.5rem;
+  font-size: var(--text-nano);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -403,7 +417,7 @@ h3 {
   border-radius: 0.55rem;
   padding: 0.45rem 0.55rem;
   color: #938a8d;
-  font-size: 0.65rem;
+  font-size: var(--text-tiny);
   font-weight: 600;
   white-space: nowrap;
   transition:
@@ -412,7 +426,7 @@ h3 {
 }
 .hud-nav-link > span:first-child {
   color: #a89fa2;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
   transition: color 160ms ease;
 }
 .hud-nav-link:hover,
@@ -475,7 +489,7 @@ h3 {
 .character-wordmark {
   color: #241f21;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 800;
   letter-spacing: -0.04em;
 }
@@ -487,7 +501,7 @@ h3 {
   border-radius: 0.5rem;
   padding: 0.45rem 0.65rem;
   color: #7c7075;
-  font-size: 0.7rem;
+  font-size: var(--text-mini);
   font-weight: 600;
   transition:
     color 160ms ease,
@@ -499,7 +513,7 @@ h3 {
 }
 .character-step-label {
   color: #938a8d;
-  font-size: 0.65rem;
+  font-size: var(--text-tiny);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -509,7 +523,7 @@ h3 {
 }
 .character-kicker {
   color: #c2557a;
-  font-size: 0.62rem;
+  font-size: var(--text-tiny);
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -562,7 +576,7 @@ h3 {
   background: rgb(253 251 251 / 0.45);
   padding: 0.45rem 0.7rem;
   color: #c96b8c;
-  font-size: 0.57rem;
+  font-size: var(--text-micro);
   font-weight: 700;
   letter-spacing: 0.18em;
 }
@@ -595,7 +609,7 @@ h3 {
   box-shadow: 0 0 40px rgb(200 110 140 / 0.08);
 }
 .character-hero-chip {
-  font-size: 0.5rem;
+  font-size: var(--text-nano);
   letter-spacing: 0.13em;
 }
 .character-level-badge {
@@ -614,14 +628,14 @@ h3 {
 }
 .character-level-badge span {
   color: #c96b8c;
-  font-size: 0.55rem;
+  font-size: var(--text-micro);
   font-weight: 800;
   letter-spacing: 0.15em;
 }
 .character-level-badge strong {
   color: #241f21;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 1.65rem;
+  font-size: var(--text-2xl);
   line-height: 1;
 }
 .character-exp-fill {
@@ -641,7 +655,7 @@ h3 {
   padding: 0.65rem 0.75rem;
 }
 .character-mini-stat > span:first-child {
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 .character-mini-stat strong,
 .character-mini-stat small {
@@ -649,12 +663,12 @@ h3 {
 }
 .character-mini-stat strong {
   color: #3a3335;
-  font-size: 0.72rem;
+  font-size: var(--text-xs);
 }
 .character-mini-stat small {
   margin-top: 0.1rem;
   color: #938a8d;
-  font-size: 0.58rem;
+  font-size: var(--text-micro);
 }
 
 .character-stat-card {
@@ -679,7 +693,7 @@ h3 {
   align-items: center;
   justify-content: center;
   border-radius: 0.55rem;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .character-stat-icon-sky {
   color: #c96b8c;
@@ -726,13 +740,13 @@ h3 {
   background: rgb(150 110 190 / 0.1);
   padding: 0.5rem 0.65rem;
   color: #6547b8;
-  font-size: 0.65rem;
+  font-size: var(--text-tiny);
   font-weight: 600;
 }
 .character-points-badge span {
   color: #5b3fa8;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   font-weight: 800;
 }
 .character-perk-card {
@@ -763,7 +777,7 @@ h3 {
   border-radius: 0.65rem;
   color: #938a8d;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 0.62rem;
+  font-size: var(--text-tiny);
   font-weight: 800;
 }
 .character-perk-node-unlocked {
@@ -791,7 +805,7 @@ h3 {
   border: 1px solid rgb(204 194 197 / 0.7);
   border-radius: 0.55rem;
   color: #938a8d;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .character-achievement-icon-unlocked {
   border-color: rgb(46 140 100 / 0.45);
@@ -811,7 +825,7 @@ h3 {
   border-radius: 0.8rem;
   background: rgb(200 110 140 / 0.12);
   color: #c96b8c;
-  font-size: 1.2rem;
+  font-size: var(--text-xl);
 }
 .character-editor {
   box-shadow: 0 10px 40px rgb(184 73 111 / 0.08);
@@ -829,7 +843,7 @@ h3 {
   background: rgb(253 251 251 / 0.48);
   padding: 0.38rem 0.55rem;
   color: #7c7075;
-  font-size: 0.65rem;
+  font-size: var(--text-tiny);
   font-weight: 600;
   transition:
     border-color 160ms ease,
@@ -860,7 +874,7 @@ h3 {
   width: 0.8rem;
   justify-content: center;
   color: #6547b8;
-  font-size: 0.78rem;
+  font-size: var(--text-xs);
 }
 .character-avatar-choice {
   display: flex;
@@ -917,7 +931,7 @@ h3 {
   border-radius: 0.5rem;
   background: rgb(150 110 190 / 0.14);
   color: #6547b8;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 .character-cta-button {
   box-shadow: 0 0 24px rgb(200 110 140 / 0.2);
@@ -995,10 +1009,10 @@ h3 {
     padding-left: 0.35rem;
   }
   .hud-exp-label {
-    font-size: 0.5rem;
+    font-size: var(--text-nano);
   }
   .hud-exp-value {
-    font-size: 0.54rem;
+    font-size: var(--text-micro);
   }
   .character-create-grid {
     display: block;
@@ -1100,7 +1114,7 @@ h3 {
 .landing-h3 {
   margin: 0;
   font-family: var(--font-sora), system-ui, sans-serif;
-  font-size: 1.16rem;
+  font-size: var(--text-lg);
   font-weight: 500;
   letter-spacing: -0.02em;
 }
@@ -1111,7 +1125,7 @@ h3 {
 .landing-eyebrow {
   margin: 0;
   color: var(--land-sakura);
-  font-size: 0.68rem;
+  font-size: var(--text-mini);
   font-weight: 700;
   letter-spacing: 0.19em;
   text-transform: uppercase;
@@ -1131,7 +1145,7 @@ h3 {
   margin: 1.15rem 0 0;
   max-width: var(--land-measure);
   color: #453e41;
-  font-size: 1.02rem;
+  font-size: var(--text-base);
   line-height: 1.75;
 }
 .landing-body--invert {
@@ -1144,7 +1158,7 @@ h3 {
 .landing-footnote {
   margin: 1.5rem 0 0;
   color: var(--land-quiet);
-  font-size: 0.83rem;
+  font-size: var(--text-sm);
 }
 
 /* Where a claim came from. Always rendered, never a tooltip: a source a reader
@@ -1153,7 +1167,7 @@ h3 {
   display: block;
   margin-top: 0.5rem;
   color: var(--land-quiet);
-  font-size: 0.71rem;
+  font-size: var(--text-mini);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -1183,7 +1197,7 @@ h3 {
   background: var(--land-ink);
   padding: 0.8rem 1.5rem;
   color: #fdfbfb;
-  font-size: 0.94rem;
+  font-size: var(--text-base);
   font-weight: 600;
   letter-spacing: -0.01em;
   transition:
@@ -1249,7 +1263,7 @@ h3 {
 .landing-stage-caption {
   margin: 1.1rem 0 0;
   color: var(--land-quiet);
-  font-size: 0.74rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1284,7 +1298,7 @@ h3 {
 .landing-card p {
   margin: 0.8rem 0 0;
   color: #453e41;
-  font-size: 0.97rem;
+  font-size: var(--text-base);
   line-height: 1.72;
 }
 
@@ -1322,14 +1336,14 @@ h3 {
 .landing-evidence__premise {
   margin: 0.9rem 0 0;
   color: var(--land-on-dark-quiet);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-style: italic;
   line-height: 1.6;
 }
 .landing-evidence__finding {
   margin: 1.05rem 0 0;
   color: var(--land-on-dark);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   line-height: 1.68;
 }
 .landing-evidence__missing {
@@ -1337,14 +1351,14 @@ h3 {
   border-left: 2px solid #e0879f;
   padding-left: 0.9rem;
   color: var(--land-on-dark-quiet);
-  font-size: 0.92rem;
+  font-size: var(--text-sm);
   line-height: 1.65;
 }
 .landing-evidence__missing-label {
   display: block;
   margin-bottom: 0.32rem;
   color: #e7a3bd;
-  font-size: 0.63rem;
+  font-size: var(--text-tiny);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -1395,7 +1409,7 @@ h3 {
   display: block;
   margin-top: 0.55rem;
   color: #453e41;
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
   line-height: 1.55;
 }
 
@@ -1412,7 +1426,7 @@ h3 {
 .landing-mascot-note p {
   margin: 0;
   color: var(--land-quiet);
-  font-size: 0.93rem;
+  font-size: var(--text-sm);
   line-height: 1.65;
 }
 
@@ -1439,7 +1453,7 @@ h3 {
 .landing-footer p {
   margin: 0;
   color: var(--land-quiet);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
 }
 
 /* Reveals ----------------------------------------------------------------- */

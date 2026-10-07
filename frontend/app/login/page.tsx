@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import { BUTTON_PRIMARY, INPUT, NAV_LINK } from "@/lib/ui";
+import { BUTTON_PRIMARY, INPUT, MUTED, NAV_LINK } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 // @spec ACCESS-OAUTH-002
@@ -66,7 +66,9 @@ export default function LoginPage() {
       } else {
         await register(email, password, displayName);
       }
-      router.replace(redirectTo ?? (mode === "register" ? "/character" : "/courses"));
+      router.replace(
+        redirectTo ?? (mode === "register" ? "/character" : "/courses"),
+      );
     } catch {
       // The store already holds the message; keep the form mounted.
     } finally {
@@ -96,12 +98,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="flex min-h-screen items-center justify-center px-4 outline-none"
+    >
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-semibold tracking-tight">
           Scale<span className="text-sky-400">Up</span>
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className={`mt-1 text-sm ${MUTED}`}>
           Pick a skill, play it, and get coached on what you actually played.
         </p>
 
@@ -120,7 +126,7 @@ export default function LoginPage() {
               Continue with Google
             </button>
 
-            <div className="my-4 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-600">
+            <div className="my-4 flex items-center gap-3 text-mini uppercase tracking-[0.18em] text-slate-600">
               <span className="h-px flex-1 bg-slate-800" />
               <span>or</span>
               <span className="h-px flex-1 bg-slate-800" />
@@ -167,7 +173,9 @@ export default function LoginPage() {
               id="password"
               className={INPUT}
               type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
               placeholder="Password (8+ characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -182,12 +190,22 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button type="submit" disabled={busy} className={`w-full ${BUTTON_PRIMARY}`}>
-            {busy ? "Working…" : mode === "login" ? "Sign in" : "Create account"}
+          <button
+            type="submit"
+            disabled={busy}
+            className={`w-full ${BUTTON_PRIMARY}`}
+          >
+            {busy
+              ? "Working…"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
           </button>
         </form>
 
-        <div className="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <div
+          className={`mt-4 flex items-center justify-between text-xs ${MUTED}`}
+        >
           <button type="button" className={NAV_LINK} onClick={switchMode}>
             {mode === "login" ? "Need an account?" : "Already have one?"}
           </button>
@@ -197,7 +215,12 @@ export default function LoginPage() {
                 Forgot password?
               </a>
             )}
-            <button type="button" className={NAV_LINK} onClick={useDevAccount} disabled={busy}>
+            <button
+              type="button"
+              className={NAV_LINK}
+              onClick={useDevAccount}
+              disabled={busy}
+            >
               Use the seeded dev account
             </button>
           </div>

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { sourceLabel } from "@/lib/source";
 import type { DocumentSummary, SearchHit } from "@/lib/types";
-import { FOCUS_RING, INPUT } from "@/lib/ui";
+import { FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 /**
@@ -69,7 +69,9 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
         .catch((caught: unknown) => {
           // An abort is this component superseding itself, not a failure.
           if (controller.signal.aborted) return;
-          setError(caught instanceof ApiError ? caught.message : "Search failed.");
+          setError(
+            caught instanceof ApiError ? caught.message : "Search failed.",
+          );
           setHits([]);
           onMatches(new Set());
         });
@@ -114,13 +116,15 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
           {error && <p className="px-3 py-2 text-xs text-rose-400">{error}</p>}
 
           {!error && hits.length === 0 && (
-            <p className="px-3 py-2 text-xs text-slate-400">Nothing in this course matches “{query.trim()}”.</p>
+            <p className={`px-3 py-2 text-xs ${MUTED}`}>
+              Nothing in this course matches “{query.trim()}”.
+            </p>
           )}
 
           {/* Reported rather than hidden: title-only results and "the book does
               not mention it" look identical to a reader otherwise. */}
           {!error && !semantic && (
-            <p className="border-b border-slate-800 px-3 py-1.5 text-[11px] text-node-decaying">
+            <p className="border-b border-slate-800 px-3 py-1.5 text-mini text-node-decaying">
               Matching names only — the passage index is unavailable.
             </p>
           )}
@@ -134,16 +138,22 @@ export function SearchBox({ courseId, documents, onMatches }: Props) {
                   className={`block w-full px-3 py-2 text-left hover:bg-slate-800/70 ${FOCUS_RING}`}
                 >
                   <span className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-xs font-semibold text-slate-100">{hit.title}</span>
-                    <span className="shrink-0 text-[10px] text-slate-400">
-                      {hit.assessable ? MATCH_LABEL[hit.match] ?? "match" : "section"}
+                    <span className="truncate text-xs font-semibold text-slate-100">
+                      {hit.title}
+                    </span>
+                    <span className={`shrink-0 text-tiny ${MUTED}`}>
+                      {hit.assessable
+                        ? (MATCH_LABEL[hit.match] ?? "match")
+                        : "section"}
                     </span>
                   </span>
-                  <span className="mt-0.5 line-clamp-2 block text-[11px] leading-snug text-slate-400">
+                  <span
+                    className={`mt-0.5 line-clamp-2 block text-mini leading-snug ${MUTED}`}
+                  >
                     {hit.snippet}
                   </span>
                   {hit.source && (
-                    <span className="mt-0.5 block text-[10px] text-slate-500">
+                    <span className="mt-0.5 block text-tiny text-slate-500">
                       {sourceLabel(hit.source, documents)}
                     </span>
                   )}

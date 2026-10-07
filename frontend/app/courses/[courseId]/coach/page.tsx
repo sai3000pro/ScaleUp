@@ -2,54 +2,158 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { InstrumentVisualizer } from "@/components/instrument/InstrumentVisualizer";
 import { api } from "@/lib/api";
-import { getAudioContext, playMetronomeClick, playMidiTone } from "@/lib/audioSynth";
-import { CoachSocket, type CoachCue, type CoachExercise, type CoachUtteranceState } from "@/lib/coachSocket";
+import {
+  getAudioContext,
+  playMetronomeClick,
+  playMidiTone,
+} from "@/lib/audioSynth";
+import {
+  CoachSocket,
+  type CoachCue,
+  type CoachExercise,
+  type CoachUtteranceState,
+} from "@/lib/coachSocket";
 import { MicRecorder } from "@/lib/pitchDetection";
-import type { CoachLiveTipResponse, Course, Exercise, ExerciseNote, PerformanceAttempt, PerformedNote } from "@/lib/types";
-import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
+import type {
+  CoachLiveTipResponse,
+  Course,
+  Exercise,
+  ExerciseNote,
+  PerformanceAttempt,
+  PerformedNote,
+} from "@/lib/types";
+import { BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { usePostureStore } from "@/stores/usePostureStore";
 
-type StudioStage = "preview" | "countdown" | "connecting" | "listening" | "scoring" | "result";
+type StudioStage =
+  "preview" | "countdown" | "connecting" | "listening" | "scoring" | "result";
 
 const CUE_LABEL: Record<string, { label: string; tone: string }> = {
-  rushing: { label: "Ahead of the beat (Rushing)", tone: "text-amber-300 border-amber-500/40 bg-amber-500/10" },
-  dragging: { label: "Behind the beat (Dragging)", tone: "text-amber-300 border-amber-500/40 bg-amber-500/10" },
-  flat_pitch: { label: "Under pitch (Flat)", tone: "text-rose-300 border-rose-500/40 bg-rose-500/10" },
-  sharp_pitch: { label: "Over pitch (Sharp)", tone: "text-rose-300 border-rose-500/40 bg-rose-500/10" },
-  missed_run: { label: "Notes missed", tone: "text-rose-300 border-rose-500/40 bg-rose-500/10" },
-  extra_notes: { label: "Extra notes detected", tone: "text-amber-300 border-amber-500/40 bg-amber-500/10" },
-  dynamics_flat: { label: "Monotone dynamic", tone: "text-amber-300 border-amber-500/40 bg-amber-500/10" },
-  lost_place: { label: "Lost position", tone: "text-rose-300 border-rose-500/40 bg-rose-500/10" },
-  good_streak: { label: "Clean playing! Keep the groove", tone: "text-emerald-300 border-emerald-500/40 bg-emerald-500/10" },
-  take_complete: { label: "Take complete", tone: "text-rose-300 border-rose-500/40 bg-rose-500/10" },
+  rushing: {
+    label: "Ahead of the beat (Rushing)",
+    tone: "text-amber-300 border-amber-500/40 bg-amber-500/10",
+  },
+  dragging: {
+    label: "Behind the beat (Dragging)",
+    tone: "text-amber-300 border-amber-500/40 bg-amber-500/10",
+  },
+  flat_pitch: {
+    label: "Under pitch (Flat)",
+    tone: "text-rose-300 border-rose-500/40 bg-rose-500/10",
+  },
+  sharp_pitch: {
+    label: "Over pitch (Sharp)",
+    tone: "text-rose-300 border-rose-500/40 bg-rose-500/10",
+  },
+  missed_run: {
+    label: "Notes missed",
+    tone: "text-rose-300 border-rose-500/40 bg-rose-500/10",
+  },
+  extra_notes: {
+    label: "Extra notes detected",
+    tone: "text-amber-300 border-amber-500/40 bg-amber-500/10",
+  },
+  dynamics_flat: {
+    label: "Monotone dynamic",
+    tone: "text-amber-300 border-amber-500/40 bg-amber-500/10",
+  },
+  lost_place: {
+    label: "Lost position",
+    tone: "text-rose-300 border-rose-500/40 bg-rose-500/10",
+  },
+  good_streak: {
+    label: "Clean playing! Keep the groove",
+    tone: "text-emerald-300 border-emerald-500/40 bg-emerald-500/10",
+  },
+  take_complete: {
+    label: "Take complete",
+    tone: "text-rose-300 border-rose-500/40 bg-rose-500/10",
+  },
 };
 
-const VOICE_METADATA: Record<string, { name: string; provider: string; description: string }> = {
-  "21m00Tcm4TlvDq8ikWAM": { name: "Rachel", provider: "ElevenLabs", description: "Studio Natural / Expressive" },
-  "pNInz6obpgDQGcFmaJgB": { name: "Adam", provider: "ElevenLabs", description: "Deep / Narrative" },
-  "ErXwobaYiN019PkySvjV": { name: "Antoni", provider: "ElevenLabs", description: "Warm / Conversational" },
-  "EXAVITQu4vr4xnSDxMaL": { name: "Bella", provider: "ElevenLabs", description: "Bright / Energetic" },
-  "Puck": { name: "Puck", provider: "Gemini Live", description: "Crisp / Energetic" },
-  "Charon": { name: "Charon", provider: "Gemini Live", description: "Warm / Deep" },
-  "Kore": { name: "Kore", provider: "Gemini Live", description: "Calm / Natural" },
-  "Fenrir": { name: "Fenrir", provider: "Gemini Live", description: "Authoritative / Strong" },
-  "Aoede": { name: "Aoede", provider: "Gemini Live", description: "Melodic / Bright" },
+const VOICE_METADATA: Record<
+  string,
+  { name: string; provider: string; description: string }
+> = {
+  "21m00Tcm4TlvDq8ikWAM": {
+    name: "Rachel",
+    provider: "ElevenLabs",
+    description: "Studio Natural / Expressive",
+  },
+  pNInz6obpgDQGcFmaJgB: {
+    name: "Adam",
+    provider: "ElevenLabs",
+    description: "Deep / Narrative",
+  },
+  ErXwobaYiN019PkySvjV: {
+    name: "Antoni",
+    provider: "ElevenLabs",
+    description: "Warm / Conversational",
+  },
+  EXAVITQu4vr4xnSDxMaL: {
+    name: "Bella",
+    provider: "ElevenLabs",
+    description: "Bright / Energetic",
+  },
+  Puck: {
+    name: "Puck",
+    provider: "Gemini Live",
+    description: "Crisp / Energetic",
+  },
+  Charon: {
+    name: "Charon",
+    provider: "Gemini Live",
+    description: "Warm / Deep",
+  },
+  Kore: {
+    name: "Kore",
+    provider: "Gemini Live",
+    description: "Calm / Natural",
+  },
+  Fenrir: {
+    name: "Fenrir",
+    provider: "Gemini Live",
+    description: "Authoritative / Strong",
+  },
+  Aoede: {
+    name: "Aoede",
+    provider: "Gemini Live",
+    description: "Melodic / Bright",
+  },
 };
 
-function getVoiceInfo(voiceKey: string): { name: string; provider: string; description: string } {
-  return VOICE_METADATA[voiceKey] ?? { name: voiceKey, provider: "AI Studio", description: "Custom Voice" };
+function getVoiceInfo(voiceKey: string): {
+  name: string;
+  provider: string;
+  description: string;
+} {
+  return (
+    VOICE_METADATA[voiceKey] ?? {
+      name: voiceKey,
+      provider: "AI Studio",
+      description: "Custom Voice",
+    }
+  );
 }
 
 export default function CoachingStudioPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-slate-950 p-8 text-center text-slate-400">
+        <main className={`min-h-screen bg-slate-950 p-8 text-center ${MUTED}`}>
           Loading coaching studio…
         </main>
       }
@@ -67,7 +171,9 @@ function CoachingStudioView() {
 
   const [course, setCourse] = useState<Course | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(initialExerciseId);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(
+    initialExerciseId,
+  );
   const [stage, setStage] = useState<StudioStage>("preview");
   const [countdownValue, setCountdownValue] = useState<number>(3);
   const [previewNoteIndex, setPreviewNoteIndex] = useState<number | null>(null);
@@ -75,23 +181,35 @@ function CoachingStudioView() {
   const [utterance, setUtterance] = useState<CoachUtteranceState | null>(null);
   const [transcript, setTranscript] = useState<string[]>([]);
   const [attempt, setAttempt] = useState<PerformanceAttempt | null>(null);
-  const [coachExercise, setCoachExercise] = useState<CoachExercise | null>(null);
+  const [coachExercise, setCoachExercise] = useState<CoachExercise | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [currentBeat, setCurrentBeat] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const refreshUser = useAuthStore((state) => state.refreshUser);
   const [customBpm, setCustomBpm] = useState<number | null>(null);
-  const [geminiVoice, setGeminiVoice] = useState<string>("21m00Tcm4TlvDq8ikWAM");
+  const [geminiVoice, setGeminiVoice] = useState<string>(
+    "21m00Tcm4TlvDq8ikWAM",
+  );
   const [aiTip, setAiTip] = useState<CoachLiveTipResponse | null>(null);
   const [isFetchingTip, setIsFetchingTip] = useState(false);
   const [showLogs, setShowLogs] = useState<boolean>(false);
   const [isSpeakingDebrief, setIsSpeakingDebrief] = useState<boolean>(false);
   const debriefAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [liveStreamLogs, setLiveStreamLogs] = useState<Array<{ timestamp: string; direction: "in" | "out"; message: string }>>([
+  const [liveStreamLogs, setLiveStreamLogs] = useState<
+    Array<{ timestamp: string; direction: "in" | "out"; message: string }>
+  >([
     {
-      timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
       direction: "in",
-      message: "Gemini Live Multimodal coach ready. Choose voice & tempo to begin.",
+      message:
+        "Gemini Live Multimodal coach ready. Choose voice & tempo to begin.",
     },
   ]);
 
@@ -108,61 +226,83 @@ function CoachingStudioView() {
     setIsSpeakingDebrief(false);
   }, []);
 
-  const speakDebrief = useCallback(async (attemptData: PerformanceAttempt) => {
-    if (typeof window === "undefined") return;
-    stopDebriefVoice();
+  const speakDebrief = useCallback(
+    async (attemptData: PerformanceAttempt) => {
+      if (typeof window === "undefined") return;
+      stopDebriefVoice();
 
-    // 1. Fetch high-fidelity synthesized audio in the exact matching voice (ElevenLabs or Gemini)
-    try {
-      const artifact = await api.synthesizeAttemptSpeech(attemptData.id, geminiVoice);
-      if (artifact && artifact.audio_base64) {
-        const binary = atob(artifact.audio_base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
+      // 1. Fetch high-fidelity synthesized audio in the exact matching voice (ElevenLabs or Gemini)
+      try {
+        const artifact = await api.synthesizeAttemptSpeech(
+          attemptData.id,
+          geminiVoice,
+        );
+        if (artifact && artifact.audio_base64) {
+          const binary = atob(artifact.audio_base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          const mimeType =
+            artifact.format &&
+            (artifact.format.includes("mp3") ||
+              artifact.format.includes("mpeg"))
+              ? "audio/mpeg"
+              : "audio/wav";
+          const blob = new Blob([bytes], { type: mimeType });
+          const audio = new Audio(URL.createObjectURL(blob));
+          debriefAudioRef.current = audio;
+          setIsSpeakingDebrief(true);
+          audio.onended = () => setIsSpeakingDebrief(false);
+          audio.onpause = () => setIsSpeakingDebrief(false);
+          audio.onerror = () => setIsSpeakingDebrief(false);
+          await audio.play();
+          return;
         }
-        const mimeType = (artifact.format && (artifact.format.includes("mp3") || artifact.format.includes("mpeg"))) ? "audio/mpeg" : "audio/wav";
-        const blob = new Blob([bytes], { type: mimeType });
-        const audio = new Audio(URL.createObjectURL(blob));
-        debriefAudioRef.current = audio;
-        setIsSpeakingDebrief(true);
-        audio.onended = () => setIsSpeakingDebrief(false);
-        audio.onpause = () => setIsSpeakingDebrief(false);
-        audio.onerror = () => setIsSpeakingDebrief(false);
-        await audio.play();
-        return;
+      } catch {
+        // Fall through to browser speech synthesis
       }
-    } catch {
-      // Fall through to browser speech synthesis
-    }
 
-    // 2. Offline fallback: Web Speech Synthesis
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const scorePercent = Math.round(attemptData.overall_score * 100);
-      const summary = attemptData.feedback?.summary ?? "Take completed.";
-      const strengths = attemptData.feedback?.strengths?.length
-        ? `Key strengths: ${attemptData.feedback.strengths.join(". ")}.`
-        : "";
-      const corrections = attemptData.feedback?.corrections?.length
-        ? `Areas for improvement: ${attemptData.feedback.corrections.join(". ")}.`
-        : "";
-      const fullText = `Take finalized! Overall score is ${scorePercent} percent. ${summary} ${strengths} ${corrections}`;
+      // 2. Offline fallback: Web Speech Synthesis
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const scorePercent = Math.round(attemptData.overall_score * 100);
+        const summary = attemptData.feedback?.summary ?? "Take completed.";
+        const strengths = attemptData.feedback?.strengths?.length
+          ? `Key strengths: ${attemptData.feedback.strengths.join(". ")}.`
+          : "";
+        const corrections = attemptData.feedback?.corrections?.length
+          ? `Areas for improvement: ${attemptData.feedback.corrections.join(". ")}.`
+          : "";
+        const fullText = `Take finalized! Overall score is ${scorePercent} percent. ${summary} ${strengths} ${corrections}`;
 
-      const utteranceObj = new SpeechSynthesisUtterance(fullText);
-      utteranceObj.rate = 1.05;
-      utteranceObj.pitch = 1.0;
-      utteranceObj.onstart = () => setIsSpeakingDebrief(true);
-      utteranceObj.onend = () => setIsSpeakingDebrief(false);
-      utteranceObj.onerror = () => setIsSpeakingDebrief(false);
-      window.speechSynthesis.speak(utteranceObj);
-    }
-  }, [geminiVoice, stopDebriefVoice]);
+        const utteranceObj = new SpeechSynthesisUtterance(fullText);
+        utteranceObj.rate = 1.05;
+        utteranceObj.pitch = 1.0;
+        utteranceObj.onstart = () => setIsSpeakingDebrief(true);
+        utteranceObj.onend = () => setIsSpeakingDebrief(false);
+        utteranceObj.onerror = () => setIsSpeakingDebrief(false);
+        window.speechSynthesis.speak(utteranceObj);
+      }
+    },
+    [geminiVoice, stopDebriefVoice],
+  );
 
-  const addStreamLog = useCallback((direction: "in" | "out", message: string) => {
-    const timestamp = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    setLiveStreamLogs((prev) => [...prev.slice(-60), { timestamp, direction, message }]);
-  }, []);
+  const addStreamLog = useCallback(
+    (direction: "in" | "out", message: string) => {
+      const timestamp = new Date().toLocaleTimeString("en-US", {
+        hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+      setLiveStreamLogs((prev) => [
+        ...prev.slice(-60),
+        { timestamp, direction, message },
+      ]);
+    },
+    [],
+  );
 
   const socketRef = useRef<CoachSocket | null>(null);
   const recorderRef = useRef<MicRecorder | null>(null);
@@ -188,7 +328,12 @@ function CoachingStudioView() {
           });
         }
       } catch (caught: unknown) {
-        if (!cancelled) setError(caught instanceof Error ? caught.message : "Failed to load studio data.");
+        if (!cancelled)
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Failed to load studio data.",
+          );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -209,14 +354,20 @@ function CoachingStudioView() {
     };
   }, []);
 
-  const selectedExercise = exercises.find((item) => item.id === selectedExerciseId) ?? null;
-  const tempoBpm = customBpm ?? selectedExercise?.tempo_bpm ?? coachExercise?.tempo_bpm ?? 60;
+  const selectedExercise =
+    exercises.find((item) => item.id === selectedExerciseId) ?? null;
+  const tempoBpm =
+    customBpm ?? selectedExercise?.tempo_bpm ?? coachExercise?.tempo_bpm ?? 60;
 
   // 4-measure repeated drill sequence for full practice cycle
   const activeExerciseNotes = useMemo(() => {
-    if (!selectedExercise?.notes || selectedExercise.notes.length === 0) return [];
+    if (!selectedExercise?.notes || selectedExercise.notes.length === 0)
+      return [];
     const baseNotes = selectedExercise.notes;
-    const maxBeat = baseNotes.reduce((max, n) => Math.max(max, n.onset_beats), 0);
+    const maxBeat = baseNotes.reduce(
+      (max, n) => Math.max(max, n.onset_beats),
+      0,
+    );
     const numRepeats = maxBeat < 12.0 ? 4 : 1;
     const measureBeats = Math.max(4, Math.ceil((maxBeat + 0.1) / 4) * 4);
     const out = [];
@@ -236,8 +387,12 @@ function CoachingStudioView() {
   const stopTakeRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // Active note and cursor currently focused by the live coach, highway, and metronome
-  const activeCursor = stage === "listening" ? currentDrillBeat : (cue?.cursor ?? 0);
-  const currentActiveNote = activeExerciseNotes[activeCursor] ?? selectedExercise?.notes?.[activeCursor] ?? null;
+  const activeCursor =
+    stage === "listening" ? currentDrillBeat : (cue?.cursor ?? 0);
+  const currentActiveNote =
+    activeExerciseNotes[activeCursor] ??
+    selectedExercise?.notes?.[activeCursor] ??
+    null;
 
   useEffect(() => {
     if (stage !== "listening") {
@@ -270,19 +425,22 @@ function CoachingStudioView() {
   const fetchLiveAiTip = useCallback(async () => {
     if (!selectedExercise) return;
     setIsFetchingTip(true);
-    addStreamLog("out", `POST /api/courses/${courseId}/practice/coach/tip (tempo=${tempoBpm} BPM, note=${currentActiveNote?.note_name ?? "phrase"})`);
+    addStreamLog(
+      "out",
+      `POST /api/courses/${courseId}/practice/coach/tip (tempo=${tempoBpm} BPM, note=${currentActiveNote?.note_name ?? "phrase"})`,
+    );
     try {
       const tipRes = await api.getLiveCoachTip(courseId, {
         exercise_title: selectedExercise.title,
         instrument: course?.title?.toLowerCase().includes("guitar")
           ? "guitar"
           : course?.title?.toLowerCase().includes("violin")
-          ? "violin"
-          : course?.title?.toLowerCase().includes("trumpet")
-          ? "trumpet"
-          : course?.title?.toLowerCase().includes("drum")
-          ? "drums"
-          : "piano",
+            ? "violin"
+            : course?.title?.toLowerCase().includes("trumpet")
+              ? "trumpet"
+              : course?.title?.toLowerCase().includes("drum")
+                ? "drums"
+                : "piano",
         tempo_bpm: tempoBpm,
         current_note: currentActiveNote?.note_name ?? null,
         signed_timing_bias_seconds: cue?.signed_timing_bias_seconds ?? null,
@@ -290,13 +448,24 @@ function CoachingStudioView() {
         streak_count: cue?.matched_count ?? 0,
       });
       setAiTip(tipRes);
-      addStreamLog("in", `AI Coach Tip: "${tipRes.tip}" [${tipRes.focus_area}]`);
+      addStreamLog(
+        "in",
+        `AI Coach Tip: "${tipRes.tip}" [${tipRes.focus_area}]`,
+      );
     } catch {
       // Graceful fallback
     } finally {
       setIsFetchingTip(false);
     }
-  }, [courseId, selectedExercise, course, tempoBpm, currentActiveNote, cue, addStreamLog]);
+  }, [
+    courseId,
+    selectedExercise,
+    course,
+    tempoBpm,
+    currentActiveNote,
+    cue,
+    addStreamLog,
+  ]);
 
   // @spec UI-SHELL-008
   const startTake = useCallback(async () => {
@@ -311,7 +480,10 @@ function CoachingStudioView() {
     usePostureStore.getState().begin(null);
 
     const selectedVoiceInfo = getVoiceInfo(geminiVoice);
-    addStreamLog("out", `take.start -> Starting drill "${selectedExercise.title}" at ${tempoBpm} BPM (voice: ${selectedVoiceInfo.name} · ${selectedVoiceInfo.provider})`);
+    addStreamLog(
+      "out",
+      `take.start -> Starting drill "${selectedExercise.title}" at ${tempoBpm} BPM (voice: ${selectedVoiceInfo.name} · ${selectedVoiceInfo.provider})`,
+    );
 
     try {
       const session = await api.createPracticeSession(selectedExerciseId);
@@ -319,13 +491,19 @@ function CoachingStudioView() {
         session.id,
         {
           onReady: (exercise) => {
-            addStreamLog("in", `session.ready <- Coach connected: ${exercise?.title ?? "Exercise"} (${exercise?.tempo_bpm ?? tempoBpm} BPM)`);
+            addStreamLog(
+              "in",
+              `session.ready <- Coach connected: ${exercise?.title ?? "Exercise"} (${exercise?.tempo_bpm ?? tempoBpm} BPM)`,
+            );
             setCoachExercise(exercise);
             setStage("listening");
           },
           onCue: (nextCue) => {
             if (nextCue.cue) {
-              addStreamLog("in", `cue <- "${nextCue.cue}" (matched: ${nextCue.matched_count}, missed: ${nextCue.missed_count})`);
+              addStreamLog(
+                "in",
+                `cue <- "${nextCue.cue}" (matched: ${nextCue.matched_count}, missed: ${nextCue.missed_count})`,
+              );
             }
             setCue(nextCue);
           },
@@ -348,7 +526,10 @@ function CoachingStudioView() {
             }
           },
           onResult: (result) => {
-            addStreamLog("in", `take.result <- Finalized with overall score: ${((result.metrics?.overall_score ?? 0) * 100).toFixed(0)}%`);
+            addStreamLog(
+              "in",
+              `take.result <- Finalized with overall score: ${((result.metrics?.overall_score ?? 0) * 100).toFixed(0)}%`,
+            );
             setAttempt(result);
             void refreshUser();
             setStage("result");
@@ -367,21 +548,40 @@ function CoachingStudioView() {
       const recorder = new MicRecorder(() => {}, {
         onNote: (note) => {
           notesRef.current.push(note);
-          addStreamLog("out", `notes -> ${note.pitch_midi !== null ? `Pitch MIDI ${note.pitch_midi}` : note.drum} @ ${note.onset_seconds.toFixed(2)}s`);
+          addStreamLog(
+            "out",
+            `notes -> ${note.pitch_midi !== null ? `Pitch MIDI ${note.pitch_midi}` : note.drum} @ ${note.onset_seconds.toFixed(2)}s`,
+          );
           socket.pushNote(note);
         },
-        onLevel: (rmsDb, silenceSeconds) => socket.pushLevel(rmsDb, silenceSeconds),
+        onLevel: (rmsDb, silenceSeconds) =>
+          socket.pushLevel(rmsDb, silenceSeconds),
       });
       recorderRef.current = recorder;
       await recorder.start();
     } catch (caught: unknown) {
-      setError(caught instanceof Error ? caught.message : "Could not start the live coaching session.");
-      addStreamLog("in", `Connection failure: ${caught instanceof Error ? caught.message : "Error"}`);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not start the live coaching session.",
+      );
+      addStreamLog(
+        "in",
+        `Connection failure: ${caught instanceof Error ? caught.message : "Error"}`,
+      );
       setStage("preview");
       socketRef.current?.close();
       socketRef.current = null;
     }
-  }, [selectedExerciseId, selectedExercise, tempoBpm, geminiVoice, addStreamLog, stopDebriefVoice, refreshUser]);
+  }, [
+    selectedExerciseId,
+    selectedExercise,
+    tempoBpm,
+    geminiVoice,
+    addStreamLog,
+    stopDebriefVoice,
+    refreshUser,
+  ]);
 
   const cancelCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -438,7 +638,9 @@ function CoachingStudioView() {
       socket.finalize(notes, { posture });
     } else if (socket !== null) {
       try {
-        const session = await api.createPracticeSession(selectedExerciseId ?? "");
+        const session = await api.createPracticeSession(
+          selectedExerciseId ?? "",
+        );
         const result = await api.submitPerformanceAttempt(
           session.id,
           notes,
@@ -450,7 +652,11 @@ function CoachingStudioView() {
         void refreshUser();
         setStage("result");
       } catch (caught: unknown) {
-        setError(caught instanceof Error ? caught.message : "The take could not be scored.");
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "The take could not be scored.",
+        );
         setStage("preview");
       }
     }
@@ -476,7 +682,9 @@ function CoachingStudioView() {
                 ← Back to Course
               </Link>
               <span className="text-slate-600">/</span>
-              <span className="text-xs uppercase tracking-wider text-slate-400 font-medium">
+              <span
+                className={`text-xs uppercase tracking-wider ${MUTED} font-medium`}
+              >
                 Live Coaching Studio
               </span>
             </div>
@@ -513,7 +721,7 @@ function CoachingStudioView() {
         )}
 
         {loading ? (
-          <div className={`${CARD} p-12 text-center text-slate-400`}>
+          <div className={`${CARD} p-12 text-center ${MUTED}`}>
             <p className="animate-pulse">Loading coaching studio…</p>
           </div>
         ) : (
@@ -526,7 +734,9 @@ function CoachingStudioView() {
                   {/* Exercise Header & Selector */}
                   <div className={CARD}>
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                      <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <label
+                        className={`block text-xs font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Choose Exercise / Drill
                       </label>
                       <select
@@ -539,7 +749,8 @@ function CoachingStudioView() {
                       >
                         {exercises.map((ex) => (
                           <option key={ex.id} value={ex.id}>
-                            {ex.title} ({ex.tempo_bpm} BPM · Level {ex.difficulty})
+                            {ex.title} ({ex.tempo_bpm} BPM · Level{" "}
+                            {ex.difficulty})
                           </option>
                         ))}
                       </select>
@@ -548,8 +759,10 @@ function CoachingStudioView() {
                     <div className="rounded-xl bg-slate-950/80 border border-slate-800 p-5 space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
                         <div>
-                          <h2 className="text-xl font-bold text-slate-100">{selectedExercise.title}</h2>
-                          <p className="text-xs text-slate-400 mt-0.5">
+                          <h2 className="text-xl font-bold text-slate-100">
+                            {selectedExercise.title}
+                          </h2>
+                          <p className={`text-xs ${MUTED} mt-0.5`}>
                             Target Score: {selectedExercise.score_title}
                           </p>
                         </div>
@@ -564,7 +777,9 @@ function CoachingStudioView() {
                       </div>
 
                       <div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                        <h3
+                          className={`text-xs font-semibold uppercase tracking-wider ${MUTED} mb-1`}
+                        >
                           Playing Instructions
                         </h3>
                         <p className="text-sm leading-relaxed text-slate-200 bg-slate-900/60 p-3 rounded-lg border border-slate-800/60">
@@ -581,20 +796,24 @@ function CoachingStudioView() {
                       <div>
                         <h3 className="font-display text-base font-bold text-slate-100 flex items-center gap-2">
                           <span>⏱️ Drill Tempo & Metronome</span>
-                          {customBpm !== null && customBpm !== selectedExercise.tempo_bpm && (
-                            <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
-                              Custom Tempo
-                            </span>
-                          )}
+                          {customBpm !== null &&
+                            customBpm !== selectedExercise.tempo_bpm && (
+                              <span className="rounded-full bg-rose-500/20 px-2 py-0.5 text-tiny font-bold text-rose-300 border border-rose-500/30">
+                                Custom Tempo
+                              </span>
+                            )}
                         </h3>
-                        <p className="text-xs text-slate-400">
-                          Adjust the tempo slider to slow down for practice or speed up as you master the exercise.
+                        <p className={`text-xs ${MUTED}`}>
+                          Adjust the tempo slider to slow down for practice or
+                          speed up as you master the exercise.
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setCustomBpm(Math.max(30, tempoBpm - 5))}
+                          onClick={() =>
+                            setCustomBpm(Math.max(30, tempoBpm - 5))
+                          }
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-rose-500/50 hover:bg-slate-800 transition active:scale-95"
                           title="Decrease tempo by 5 BPM"
                         >
@@ -602,11 +821,15 @@ function CoachingStudioView() {
                         </button>
                         <div className="flex items-baseline gap-1 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-1 text-rose-200 font-mono font-black text-lg shadow-inner">
                           <span>{tempoBpm}</span>
-                          <span className="text-[10px] font-sans font-bold text-rose-400">BPM</span>
+                          <span className="text-tiny font-sans font-bold text-rose-400">
+                            BPM
+                          </span>
                         </div>
                         <button
                           type="button"
-                          onClick={() => setCustomBpm(Math.min(180, tempoBpm + 5))}
+                          onClick={() =>
+                            setCustomBpm(Math.min(180, tempoBpm + 5))
+                          }
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-sm font-bold text-slate-200 hover:border-rose-500/50 hover:bg-slate-800 transition active:scale-95"
                           title="Increase tempo by 5 BPM"
                         >
@@ -618,9 +841,13 @@ function CoachingStudioView() {
                     <div className="space-y-4 rounded-xl bg-slate-950/80 border border-slate-800 p-4">
                       {/* Range Slider */}
                       <div className="space-y-1.5">
-                        <div className="flex justify-between text-[11px] font-mono text-slate-400">
+                        <div
+                          className={`flex justify-between text-mini font-mono ${MUTED}`}
+                        >
                           <span>30 BPM (Slow Practice)</span>
-                          <span className="font-bold text-slate-300">{(60 / tempoBpm).toFixed(2)}s per beat</span>
+                          <span className="font-bold text-slate-300">
+                            {(60 / tempoBpm).toFixed(2)}s per beat
+                          </span>
                           <span>180 BPM (Presto)</span>
                         </div>
                         <input
@@ -636,7 +863,9 @@ function CoachingStudioView() {
 
                       {/* Quick Preset Buttons */}
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1">
+                        <span
+                          className={`text-mini font-semibold uppercase tracking-wider ${MUTED} mr-1`}
+                        >
                           Presets:
                         </span>
                         {[
@@ -662,7 +891,7 @@ function CoachingStudioView() {
                           <button
                             type="button"
                             onClick={() => setCustomBpm(null)}
-                            className="ml-auto text-[11px] font-semibold text-slate-400 hover:text-rose-400 underline transition"
+                            className={`ml-auto text-mini font-semibold ${MUTED} hover:text-rose-400 underline transition`}
                           >
                             Reset ({selectedExercise.tempo_bpm} BPM)
                           </button>
@@ -675,18 +904,22 @@ function CoachingStudioView() {
                   <div className={CARD}>
                     <div className="mb-4 flex items-center justify-between">
                       <div>
-                        <h3 className="font-display text-base font-bold text-slate-100">Notes to Play</h3>
-                        <p className="text-xs text-slate-400">
-                          Click any note card to highlight its key and preview its tone before recording.
+                        <h3 className="font-display text-base font-bold text-slate-100">
+                          Notes to Play
+                        </h3>
+                        <p className={`text-xs ${MUTED}`}>
+                          Click any note card to highlight its key and preview
+                          its tone before recording.
                         </p>
                       </div>
-                      <span className="text-xs text-slate-400 font-mono">
-                        {selectedExercise.notes?.length ?? 0} notes · {selectedExercise.duration_beats}{" "}
-                        beats
+                      <span className={`text-xs ${MUTED} font-mono`}>
+                        {selectedExercise.notes?.length ?? 0} notes ·{" "}
+                        {selectedExercise.duration_beats} beats
                       </span>
                     </div>
 
-                    {selectedExercise.notes && selectedExercise.notes.length > 0 ? (
+                    {selectedExercise.notes &&
+                    selectedExercise.notes.length > 0 ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5">
                           {selectedExercise.notes.map((note, idx) => {
@@ -697,7 +930,8 @@ function CoachingStudioView() {
                                 type="button"
                                 onClick={() => {
                                   setPreviewNoteIndex(idx);
-                                  if (note.pitch_midi !== null) playMidiTone(note.pitch_midi);
+                                  if (note.pitch_midi !== null)
+                                    playMidiTone(note.pitch_midi);
                                 }}
                                 className={`group flex flex-col items-center justify-between rounded-xl border p-3 text-center transition-all hover:scale-105 active:scale-95 ${
                                   isSelected
@@ -711,7 +945,7 @@ function CoachingStudioView() {
                                 }
                               >
                                 <span
-                                  className={`text-[10px] font-mono ${
+                                  className={`text-tiny font-mono ${
                                     isSelected
                                       ? "text-rose-300 font-bold"
                                       : "text-slate-500 group-hover:text-rose-400"
@@ -728,11 +962,11 @@ function CoachingStudioView() {
                                 >
                                   {note.note_name}
                                 </span>
-                                <span className="text-[10px] text-slate-400">
+                                <span className={`text-tiny ${MUTED}`}>
                                   Beat {note.onset_beats + 1}
                                 </span>
                                 {note.fret !== null && (
-                                  <span className="mt-1 text-[9px] text-rose-400 font-mono">
+                                  <span className="mt-1 text-micro text-rose-400 font-mono">
                                     Fret {note.fret}
                                   </span>
                                 )}
@@ -756,7 +990,9 @@ function CoachingStudioView() {
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-dashed border-slate-800 p-8 text-center text-xs text-slate-400">
+                      <div
+                        className={`rounded-xl border border-dashed border-slate-800 p-8 text-center text-xs ${MUTED}`}
+                      >
                         Follow the playing instructions at {tempoBpm} BPM.
                       </div>
                     )}
@@ -766,7 +1002,9 @@ function CoachingStudioView() {
                 {/* Right Column: Pre-Flight Checklist, AI Live Tips & Start Take CTA */}
                 <div className="lg:col-span-4 space-y-6">
                   {/* AI Live Coach Card */}
-                  <div className={`${CARD} border-rose-500/30 bg-slate-900/50 relative overflow-hidden space-y-4`}>
+                  <div
+                    className={`${CARD} border-rose-500/30 bg-slate-900/50 relative overflow-hidden space-y-4`}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="relative flex h-3 w-3">
@@ -789,7 +1027,9 @@ function CoachingStudioView() {
 
                     {/* Gemini Voice Selection */}
                     <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-950 p-2.5 border border-slate-800">
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <label
+                        className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         AI Coach Voice:
                       </label>
                       <select
@@ -797,29 +1037,46 @@ function CoachingStudioView() {
                         onChange={(e) => {
                           setGeminiVoice(e.target.value);
                           const info = getVoiceInfo(e.target.value);
-                          addStreamLog("out", `Switched coach voice to: ${info.name} (${info.provider})`);
+                          addStreamLog(
+                            "out",
+                            `Switched coach voice to: ${info.name} (${info.provider})`,
+                          );
                         }}
                         className="rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-medium text-rose-200 focus:outline-none focus:ring-1 focus:ring-rose-500"
                       >
                         <optgroup label="ElevenLabs (Studio Primary)">
-                          <option value="21m00Tcm4TlvDq8ikWAM">Rachel · ElevenLabs</option>
-                          <option value="pNInz6obpgDQGcFmaJgB">Adam · ElevenLabs</option>
-                          <option value="ErXwobaYiN019PkySvjV">Antoni · ElevenLabs</option>
-                          <option value="EXAVITQu4vr4xnSDxMaL">Bella · ElevenLabs</option>
+                          <option value="21m00Tcm4TlvDq8ikWAM">
+                            Rachel · ElevenLabs
+                          </option>
+                          <option value="pNInz6obpgDQGcFmaJgB">
+                            Adam · ElevenLabs
+                          </option>
+                          <option value="ErXwobaYiN019PkySvjV">
+                            Antoni · ElevenLabs
+                          </option>
+                          <option value="EXAVITQu4vr4xnSDxMaL">
+                            Bella · ElevenLabs
+                          </option>
                         </optgroup>
                         <optgroup label="Gemini Live (Multimodal / Fallback)">
                           <option value="Puck">Puck (Crisp / Energetic)</option>
                           <option value="Charon">Charon (Warm / Deep)</option>
                           <option value="Kore">Kore (Calm / Natural)</option>
-                          <option value="Fenrir">Fenrir (Authoritative / Strong)</option>
-                          <option value="Aoede">Aoede (Melodic / Bright)</option>
+                          <option value="Fenrir">
+                            Fenrir (Authoritative / Strong)
+                          </option>
+                          <option value="Aoede">
+                            Aoede (Melodic / Bright)
+                          </option>
                         </optgroup>
                       </select>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-400">Focus Area:</span>
+                        <span className={`font-semibold ${MUTED}`}>
+                          Focus Area:
+                        </span>
                         <span className="font-bold text-rose-300 rounded bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
                           {aiTip?.focus_area ?? "Ergonomics & Pacing"}
                         </span>
@@ -830,10 +1087,12 @@ function CoachingStudioView() {
                       </p>
                       {aiTip?.suggested_action && (
                         <div className="rounded-lg bg-slate-900 p-2.5 border border-slate-800/80">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
+                          <span className="text-tiny font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
                             Actionable Cue
                           </span>
-                          <p className="text-xs font-medium text-slate-300">{aiTip.suggested_action}</p>
+                          <p className="text-xs font-medium text-slate-300">
+                            {aiTip.suggested_action}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -849,8 +1108,11 @@ function CoachingStudioView() {
                           1
                         </span>
                         <div>
-                          <strong className="text-slate-100">Review Notes:</strong> Inspect the note cards
-                          or click them to hear expected pitches on the red keyboard/fretboard.
+                          <strong className="text-slate-100">
+                            Review Notes:
+                          </strong>{" "}
+                          Inspect the note cards or click them to hear expected
+                          pitches on the red keyboard/fretboard.
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
@@ -858,8 +1120,11 @@ function CoachingStudioView() {
                           2
                         </span>
                         <div>
-                          <strong className="text-slate-100">Custom Tempo:</strong> Practicing at {tempoBpm} BPM.
-                          Adjust anytime using the tempo slider on the left.
+                          <strong className="text-slate-100">
+                            Custom Tempo:
+                          </strong>{" "}
+                          Practicing at {tempoBpm} BPM. Adjust anytime using the
+                          tempo slider on the left.
                         </div>
                       </li>
                       <li className="flex items-start gap-2.5">
@@ -867,9 +1132,18 @@ function CoachingStudioView() {
                           3
                         </span>
                         <div>
-                          <strong className="text-slate-100">Voice Selected:</strong> Speaking with{" "}
-                          <span className="text-rose-400 font-semibold">{getVoiceInfo(geminiVoice).name}</span> voice via{" "}
-                          <span className="text-slate-200">{getVoiceInfo(geminiVoice).provider}</span>.
+                          <strong className="text-slate-100">
+                            Voice Selected:
+                          </strong>{" "}
+                          Speaking with{" "}
+                          <span className="text-rose-400 font-semibold">
+                            {getVoiceInfo(geminiVoice).name}
+                          </span>{" "}
+                          voice via{" "}
+                          <span className="text-slate-200">
+                            {getVoiceInfo(geminiVoice).provider}
+                          </span>
+                          .
                         </div>
                       </li>
                     </ul>
@@ -888,8 +1162,12 @@ function CoachingStudioView() {
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-300">🖥️ Live Stream Logs</span>
-                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                        <span className="font-mono text-xs font-bold text-slate-300">
+                          🖥️ Live Stream Logs
+                        </span>
+                        <span
+                          className={`rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-tiny font-mono ${MUTED}`}
+                        >
                           {liveStreamLogs.length} events
                         </span>
                       </div>
@@ -903,12 +1181,17 @@ function CoachingStudioView() {
                     </div>
 
                     {showLogs && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-52 overflow-y-auto space-y-1.5 shadow-inner">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-mini max-h-52 overflow-y-auto space-y-1.5 shadow-inner">
                         {liveStreamLogs.map((log, idx) => (
-                          <div key={idx} className="flex items-start gap-2 leading-relaxed">
-                            <span className="text-slate-500 shrink-0">{log.timestamp}</span>
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 leading-relaxed"
+                          >
+                            <span className="text-slate-500 shrink-0">
+                              {log.timestamp}
+                            </span>
                             <span
-                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                              className={`rounded px-1 text-micro font-black shrink-0 ${
                                 log.direction === "out"
                                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
@@ -916,7 +1199,13 @@ function CoachingStudioView() {
                             >
                               {log.direction === "out" ? "OUT" : "IN"}
                             </span>
-                            <span className={log.direction === "out" ? "text-cyan-100" : "text-emerald-100"}>
+                            <span
+                              className={
+                                log.direction === "out"
+                                  ? "text-cyan-100"
+                                  : "text-emerald-100"
+                              }
+                            >
                               {log.message}
                             </span>
                           </div>
@@ -937,8 +1226,10 @@ function CoachingStudioView() {
                   <span className="text-xs uppercase tracking-widest font-bold text-rose-400">
                     Count-In · Get Ready
                   </span>
-                  <h2 className="text-3xl font-black text-slate-100">{selectedExercise.title}</h2>
-                  <p className="text-xs text-slate-400">
+                  <h2 className="text-3xl font-black text-slate-100">
+                    {selectedExercise.title}
+                  </h2>
+                  <p className={`text-xs ${MUTED}`}>
                     Drill Tempo: {tempoBpm} BPM · Starting in...
                   </p>
                 </div>
@@ -970,14 +1261,17 @@ function CoachingStudioView() {
                         <span className="font-display text-3xl sm:text-4xl font-black tracking-wider uppercase drop-shadow-md">
                           PLAY!
                         </span>
-                        <span className="text-sm font-bold opacity-90 mt-0.5">🎵</span>
+                        <span className="text-sm font-bold opacity-90 mt-0.5">
+                          🎵
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <p className="text-sm font-medium text-slate-300 max-w-md">
-                  Position your fingers on the keyboard or fretboard. The coach will begin listening when the count reaches zero.
+                  Position your fingers on the keyboard or fretboard. The coach
+                  will begin listening when the count reaches zero.
                 </p>
 
                 <button
@@ -991,7 +1285,9 @@ function CoachingStudioView() {
             )}
 
             {/* STAGE 2: ACTIVE LIVE COACHED TAKE */}
-            {(stage === "connecting" || stage === "listening" || stage === "scoring") && (
+            {(stage === "connecting" ||
+              stage === "listening" ||
+              stage === "scoring") && (
               <div className="space-y-6">
                 {/* Active Header & Metronome Strip */}
                 <div className={`${CARD} p-6 space-y-6`}>
@@ -1000,7 +1296,9 @@ function CoachingStudioView() {
                       <span className="text-xs uppercase tracking-wider text-rose-400 font-semibold">
                         Live Coached Take
                       </span>
-                      <h2 className="text-2xl font-bold text-slate-100">{selectedExercise?.title}</h2>
+                      <h2 className="text-2xl font-bold text-slate-100">
+                        {selectedExercise?.title}
+                      </h2>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1018,24 +1316,29 @@ function CoachingStudioView() {
                   {/* Large Visual Metronome Pulse Bar */}
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
                     <div className="space-y-1 text-center md:text-left">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Tempo & Measure Lock
                       </p>
-                      <p className="text-xl font-black text-slate-100">{tempoBpm} BPM</p>
+                      <p className="text-xl font-black text-slate-100">
+                        {tempoBpm} BPM
+                      </p>
                       <div className="flex items-center gap-1.5 pt-1">
                         {[1, 2, 3, 4].map((m) => {
-                          const currentMeasure = Math.floor(currentDrillBeat / 4) + 1;
+                          const currentMeasure =
+                            Math.floor(currentDrillBeat / 4) + 1;
                           const isCurrentM = currentMeasure === m;
                           const isPastM = currentMeasure > m;
                           return (
                             <span
                               key={m}
-                              className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border transition-all ${
+                              className={`text-tiny font-mono font-bold px-2 py-0.5 rounded border transition-all ${
                                 isCurrentM
                                   ? "border-rose-500 bg-rose-500/20 text-rose-200 ring-1 ring-rose-400"
                                   : isPastM
-                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                                  : "border-slate-800 bg-slate-900 text-slate-500"
+                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                    : "border-slate-800 bg-slate-900 text-slate-500"
                               }`}
                             >
                               Bar {m}
@@ -1046,7 +1349,10 @@ function CoachingStudioView() {
                     </div>
 
                     {/* 4-Beat Pulse Boxes (Flashing accurately at exactly 60 BPM / 1 per second) */}
-                    <div className="flex items-center gap-3" aria-label={`Beat ${(currentDrillBeat % 4) + 1} of 4`}>
+                    <div
+                      className="flex items-center gap-3"
+                      aria-label={`Beat ${(currentDrillBeat % 4) + 1} of 4`}
+                    >
                       {[1, 2, 3, 4].map((beatNum) => {
                         const currentBeatInMeasure = (currentDrillBeat % 4) + 1;
                         const isActive = currentBeatInMeasure === beatNum;
@@ -1069,21 +1375,31 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="text-center md:text-right space-y-1">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Drill Timeline
                       </p>
                       <p className="text-xl font-black text-rose-400 font-mono">
-                        Beat {Math.min(16, currentDrillBeat + 1)} <span className="text-slate-500 text-sm font-normal">/ 16</span>
+                        Beat {Math.min(16, currentDrillBeat + 1)}{" "}
+                        <span className="text-slate-500 text-sm font-normal">
+                          / 16
+                        </span>
                       </p>
-                      <p className="text-[11px] text-slate-400 font-mono">
-                        {Math.round((Math.min(16, currentDrillBeat + 1) / 16) * 100)}% Timeline
+                      <p className={`text-mini ${MUTED} font-mono`}>
+                        {Math.round(
+                          (Math.min(16, currentDrillBeat + 1) / 16) * 100,
+                        )}
+                        % Timeline
                       </p>
                     </div>
                   </div>
 
                   {/* Active Instructions Reminder */}
                   <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                    <p
+                      className={`text-xs font-semibold uppercase tracking-wider ${MUTED} mb-1`}
+                    >
                       Drill Objective
                     </p>
                     <p className="text-sm font-medium text-slate-200">
@@ -1101,7 +1417,9 @@ function CoachingStudioView() {
                         </span>
                         <h3 className="font-display text-sm font-bold uppercase tracking-wider text-rose-200 flex items-center gap-2">
                           <span>🤖 Real-Time AI Coach Analysis</span>
-                          <span className="text-[10px] font-normal text-slate-400 border border-slate-800 bg-slate-900 px-2 py-0.5 rounded-full">
+                          <span
+                            className={`text-tiny font-normal ${MUTED} border border-slate-800 bg-slate-900 px-2 py-0.5 rounded-full`}
+                          >
                             Live Stream
                           </span>
                         </h3>
@@ -1113,7 +1431,9 @@ function CoachingStudioView() {
                         disabled={isFetchingTip}
                         className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/20 disabled:opacity-50 transition flex items-center gap-1.5"
                       >
-                        <span>{isFetchingTip ? "Analyzing…" : "💡 Instant AI Tip"}</span>
+                        <span>
+                          {isFetchingTip ? "Analyzing…" : "💡 Instant AI Tip"}
+                        </span>
                       </button>
                     </div>
 
@@ -1123,14 +1443,18 @@ function CoachingStudioView() {
                         <div className="flex items-center gap-2 text-xs font-bold text-rose-300 mb-1">
                           <span>🗣️ Live Coach Speaking:</span>
                         </div>
-                        <p className="text-base font-semibold leading-relaxed">{utterance.text}▍</p>
+                        <p className="text-base font-semibold leading-relaxed">
+                          {utterance.text}▍
+                        </p>
                       </div>
                     )}
 
                     {/* Contextual Real-Time Insight Cards */}
                     <div className="grid gap-3 sm:grid-cols-2">
                       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        <span
+                          className={`text-tiny font-bold uppercase tracking-wider ${MUTED} block`}
+                        >
                           AI Pedagogical Focus
                         </span>
                         <p className="text-xs text-slate-200 leading-relaxed">
@@ -1140,27 +1464,31 @@ function CoachingStudioView() {
                               : `Maintain a steady pulse lock with the ${tempoBpm} BPM downbeat.`)}
                         </p>
                         {aiTip?.suggested_action && (
-                          <p className="text-[11px] font-medium text-rose-300 pt-1 border-t border-slate-800/80 mt-1">
+                          <p className="text-mini font-medium text-rose-300 pt-1 border-t border-slate-800/80 mt-1">
                             🎯 {aiTip.suggested_action}
                           </p>
                         )}
                       </div>
 
                       <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        <span
+                          className={`text-tiny font-bold uppercase tracking-wider ${MUTED} block`}
+                        >
                           Micro-Timing & Pitch Bias
                         </span>
                         <p className="text-xs text-slate-200">
-                          {cue?.signed_timing_bias_seconds !== null && cue?.signed_timing_bias_seconds !== undefined
+                          {cue?.signed_timing_bias_seconds !== null &&
+                          cue?.signed_timing_bias_seconds !== undefined
                             ? cue.signed_timing_bias_seconds < -0.03
                               ? `Rushing by +${Math.abs(Math.round(cue.signed_timing_bias_seconds * 1000))}ms. Relax slightly.`
                               : cue.signed_timing_bias_seconds > 0.03
-                              ? `Dragging by -${Math.abs(Math.round(cue.signed_timing_bias_seconds * 1000))}ms. Prepare finger early.`
-                              : "Timing is right on the center of the beat! ✨"
+                                ? `Dragging by -${Math.abs(Math.round(cue.signed_timing_bias_seconds * 1000))}ms. Prepare finger early.`
+                                : "Timing is right on the center of the beat! ✨"
                             : "Listening to live note attacks…"}
                         </p>
-                        <p className="text-[11px] text-slate-400">
-                          Pace: {(60 / tempoBpm).toFixed(2)}s per beat · {cue?.matched_count ?? 0} notes matched
+                        <p className={`text-mini ${MUTED}`}>
+                          Pace: {(60 / tempoBpm).toFixed(2)}s per beat ·{" "}
+                          {cue?.matched_count ?? 0} notes matched
                         </p>
                       </div>
                     </div>
@@ -1191,7 +1519,9 @@ function CoachingStudioView() {
                   {/* Live Cue Badge & Real-Time Stats */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span
+                        className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Live Readout
                       </span>
                       <p
@@ -1204,7 +1534,9 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span
+                        className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Matched Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-emerald-400">
@@ -1213,7 +1545,9 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span
+                        className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Missed Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-rose-400">
@@ -1222,7 +1556,9 @@ function CoachingStudioView() {
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span
+                        className={`text-mini font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Extra Notes
                       </span>
                       <p className="mt-1 font-display text-2xl font-black text-amber-400">
@@ -1234,12 +1570,17 @@ function CoachingStudioView() {
                   {/* Transcript History */}
                   {transcript.length > 0 && (
                     <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <h4
+                        className={`text-xs font-semibold uppercase tracking-wider ${MUTED}`}
+                      >
                         Coach Guidance Log
                       </h4>
                       <div className="space-y-1.5 max-h-40 overflow-y-auto">
                         {transcript.map((line, idx) => (
-                          <p key={idx} className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-slate-200">
+                          <p
+                            key={idx}
+                            className="rounded-lg bg-slate-900 px-3 py-2 text-xs text-slate-200"
+                          >
                             {line}
                           </p>
                         ))}
@@ -1251,8 +1592,12 @@ function CoachingStudioView() {
                   <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-300">🖥️ Gemini Live Stream Logs ({geminiVoice})</span>
-                        <span className="rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-400">
+                        <span className="font-mono text-xs font-bold text-slate-300">
+                          🖥️ Gemini Live Stream Logs ({geminiVoice})
+                        </span>
+                        <span
+                          className={`rounded-full bg-slate-900 border border-slate-800 px-2 py-0.5 text-tiny font-mono ${MUTED}`}
+                        >
                           {liveStreamLogs.length} events
                         </span>
                       </div>
@@ -1266,12 +1611,17 @@ function CoachingStudioView() {
                     </div>
 
                     {showLogs && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-[11px] max-h-56 overflow-y-auto space-y-1.5 shadow-inner">
+                      <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-3.5 font-mono text-mini max-h-56 overflow-y-auto space-y-1.5 shadow-inner">
                         {liveStreamLogs.map((log, idx) => (
-                          <div key={idx} className="flex items-start gap-2 leading-relaxed">
-                            <span className="text-slate-500 shrink-0">{log.timestamp}</span>
+                          <div
+                            key={idx}
+                            className="flex items-start gap-2 leading-relaxed"
+                          >
+                            <span className="text-slate-500 shrink-0">
+                              {log.timestamp}
+                            </span>
                             <span
-                              className={`rounded px-1 text-[9px] font-black shrink-0 ${
+                              className={`rounded px-1 text-micro font-black shrink-0 ${
                                 log.direction === "out"
                                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
                                   : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
@@ -1279,7 +1629,13 @@ function CoachingStudioView() {
                             >
                               {log.direction === "out" ? "OUT" : "IN"}
                             </span>
-                            <span className={log.direction === "out" ? "text-cyan-100" : "text-emerald-100"}>
+                            <span
+                              className={
+                                log.direction === "out"
+                                  ? "text-cyan-100"
+                                  : "text-emerald-100"
+                              }
+                            >
                               {log.message}
                             </span>
                           </div>
@@ -1315,8 +1671,10 @@ function CoachingStudioView() {
                         </p>
                       </div>
 
-                        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-6 py-3 text-center">
-                        <p className="text-xs uppercase font-bold tracking-wider text-rose-400">Reward</p>
+                      <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-6 py-3 text-center">
+                        <p className="text-xs uppercase font-bold tracking-wider text-rose-400">
+                          Reward
+                        </p>
                         <p className="font-display text-3xl font-black text-rose-300">
                           +{attempt.exp_awarded} EXP
                         </p>
@@ -1354,42 +1712,56 @@ function CoachingStudioView() {
                     </p>
 
                     <div className="grid gap-6 md:grid-cols-2 pt-2 border-t border-slate-800/80">
-                      {attempt.feedback.strengths && attempt.feedback.strengths.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
-                            Key Strengths
-                          </h4>
-                          <ul className="space-y-1.5 text-sm text-slate-300">
-                            {attempt.feedback.strengths.map((str, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <span className="text-emerald-400 font-bold">✓</span>
-                                <span>{str}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {attempt.feedback.strengths &&
+                        attempt.feedback.strengths.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
+                              Key Strengths
+                            </h4>
+                            <ul className="space-y-1.5 text-sm text-slate-300">
+                              {attempt.feedback.strengths.map((str, idx) => (
+                                <li
+                                  key={idx}
+                                  className="flex items-start gap-2"
+                                >
+                                  <span className="text-emerald-400 font-bold">
+                                    ✓
+                                  </span>
+                                  <span>{str}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                      {attempt.feedback.corrections && attempt.feedback.corrections.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">
-                            Areas to Polish
-                          </h4>
-                          <ul className="space-y-1.5 text-sm text-slate-300">
-                            {attempt.feedback.corrections.map((cor, idx) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <span className="text-amber-400 font-bold">•</span>
-                                <span>{cor}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {attempt.feedback.corrections &&
+                        attempt.feedback.corrections.length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">
+                              Areas to Polish
+                            </h4>
+                            <ul className="space-y-1.5 text-sm text-slate-300">
+                              {attempt.feedback.corrections.map((cor, idx) => (
+                                <li
+                                  key={idx}
+                                  className="flex items-start gap-2"
+                                >
+                                  <span className="text-amber-400 font-bold">
+                                    •
+                                  </span>
+                                  <span>{cor}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                     </div>
 
                     {attempt.feedback.next_step && (
                       <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
-                        <span className="font-bold text-rose-300">Recommended Next Step: </span>
+                        <span className="font-bold text-rose-300">
+                          Recommended Next Step:{" "}
+                        </span>
                         {attempt.feedback.next_step}
                       </div>
                     )}
@@ -1448,21 +1820,29 @@ const NoteHighway = memo(function NoteHighway({
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const activeEl = containerRef.current.children[cursor] as HTMLElement | undefined;
+    const activeEl = containerRef.current.children[cursor] as
+      HTMLElement | undefined;
     if (activeEl) {
-      activeEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      activeEl.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
     }
   }, [cursor]);
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className={`flex items-center justify-between text-xs ${MUTED}`}>
         <span>Note Sequence Highway</span>
         <span className="font-mono">
           Note {Math.min(cursor + 1, expectedCount)} of {expectedCount}
         </span>
       </div>
-      <div ref={containerRef} className="flex gap-2 overflow-x-auto pb-3 pt-1 scroll-smooth">
+      <div
+        ref={containerRef}
+        className="flex gap-2 overflow-x-auto pb-3 pt-1 scroll-smooth"
+      >
         {notes.map((note, idx) => {
           const isCurrent = cursor === idx;
           const isPast = cursor > idx;
@@ -1473,13 +1853,15 @@ const NoteHighway = memo(function NoteHighway({
                 isCurrent
                   ? "border-rose-500 bg-rose-500/20 text-rose-200 scale-110 shadow-lg shadow-rose-500/50 ring-2 ring-rose-400/60 font-bold"
                   : isPast
-                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                  : "border-slate-800 bg-slate-950 text-slate-400 opacity-60"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : `border-slate-800 bg-slate-950 ${MUTED} opacity-60`
               }`}
             >
-              <span className="text-[10px] font-mono opacity-80">#{idx + 1}</span>
-              <span className="my-1 font-display text-lg font-black">{note.note_name}</span>
-              <span className="text-[10px]">Beat {note.onset_beats + 1}</span>
+              <span className="text-tiny font-mono opacity-80">#{idx + 1}</span>
+              <span className="my-1 font-display text-lg font-black">
+                {note.note_name}
+              </span>
+              <span className="text-tiny">Beat {note.onset_beats + 1}</span>
             </div>
           );
         })}
