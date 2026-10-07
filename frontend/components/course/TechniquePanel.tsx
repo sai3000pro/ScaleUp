@@ -74,10 +74,12 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current !== null) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      const video = videoRef.current;
+      if (video === null) {
+        throw new Error("camera preview is not mounted");
       }
+      video.srcObject = stream;
+      await video.play();
       const tracker = new VisualTracker({
         instrument,
         onStatus: setTrackingStatus,
@@ -92,12 +94,18 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         },
       });
       trackerRef.current = tracker;
-      if (videoRef.current !== null) {
-        const started = await tracker.start(videoRef.current);
-        if (!started) {
-          setCameraStatus("idle");
-          return;
+      const started = await tracker.start(video);
+      if (!started) {
+        // The tracker has already reported itself unavailable; release the
+        // camera without resetting that status, so the reason stays visible.
+        trackerRef.current = null;
+        for (const track of stream.getTracks()) {
+          track.stop();
         }
+        streamRef.current = null;
+        video.srcObject = null;
+        setCameraStatus("idle");
+        return;
       }
       setCameraStatus("active");
     } catch (caught: unknown) {
@@ -166,14 +174,15 @@ export function TechniquePanel({ instrument = "piano" }: { instrument?: string }
         </button>
       </div>
 
-      {cameraStatus === "active" && (
-        <video
-          ref={videoRef}
-          muted
-          playsInline
-          className="mt-3 h-28 w-full rounded-md border border-slate-800 bg-slate-950 object-cover"
-        />
-      )}
+      {/* Always mounted: the stream and the tracker attach to this element
+          while the status is still "loading", so it cannot wait on "active". */}
+      <video
+        ref={videoRef}
+        muted
+        playsInline
+        hidden={cameraStatus !== "active"}
+        className="mt-3 h-28 w-full rounded-md border border-slate-800 bg-slate-950 object-cover"
+      />
 
       <p className={`mt-2 text-[11px] ${cameraFailed ? "text-amber-300" : "text-slate-400"}`} role={cameraFailed ? "alert" : undefined}>{summary}</p>
 
