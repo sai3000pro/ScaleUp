@@ -35,6 +35,11 @@ def main() -> int:
     settings = get_settings()
     statuses = integration_statuses(settings)
 
+    if settings.hosting_signal:
+        print(f"\nHosting: {settings.hosting_signal}")
+    else:
+        print("\nHosting: not detected (developer machine or CI)")
+
     print("\nExternal integrations\n")
     print(f"  {'':6} {'INTEGRATION':<24} {'DETAIL'}")
     print(f"  {'-' * 6} {'-' * 24} {'-' * 48}")
@@ -84,10 +89,15 @@ def main() -> int:
     print("(and the Celery worker, which reads the same file).")
 
     if not settings.deployed:
-        pending = missing_for_deployment(settings)
-        if pending:
+        hosted_missing = missing_for_deployment(settings, tier="hosted")
+        deployed_missing = missing_for_deployment(settings, tier="deployed")
+        if hosted_missing:
+            print("\nBefore hosting (any platform), these must change or startup will refuse:\n")
+            for item in hosted_missing:
+                print(f"  {item}")
+        if deployed_missing:
             print("\nBefore DEPLOYED=true, these must be live or startup will refuse:\n")
-            for item in pending:
+            for item in deployed_missing:
                 print(f"  {item}")
 
     if broken:

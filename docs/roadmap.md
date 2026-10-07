@@ -537,8 +537,9 @@ failure; mobile and desktop layouts are usable.
   `GET /api/health/providers` reports the configured LLM/voice/research/email
   providers, storage backend, webhook arm status, and deployed flag — never a
   key or secret.
-- [ ] Define Render service/environment configuration, health checks, timeouts,
-  storage, logs, and rollback notes. Do not auto-migrate on process start.
+- [x] Define the hosted deployment — service/environment configuration, health
+  checks, storage, logs, and rollback notes in `docs/deployment-hosted.md`
+  (Supabase + Upstash + Koyeb + Vercel). Do not auto-migrate on process start.
 - [x] Add n8n and ElevenLabs as opt-in deployment profiles: fake implementations
   remain the default for CI and local development, and the live providers are
   enabled purely by configuration (`WEBHOOK_SECRET` + `DEV_WEBHOOKS_ENABLED`,

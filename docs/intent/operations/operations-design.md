@@ -46,6 +46,22 @@ default; credentials are separate. A declarative integration table drives both t
 command-line report and the health endpoint, so adding an integration is a row rather than a
 change in three places.
 
+### Hosting tiers
+
+Development defaults become startup refusals in two tiers, driven by one requirements table
+(`DEPLOYMENT_REQUIREMENTS` in `app/integrations.py`) that both the startup validator and the
+pre-deploy report read.
+
+**Hosted** arms the security defaults only: placeholder JWT, dev-login, unsigned webhooks,
+the disabled SSRF check and a loopback CORS origin all refuse to boot. It is armed three
+ways — a recognised platform variable (`KOYEB_APP_NAME`, `RENDER`, `FLY_APP_NAME`,
+`RAILWAY_ENVIRONMENT`, `K_SERVICE`), `HOSTED=true` for a platform the detector does not
+know, or `DEPLOYED=true`, which implies it. A `CI` or `GITHUB_ACTIONS` variable never arms
+it: a runner carrying a platform variable is still a runner.
+
+**Deployed** adds the durability and integration requirements on top: real email, Google
+OAuth credentials, GCS storage and bucket, and a webhook secret.
+
 ## The webhook boundary
 
 The automation platform is n8n, and it is the intended home for macro-orchestration —
@@ -82,10 +98,6 @@ free of datastores is what keeps it fast enough that people run it.
 
 ## Current state versus intent
 
-**Deployment requirements are enforced twice, differently.** A hard startup check and an
-advisory pre-deploy report overlap but do not agree. Two rule sets for one question means one
-of them is wrong at any moment.
-
 **A promised migration was never written.** One revision deferred a naming-convention drift
 to "its own migration"; a later revision independently hit the same wall and also deferred.
 Neither was followed. Every future generated diff will re-propose dropping a unique index and
@@ -107,9 +119,6 @@ index existing. It exists, if at all, only in a migration.
 documents disagreeing on whether a scoring feature shipped and three disagreeing on the
 deployment platform. Two documented request contracts are contradicted by the repository's
 own scripts.
-
-**The integration report advertises itself as a continuous-integration gate and is not
-wired as one.**
 
 **No test exercises real queue routing.** Background work runs eagerly under test, so the
 routing configuration — and the operator instruction that depends on it — is untested by
@@ -134,6 +143,7 @@ routing module's own comment describes as dead letterboxes.
 | Readiness probe | Reports, with a bounded timeout | Raises on failure | An endpoint that throws has told the operator nothing. |
 | Containerisation | Datastores only; app on the host | Containerise everything | The working tree sits on a synced path where bind mounts do not propagate change events, which forces polling watchers and puts dependency trees inside a synced mount. |
 | Fast CI job | No datastores | One job for everything | A slow check is a skipped check. |
+| Deployment target | Supabase Postgres + Upstash Redis + Vercel frontend + a long-lived container host (Koyeb free instance; Render as the alternative) | Cloud Run (kept as the DEPLOYED=true production shape); Vercel serverless for the API | The live coach is a WebSocket and needs a process that stays up; Render has been unreliable for this project. |
 
 ## Open Questions & Future Decisions
 
@@ -141,18 +151,13 @@ routing module's own comment describes as dead letterboxes.
 
 1. **The naming-convention migration must be written** before any further schema change is
    safe to generate.
-2. **Which deployment-requirement check is authoritative**, and how the two are reconciled.
-3. **Should binary content move out of the primary database?** The object-store backend
+2. **Should binary content move out of the primary database?** The object-store backend
    already exists.
-4. **The deployment target is Render.** `docs/deployment.md` and the Cloud Run manifest
-   describe a different platform and must be reconciled to it, or explicitly kept as a
-   secondary target with the primary named.
-5. **Should the integration report actually gate continuous integration**, as it advertises?
-6. **Type generation for the wire contract.** The client type module is a hand-maintained
+3. **Type generation for the wire contract.** The client type module is a hand-maintained
    mirror of the contract document, and the server already emits a machine-readable schema.
-7. **No retention or deletion job exists** for recordings and derived metrics, though
+4. **No retention or deletion job exists** for recordings and derived metrics, though
    owner-deletion is implemented and the privacy position is stated.
-8. **The declared partial unique index** should be declared in the model or removed from the
+5. **The declared partial unique index** should be declared in the model or removed from the
    comment.
 
 ## References

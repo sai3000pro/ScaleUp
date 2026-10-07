@@ -13,7 +13,12 @@ from dataclasses import asdict
 import pytest
 
 from app.config import Settings
-from app.integrations import INTEGRATIONS, integration_statuses, missing_for_deployment
+from app.integrations import (
+    INTEGRATIONS,
+    integration_statuses,
+    missing_for_deployment,
+    violated_requirements,
+)
 from app.services import n8n_service
 
 
@@ -58,10 +63,32 @@ class TestRegistry:
             statuses = {s.key: s for s in integration_statuses(_settings(**overrides))}
             assert statuses["openai"].selected is True
 
+    # @spec OPS-CONFIG-007
     def test_deployment_requirements_are_listed_before_a_deploy(self) -> None:
         pending = missing_for_deployment(_settings())
-        assert any("Resend" in item for item in pending)
-        assert any("n8n (inbound)" in item for item in pending)
+        assert any("EMAIL_PROVIDER" in item for item in pending)
+        assert any("WEBHOOK_SECRET" in item for item in pending)
+
+    # @spec OPS-CONFIG-003, OPS-CONFIG-007
+    def test_violated_requirements_is_empty_for_development_defaults(self) -> None:
+        assert violated_requirements(_settings()) == []
+
+    # @spec OPS-CONFIG-003, OPS-CONFIG-007
+    def test_the_hosted_tier_preview_names_the_security_defaults(self) -> None:
+        pending = missing_for_deployment(_settings(), tier="hosted")
+        assert any("JWT_SECRET" in item for item in pending)
+        assert any("loopback" in item for item in pending)
+
+    # @spec OPS-CONFIG-008
+    def test_resend_without_a_key_is_a_deployed_requirement(self) -> None:
+        pending = missing_for_deployment(_settings(email_provider="resend"), tier="deployed")
+        assert any("RESEND_API_KEY" in item for item in pending)
+
+    # @spec OPS-CONFIG-007
+    def test_the_two_tiers_together_equal_the_unfiltered_list(self) -> None:
+        settings = _settings()
+        both = missing_for_deployment(settings, tier="hosted") + missing_for_deployment(settings, tier="deployed")
+        assert both == missing_for_deployment(settings)
 
     @pytest.mark.parametrize("integration", INTEGRATIONS, ids=lambda item: item.key)
     def test_every_integration_describes_its_fallback(self, integration) -> None:
