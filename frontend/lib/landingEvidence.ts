@@ -19,6 +19,8 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
+import { PUBLISHED_CURRICULA } from "@/lib/curricula";
+
 /** One stated quantity. `source` is not optional and has no default. */
 export interface Figure {
   /** Stable handle, so a claim on the page can be traced back to this entry. */
@@ -44,24 +46,38 @@ export interface HardPart {
   source: string;
 }
 
+const INSTRUMENT_COUNT = PUBLISHED_CURRICULA.length;
+const SKILL_COUNT = PUBLISHED_CURRICULA.reduce(
+  (total, curriculum) => total + curriculum.skillCount,
+  0,
+);
+
+/** The instruments that ship with a curriculum, in the order the page names them. */
+export const PUBLISHED_INSTRUMENTS: readonly string[] = PUBLISHED_CURRICULA.map(
+  (c) => c.instrument,
+);
+
 /**
  * What this system measures and holds.
  *
- * Counted from the curricula and evaluators here rather than rounded up: six
- * published curricula hold 7 + 9 + 10 + 11 + 8 + 8 skills.
+ * The instrument and skill counts are read from the curricula manifest rather
+ * than typed, so adding a curriculum changes the page and the test that
+ * guards the manifest fails if it has gone stale.
+ *
+ * @spec LAND-STORY-010
  */
 export const SYSTEM_FIGURES: readonly Figure[] = [
   {
     id: "instruments",
-    value: "6",
+    value: String(INSTRUMENT_COUNT),
     label: "instruments with a published, versioned curriculum",
     source: "backend/app/curricula/",
   },
   {
     id: "skills",
-    value: "53",
-    label: "skills across those six prerequisite graphs",
-    source: "backend/app/curricula/{piano,guitar,violin,trumpet,drums,banjo}.json",
+    value: String(SKILL_COUNT),
+    label: `skills across those ${INSTRUMENT_COUNT} prerequisite graphs`,
+    source: "backend/app/curricula/*.json",
   },
   {
     id: "dimensions",

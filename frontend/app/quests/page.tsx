@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { dueLabel } from "@/lib/time";
 import type { QuestBoard } from "@/lib/types";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 export default function QuestsPage() {
   const [board, setBoard] = useState<QuestBoard | null>(null);
@@ -41,7 +41,7 @@ export default function QuestsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-xl font-semibold tracking-tight">Daily Quests</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className={`mt-1 text-sm ${MUTED}`}>
             Skills fade over time. Rescuing a decayed one pays up to 1.5× EXP.
           </p>
         </div>
@@ -50,18 +50,18 @@ export default function QuestsPage() {
             {board.streak_days > 0 && (
               <p className="text-sm font-semibold text-amber-300">{board.streak_days}-day streak</p>
             )}
-            <p className="text-[11px] text-slate-400">{board.total_reward_exp} EXP on the board</p>
+            <p className={`text-mini ${MUTED}`}>{board.total_reward_exp} EXP on the board</p>
           </div>
         )}
       </div>
 
       {error && <p role="alert" className="mt-4 text-sm text-rose-400">{error}</p>}
-      {loading && <p className="mt-8 text-sm text-slate-400">Loading…</p>}
+      {loading && <p className={`mt-8 text-sm ${MUTED}`}>Loading…</p>}
 
       {board && board.quests.length === 0 && (
         <div className="mt-8 rounded-xl border border-dashed border-slate-800 p-10 text-center">
-          <p className="text-sm text-slate-400">Nothing due.</p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className={`text-sm ${MUTED}`}>Nothing due.</p>
+          <p className={`mt-1 text-xs ${MUTED}`}>
             Practise a few skills — they will start showing up here as they fade.
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function QuestsPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-display text-sm font-semibold text-slate-100">{quest.node_title}</p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className={`text-mini ${MUTED}`}>
                       {quest.course_title} · {Math.floor(quest.overdue_days)}d overdue ·{" "}
                       {Math.round(quest.proficiency * 100)}% retained
                     </p>
@@ -107,7 +107,7 @@ export default function QuestsPage() {
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-100">{quest.node_title}</p>
-                    <p className="text-[11px] text-slate-400">
+                    <p className={`text-mini ${MUTED}`}>
                       {quest.course_title} · {dueLabel(quest.due_at) ?? "never drilled"}
                     </p>
                   </div>

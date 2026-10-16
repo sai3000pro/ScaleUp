@@ -13,7 +13,7 @@ import type {
   Verdict,
 } from "@/lib/types";
 import { sourceLabel } from "@/lib/source";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, INPUT } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, INPUT, MUTED } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useGraphStore } from "@/stores/useGraphStore";
 
@@ -156,8 +156,8 @@ export function DrillPanel({
                 key={format}
                 type="button"
                 onClick={() => setQuestionType(format)}
-                className={`flex-1 rounded-md px-2 py-1 text-[11px] transition ${
-                  questionType === format ? "bg-sky-500 text-slate-950" : "text-slate-400 hover:text-slate-200"
+                className={`flex-1 rounded-md px-2 py-1 text-mini transition ${
+                  questionType === format ? "bg-sky-500 text-slate-950" : `${MUTED} hover:text-slate-200`
                 }`}
               >
                 {format === "mcq"
@@ -180,12 +180,12 @@ export function DrillPanel({
           {label}
         </button>
         {structural && (
-          <p className="mt-1.5 text-center text-[11px] text-slate-400">
+          <p className={`mt-1.5 text-center text-mini ${MUTED}`}>
             A section heading, not a skill — drill the skills underneath it.
           </p>
         )}
         {node.progress.state === "decaying" && (
-          <p className="mt-1.5 text-center text-[11px] text-node-decaying">Overdue — rescuing this pays bonus EXP</p>
+          <p className="mt-1.5 text-center text-mini text-node-decaying">Overdue — rescuing this pays bonus EXP</p>
         )}
         {error && <p role="alert" className="mt-2 text-xs text-rose-400">{error}</p>}
       </div>
@@ -195,10 +195,10 @@ export function DrillPanel({
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-slate-400">Question</p>
+        <p className={`text-mini uppercase tracking-wide ${MUTED}`}>Question</p>
         <p className="mt-1 text-sm leading-relaxed text-slate-200">{drill.question}</p>
         {drill.sources.length > 0 && (
-          <p className="mt-1.5 text-[11px] text-slate-400">
+          <p className={`mt-1.5 text-mini ${MUTED}`}>
             From {drill.sources.map((source) => sourceLabel(source, documents)).join(" · ")}
           </p>
         )}
@@ -250,7 +250,7 @@ export function DrillPanel({
                   : "Answer in your own words — you're graded on meaning, not wording."
               }
               spellCheck={drill.question_type !== "code"}
-              className={`${INPUT} resize-none bg-slate-950 ${drill.question_type === "code" ? "font-mono text-[11px]" : ""}`}
+              className={`${INPUT} resize-none bg-slate-950 ${drill.question_type === "code" ? "font-mono text-mini" : ""}`}
             />
           )}
           <button
@@ -278,7 +278,7 @@ export function DrillPanel({
           {(result.points_hit.length > 0 || result.points_missed.length > 0) && (
             <ul className="mt-2 space-y-0.5">
               {result.points_hit.map((point) => (
-                <li key={`hit-${point}`} className="flex items-baseline gap-1.5 text-[11px] text-slate-300">
+                <li key={`hit-${point}`} className="flex items-baseline gap-1.5 text-mini text-slate-300">
                   <span aria-hidden className="text-node-available">
                     ✓
                   </span>
@@ -287,7 +287,7 @@ export function DrillPanel({
                 </li>
               ))}
               {result.points_missed.map((point) => (
-                <li key={`miss-${point}`} className="flex items-baseline gap-1.5 text-[11px] text-slate-400">
+                <li key={`miss-${point}`} className={`flex items-baseline gap-1.5 text-mini ${MUTED}`}>
                   <span aria-hidden className="text-node-decaying">
                     ×
                   </span>
@@ -299,10 +299,10 @@ export function DrillPanel({
           )}
 
           {result.rescue_bonus_applied && (
-            <p className="mt-1.5 text-[11px] text-node-decaying">Rescue bonus applied — you brought this back.</p>
+            <p className="mt-1.5 text-mini text-node-decaying">Rescue bonus applied — you brought this back.</p>
           )}
           {result.level_up && (
-            <p className="mt-1.5 text-[11px] font-semibold text-node-mastered">
+            <p className="mt-1.5 text-mini font-semibold text-node-mastered">
               Skill level up! {result.level_before} → {result.level_after}
             </p>
           )}
@@ -312,7 +312,7 @@ export function DrillPanel({
             </p>
           )}
           {result.unlocked_node_ids.length > 0 && (
-            <p className="mt-1.5 text-[11px] text-node-available">
+            <p className="mt-1.5 text-mini text-node-available">
               {unlockMessage(
                 result.unlocked_node_ids,
                 (id) => snapshot?.nodes.find((candidate) => candidate.id === id)?.title,

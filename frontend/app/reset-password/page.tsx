@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { api } from "@/lib/api";
-import { BUTTON_PRIMARY, INPUT, NAV_LINK } from "@/lib/ui";
+import { BUTTON_PRIMARY, INPUT, MUTED, NAV_LINK } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<main className="flex min-h-screen items-center justify-center px-4 text-sm text-slate-400">Loading…</main>}>
+    <Suspense fallback={<main className={`flex min-h-screen items-center justify-center px-4 text-sm ${MUTED}`}>Loading…</main>}>
       <ResetPasswordView />
     </Suspense>
   );
@@ -50,7 +50,7 @@ function ResetPasswordView() {
     <main id="main-content" tabIndex={-1} className="flex min-h-screen items-center justify-center px-4 outline-none">
       <div className="w-full max-w-sm">
         <h1 className="font-display text-2xl font-semibold tracking-tight">Choose a new password</h1>
-        <p className="mt-2 text-sm text-slate-400">This link can be used once and expires shortly.</p>
+        <p className={`mt-2 text-sm ${MUTED}`}>This link can be used once and expires shortly.</p>
         <form onSubmit={submit} className="mt-6 space-y-3">
           <label htmlFor="password" className="sr-only">New password</label>
           <input

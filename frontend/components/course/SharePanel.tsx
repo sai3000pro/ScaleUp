@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import type { ShareStatus } from "@/lib/types";
 
 /**
@@ -69,13 +69,13 @@ export function SharePanel({ courseId, shareable }: { courseId: string; shareabl
   return (
     <div className={CARD}>
       <h2 className="font-display text-sm font-semibold">Share this course</h2>
-      <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+      <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>
         Anyone with the link can preview the skill tree and copy it to their own
         account. Your progress never travels with a copy.
       </p>
 
       {!shareable && (
-        <p className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/10 p-2.5 text-[11px] text-amber-200">
+        <p className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/10 p-2.5 text-mini text-amber-200">
           Sharing unlocks once the course is ready.
         </p>
       )}
@@ -99,11 +99,11 @@ export function SharePanel({ courseId, shareable }: { courseId: string; shareabl
               value={link}
               onFocus={(event) => event.target.select()}
               aria-label="Share link"
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-[11px] text-slate-300"
+              className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-mini text-slate-300"
             />
             <button
               type="button"
-              className={`shrink-0 rounded-md px-2.5 py-1.5 text-[11px] font-semibold ${BUTTON_SECONDARY}`}
+              className={`shrink-0 rounded-md px-2.5 py-1.5 text-mini font-semibold ${BUTTON_SECONDARY}`}
               onClick={() => {
                 void navigator.clipboard.writeText(link).then(() => {
                   setCopied(true);
@@ -118,11 +118,11 @@ export function SharePanel({ courseId, shareable }: { courseId: string; shareabl
               type="button"
               disabled={busy}
               onClick={() => void revoke()}
-              className={`text-[11px] text-rose-300 hover:text-rose-200 ${FOCUS_RING}`}
+              className={`text-mini text-rose-300 hover:text-rose-200 ${FOCUS_RING}`}
             >
               Revoke link
             </button>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-tiny text-slate-500">
               {copied ? "Link copied — send it to anyone." : "Shown once; regenerate to get a new one."}
             </span>
           </div>
@@ -130,7 +130,7 @@ export function SharePanel({ courseId, shareable }: { courseId: string; shareabl
       )}
 
       {error && (
-        <p role="alert" className="mt-2 text-[11px] text-rose-400">
+        <p role="alert" className="mt-2 text-mini text-rose-400">
           {error}
         </p>
       )}

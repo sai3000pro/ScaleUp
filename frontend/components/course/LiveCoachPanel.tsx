@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Exercise } from "@/lib/types";
-import { CARD, FOCUS_RING } from "@/lib/ui";
+import { CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 
 interface LiveCoachPanelProps {
   courseId: string;
@@ -70,7 +70,7 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
           <span className="text-base">🎙️</span>
           <h2 className="text-sm font-bold text-slate-100">Live Coaching Studio</h2>
         </div>
-        <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-400 border border-rose-500/20">
+        <span className="rounded-full bg-rose-500/10 px-2 py-0.5 text-tiny font-bold text-rose-400 border border-rose-500/20">
           Real-time AI
         </span>
       </header>
@@ -82,7 +82,7 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
       )}
 
       {loading ? (
-        <p className="text-xs text-slate-400 py-4 text-center animate-pulse">
+        <p className={`text-xs ${MUTED} py-4 text-center animate-pulse`}>
           Loading practice studio…
         </p>
       ) : (
@@ -93,7 +93,7 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
                   the exercise is the lesson the learner already picked. */}
               {pinned ? null : (
               <div>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                <label className={`block text-mini font-semibold uppercase tracking-wider ${MUTED} mb-1`}>
                   Select Drill / Exercise
                 </label>
                 <select
@@ -115,16 +115,16 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
                 <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-xs space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-slate-100 truncate">{selectedExercise.title}</span>
-                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/20 shrink-0">
+                    <span className="rounded bg-rose-500/10 px-1.5 py-0.5 text-tiny font-bold text-rose-300 border border-rose-500/20 shrink-0">
                       {selectedExercise.tempo_bpm} BPM
                     </span>
                   </div>
 
-                  <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed">
+                  <p className="text-mini text-slate-300 line-clamp-2 leading-relaxed">
                     {selectedExercise.instructions || "Play the exercise cleanly with steady pulse."}
                   </p>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                  <div className={`flex items-center justify-between text-tiny ${MUTED} pt-1 border-t border-slate-800/80`}>
                     <span>{selectedExercise.duration_beats} Beats</span>
                     <span>Level {selectedExercise.difficulty}/5</span>
                   </div>
@@ -132,7 +132,7 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
               )}
 
               {/* Studio Feature Checklist */}
-              <ul className="space-y-1 text-[11px] text-slate-300 pt-1">
+              <ul className="space-y-1 text-mini text-slate-300 pt-1">
                 <li className="flex items-center gap-1.5">
                   <span className="text-rose-400 font-bold">✓</span> Fullscreen Fretboard & Keyboard
                 </li>
@@ -154,7 +154,7 @@ export function LiveCoachPanel({ courseId, refreshKey, exerciseId, pinned = fals
               </Link>
             </>
           ) : (
-            <p className="text-xs text-slate-400 py-2">
+            <p className={`text-xs ${MUTED} py-2`}>
               No live coaching drills available for this course yet.
             </p>
           )}

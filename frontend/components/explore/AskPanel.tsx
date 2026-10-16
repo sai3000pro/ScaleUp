@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { AskAnswer, DocumentSummary } from "@/lib/types";
 import { sourceLabel } from "@/lib/source";
-import { BUTTON_PRIMARY, CARD, FOCUS_RING, INPUT } from "@/lib/ui";
+import { BUTTON_PRIMARY, CARD, FOCUS_RING, INPUT, MUTED } from "@/lib/ui";
 import { useGraphStore } from "@/stores/useGraphStore";
 
 /**
@@ -57,7 +57,7 @@ export function AskPanel({
   return (
     <div className={CARD}>
       <h2 className="font-display text-sm font-semibold">Ask this course</h2>
-      <p className="mt-0.5 text-[11px] text-slate-400">
+      <p className={`mt-0.5 text-mini ${MUTED}`}>
         Answered from your own uploaded material, with the nodes it came from.
       </p>
 
@@ -88,7 +88,7 @@ export function AskPanel({
 
           {answer.citations.length > 0 ? (
             <>
-              <h3 className="mt-3 text-[11px] font-semibold text-slate-400">From these skills</h3>
+              <h3 className={`mt-3 text-mini font-semibold ${MUTED}`}>From these skills</h3>
               <ul className="mt-1 space-y-1.5">
                 {answer.citations.map((citation) => (
                   <li key={`${citation.node_id}:${citation.chunk_id}`}>
@@ -97,11 +97,11 @@ export function AskPanel({
                       onClick={() => focusNode(citation.node_id)}
                       className={`block w-full rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2 text-left transition hover:border-slate-700 hover:bg-slate-800/60 ${FOCUS_RING}`}
                     >
-                      <span className="block text-[11px] font-semibold text-sky-300">{citation.node_title}</span>
-                      <span className="mt-0.5 block text-[11px] italic leading-snug text-slate-400">
+                      <span className="block text-mini font-semibold text-sky-300">{citation.node_title}</span>
+                      <span className={`mt-0.5 block text-mini italic leading-snug ${MUTED}`}>
                         “{citation.quote}”
                       </span>
-                      <span className="mt-0.5 block text-[10px] text-slate-500">
+                      <span className="mt-0.5 block text-tiny text-slate-500">
                         {sourceLabel(citation.source, documents)}
                       </span>
                     </button>
@@ -113,7 +113,7 @@ export function AskPanel({
             /* No citations is a real answer, and the two reasons for it are
                different problems: nothing was retrieved at all, or the model
                would not claim anything from what it was given. */
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-mini text-slate-500">
               {answer.retrieved === 0
                 ? "Nothing was retrieved for this question — the course may not be indexed yet."
                 : `No claim in this answer could be traced to the ${answer.retrieved} passages retrieved.`}

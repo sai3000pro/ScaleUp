@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 import type { ExerciseNote } from "@/lib/types";
+import { MUTED } from "@/lib/ui";
 
 interface GuitarFretboardProps {
   activeNote?: ExerciseNote | null;
@@ -89,7 +90,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+        <div className={`flex items-center gap-3 text-mini ${MUTED}`}>
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Active Note
           </span>
@@ -102,13 +103,13 @@ export const GuitarFretboard = memo(function GuitarFretboard({
       <div className="overflow-x-auto pb-2">
         <div className="min-w-[620px] select-none">
           {/* Fret Number Header */}
-          <div className="grid grid-cols-13 gap-0 text-center text-[10px] font-mono text-slate-500 mb-1">
+          <div className="grid grid-cols-13 gap-0 text-center text-tiny font-mono text-slate-500 mb-1">
             <div className="w-10">Nut (0)</div>
             {Array.from({ length: TOTAL_FRETS }, (_, i) => (
               <div key={i + 1} className="flex-1 font-semibold">
                 {i + 1}
                 {FRET_MARKERS.includes(i + 1) && (
-                  <span className="ml-0.5 text-slate-400">{i + 1 === 12 ? "••" : "•"}</span>
+                  <span className={`ml-0.5 ${MUTED}`}>{i + 1 === 12 ? "••" : "•"}</span>
                 )}
               </div>
             ))}
@@ -133,7 +134,7 @@ export const GuitarFretboard = memo(function GuitarFretboard({
                     <span className="font-mono text-xs font-bold text-amber-300 w-3">{guitarString.name}</span>
                     {chordFret !== undefined && (
                       <span
-                        className={`text-[10px] font-bold ${
+                        className={`text-tiny font-bold ${
                           chordFret === -1 ? "text-rose-400" : chordFret === 0 ? "text-emerald-400" : "text-slate-500"
                         }`}
                       >
@@ -184,15 +185,15 @@ export const GuitarFretboard = memo(function GuitarFretboard({
 
                           {/* Active Note Indicator */}
                           {isActive ? (
-                            <div className="z-20 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white font-black text-[11px] shadow-lg shadow-red-500/80 animate-bounce">
+                            <div className="z-20 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white font-black text-mini shadow-lg shadow-red-500/80 animate-bounce">
                               {activeNote?.note_name ?? "●"}
                             </div>
                           ) : isChordFinger ? (
-                            <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950 font-bold text-[10px] shadow-md shadow-amber-400/50">
+                            <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-slate-950 font-bold text-tiny shadow-md shadow-amber-400/50">
                               {detectedChord?.fingers[6 - guitarString.stringNum] || "●"}
                             </div>
                           ) : isTarget ? (
-                            <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/80 text-white font-bold text-[10px] shadow">
+                            <div className="z-20 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/80 text-white font-bold text-tiny shadow">
                               ●
                             </div>
                           ) : null}

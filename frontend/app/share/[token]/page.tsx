@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { BUTTON_PRIMARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_PRIMARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import type { Course, SharePreview } from "@/lib/types";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -65,14 +65,14 @@ export default function SharePage() {
       tabIndex={-1}
       className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-10 outline-none"
     >
-      <Link href="/" className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}>
+      <Link href="/" className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}>
         ← ScaleUp
       </Link>
 
       {error && (
         <div className={`mt-6 ${CARD}`}>
           <h1 className="font-display text-lg font-semibold">This share link is no longer valid</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className={`mt-2 text-sm ${MUTED}`}>
             {error} The course owner may have revoked it, or the link may be mistyped.
           </p>
         </div>
@@ -81,12 +81,12 @@ export default function SharePage() {
       {preview && (
         <div className={`mt-6 ${CARD}`}>
           <h1 className="font-display text-xl font-semibold tracking-tight">{preview.title}</h1>
-          {preview.description && <p className="mt-2 text-sm leading-relaxed text-slate-400">{preview.description}</p>}
+          {preview.description && <p className={`mt-2 text-sm leading-relaxed ${MUTED}`}>{preview.description}</p>}
           <p className="mt-2 text-xs text-slate-500">
             Shared by {preview.shared_by} · {preview.node_count} skills · {preview.edge_count} prerequisite links
           </p>
 
-          <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950 p-3 text-[11px] leading-relaxed text-slate-400">
+          <div className={`mt-4 rounded-lg border border-slate-800 bg-slate-950 p-3 text-mini leading-relaxed ${MUTED}`}>
             Copying takes the whole course into your account — the skill tree,
             the source material, and the question bank. Progress is never
             copied: you start this tree fresh and earn it yourself.
@@ -112,7 +112,7 @@ export default function SharePage() {
 
       {!preview && !error && (
         <div className={`mt-6 ${CARD}`}>
-          <p className="text-sm text-slate-400">Loading the course…</p>
+          <p className={`text-sm ${MUTED}`}>Loading the course…</p>
         </div>
       )}
     </main>

@@ -27,7 +27,7 @@ import { LeaderboardPanel } from "@/components/course/LeaderboardPanel";
 import { SharePanel } from "@/components/course/SharePanel";
 import { AskPanel } from "@/components/explore/AskPanel";
 import type { CourseDetail, CoursePath, ProgressAnalytics } from "@/lib/types";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 export interface CourseDrawerProps {
   open: boolean;
@@ -91,7 +91,7 @@ export function CourseDrawer({
           <button
             type="button"
             onClick={onClose}
-            className={`rounded-md px-2 py-1 text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+            className={`rounded-md px-2 py-1 text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
           >
             Close
           </button>

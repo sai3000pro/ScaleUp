@@ -28,6 +28,8 @@ FRONTEND_KEYS = {
     # credential controls them -- see that dataclass.
     "NEXT_PUBLIC_MEDIAPIPE_WASM_BASE",
     "NEXT_PUBLIC_MEDIAPIPE_MODEL_BASE",
+    # The deployed frontend's public origin; `metadataBase` for social-preview URLs.
+    "NEXT_PUBLIC_SITE_URL",
 }
 
 

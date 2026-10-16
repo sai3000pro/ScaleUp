@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { MUTED } from "@/lib/ui";
 
 interface PianoKeyboardProps {
   activeMidi?: number | null;
@@ -70,9 +71,9 @@ export const PianoKeyboard = memo(function PianoKeyboard({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-200">🎹 Piano Keyboard</span>
-          <span className="text-[11px] text-slate-400">(Middle C = C4)</span>
+          <span className={`text-mini ${MUTED}`}>(Middle C = C4)</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+        <div className={`flex items-center gap-3 text-mini ${MUTED}`}>
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> Active Key
           </span>
@@ -109,7 +110,7 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                   )}
 
                   {/* Note Label */}
-                  <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[10px] font-extrabold font-mono text-neutral-700 group-hover:text-red-600">
+                  <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-tiny font-extrabold font-mono text-neutral-700 group-hover:text-red-600">
                     {key.name}
                   </span>
                 </button>
@@ -145,7 +146,7 @@ export const PianoKeyboard = memo(function PianoKeyboard({
                   }`}
                   title={`${key.name} (MIDI ${key.midi})`}
                 >
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold font-mono text-neutral-300 group-hover:text-white transition-colors">
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-nano font-bold font-mono text-neutral-300 group-hover:text-white transition-colors">
                     {key.name}
                   </span>
                 </button>

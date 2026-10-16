@@ -4,6 +4,7 @@ import { Sora, Space_Grotesk } from "next/font/google";
 import "@/app/globals.css";
 import { AuthGate } from "@/components/AuthGate";
 import { ExpBar } from "@/components/ExpBar";
+import { SITE_URL } from "@/lib/landingMetadata";
 
 /**
  * Sora for display, Space Grotesk for body -- matching portfolio-site.
@@ -29,6 +30,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  // Resolves the relative Open Graph URL and image path into absolute ones,
+  // which is what a crawler needs. @spec LAND-ROUTE-005
+  metadataBase: new URL(SITE_URL),
   title: "ScaleUp",
   description: "Pick a skill, play it, and get coached on what you actually played.",
   icons: {

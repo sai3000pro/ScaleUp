@@ -72,4 +72,10 @@ export const NAV_LINK = "rounded-sm hover:text-slate-200 " + FOCUS_RING;
  * matters, since that is where most muted text in the app sits. `slate-500`
  * clears it on both too, but only just, so it is the floor rather than the
  * default; `slate-600` and lighter are surface colours, not ink.
+ *
+ * Components name this constant rather than the class, so the next palette
+ * move finds every muted line by one reference instead of a source grep.
+ *
+ * @spec UI-SYS-004
  */
+export const MUTED = "text-slate-400";

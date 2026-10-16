@@ -70,10 +70,11 @@ style, so keyboard users get the browser default on some elements and nothing
 distinguishable on others. It is `focus-visible` rather than `focus`, so a mouse click does
 not leave a ring behind.
 
-Adoption is uneven, and the unevenness is measurable: `CARD` and `FOCUS_RING` are used in 18
-components each and `BUTTON_PRIMARY` in 12 — while `MUTED` is used in none, and the
-low-contrast class it exists to replace appears 58 times. A constant nobody uses is not a
-design system; it is a comment (`UI-SYS-004`, `UI-SYS-005`).
+Where a constant exists for a purpose, components name it rather than restating its classes:
+`MUTED` is the only way muted ink is set, so the next palette move finds every muted line
+through one reference. This is enforced rather than hoped for — `frontend/lib/designSystem.test.ts`
+scans the source tree and fails on a raw use of the class `MUTED` wraps (`UI-SYS-004`,
+`UI-SYS-005`).
 
 ## Typography
 
@@ -82,9 +83,12 @@ and bound to `--font-display` / `--font-body` with a system fallback stack. Head
 light (300) and tightly tracked; uppercase micro-labels take positive letter-spacing so they
 stay readable at the sizes the HUD uses them at.
 
-There is no declared type scale. Sizes are chosen per component, largely as fractional `rem`
-values in the shell stylesheet, which is why the HUD carries eight distinct font sizes
-between 0.48rem and 0.95rem (`UI-TYPE-004`).
+Sizes come from one declared scale: Tailwind's `xs`–`3xl` steps, plus four quieter steps the
+HUD and chips need — `nano` 0.5rem, `micro` 0.5625rem, `tiny` 0.625rem, `mini` 0.6875rem —
+declared in the stylesheet's `@theme` block. A rule says `var(--text-mini)`, a component says
+`text-mini`; neither picks a size of its own, and the same source scan that guards `MUTED`
+fails on an arbitrary pixel size in a component or a fixed `rem` outside the scale in the
+stylesheet (`UI-TYPE-004`).
 
 ## The skill graph
 
@@ -155,6 +159,15 @@ naming it and saying what it asks for; the same card carries the state (ready,
 cleared, or locked, with a best score where one exists) and the test card
 carries the test's state. Nothing floats beneath the discs: the chain is read
 by walking it, one standing point at a time.
+
+The graph is built to a compiled textbook's size, not only a curriculum's. Routes share one
+vertex buffer and one draw call however many there are (`frontend/lib/graphEdges.ts`), with
+each route's fade baked into its vertex colour by blending toward the ground rather than
+through a per-line blend pass; the layout wraps a tier wider than `MAX_ROW` into rows set
+back in depth; and no more than `MAX_PROJECTED_LABELS` titles are projected into the DOM on a
+frame — nearest first — because the collision pass is quadratic in its candidates and a
+frame has no room for more titles than that anyway. A 360-skill, 660-route tree lays out and
+packs well inside a frame budget in `frontend/lib/graphEdges.test.ts` (`UI-GRAPH3D-010`).
 
 ## Traversal: walking the tree in place
 
@@ -299,6 +312,16 @@ declared `order` for each element, rather than scrolling sideways or wrapping ar
 This is stated as intent because reflow ordering that emerges from source order is the kind
 of thing that silently changes when a component is moved.
 
+Wide content scrolls inside its own container — the HUD navigation, a fretboard, a keyboard,
+the coach's exercise strip each carry `overflow-x: auto` — and the body itself clips sideways
+overflow, so nothing a component spills can make the page scroll horizontally
+(`UI-SHELL-007`). `clip` rather than `hidden` so the body never becomes a scroll container
+that swallows `position: sticky`.
+
+Panels visible together report distinct figures. On a course page the guided path owns the
+completed-over-total count, so the progress panel beside it does not repeat a mastered
+count; the same number in two panels reads as two measurements (`UI-PAGE-007`).
+
 Ambient decoration — the plus-mark grid and the blossom wash — is painted in CSS gradients on
 a fixed pseudo-element, masked to fade out down the page. It loads no asset, sits at
 `z-index: -1`, and is `pointer-events: none`.
@@ -329,6 +352,9 @@ invisible until someone looks at that one component.
 |---|---|---|---|
 | Repainting the interface | Invert the ramps in the token layer | Rewrite component classes; add a parallel light ramp | Inversion is one file and repaints everything coherently; the rewrite measures at 643 changes with a long tail of misses. A parallel ramp means every component must be taught which of the two to read. |
 | Node-state colour | Declared twice, with the mirror documented in both files | Resolve canvas colours from CSS custom properties at runtime | The canvas takes values, not classes. Runtime resolution puts a `getComputedStyle` call in a path that runs per edge, per frame. |
+| Graph edges | One `LineSegments` buffer, fade baked into vertex colour | One `Line` and material per edge | A draw call per edge is what makes a textbook-sized tree stutter; `LineBasicMaterial` cannot vary opacity per vertex, and over an opaque ground a pre-blended colour is indistinguishable. |
+| Sideways overflow | `overflow-x: clip` on `body`; wide controls scroll in their own containers | `overflow-x: hidden` on `body` | `hidden` makes the body a scroll container and breaks `position: sticky` on the HUD. |
+| Type scale | Tailwind steps plus four named sub-`xs` steps in `@theme` | Replace Tailwind's scale wholesale | Existing `text-xs`..`text-3xl` sites keep their meaning; only the sizes below `xs` had nowhere to go. |
 | Theme switching | A single committed light theme | Follow `prefers-color-scheme`; offer a toggle | The inverted-ramp technique produces exactly one palette. Supporting two requires the parallel-ramp approach the inversion was chosen over. |
 | Shell styling | Stylesheet rules rather than shared classes | Inline utility classes like the rest of the app | The HUD is one composition used once, not a pattern used many times. A shared constant for a single use site is indirection without reuse. |
 | Focus indication | `focus-visible`, one shared constant | `focus`; per-component styles | `focus` rings on mouse clicks, which reads as a bug and gets deleted by the next person. One constant is what makes "every control has a focus style" checkable at all. |

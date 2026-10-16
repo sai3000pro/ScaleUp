@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { difficultyLabel, nodeStyle } from "@/lib/nodeState";
 import { dueLabelShort, isDueSoon } from "@/lib/time";
 import type { GraphNode } from "@/lib/types";
+import { MUTED } from "@/lib/ui";
 
 export interface SkillNodeData extends Record<string, unknown> {
   node: GraphNode;
@@ -218,25 +219,25 @@ export function SkillNodeCard({ data, selected }: NodeProps) {
           on the canvas in place of the dependency structure. It is provenance,
           so it is shown as provenance: quiet, above the name, gating nothing. */}
       {node.section && !structural && (
-        <p className="mt-1.5 max-w-[132px] truncate text-center font-body text-[8px] uppercase tracking-wider text-slate-500">
+        <p className="mt-1.5 max-w-[132px] truncate text-center font-body text-nano uppercase tracking-wider text-slate-500">
           {node.section}
         </p>
       )}
 
       <p
         className={[
-          "max-w-[132px] text-center font-display text-[11px] leading-tight",
+          "max-w-[132px] text-center font-display text-mini leading-tight",
           node.section && !structural ? "" : "mt-1.5",
           // A heading is still a real label -- it is how you find your way
           // around -- so it stays legible, but at normal weight and one step
           // dimmer, so a rank of them does not out-shout the skills below.
-          structural ? "font-medium text-slate-400" : "font-semibold",
+          structural ? `font-medium ${MUTED}` : "font-semibold",
           locked ? "text-slate-600" : structural ? "" : "text-slate-100",
         ].join(" ")}
       >
         {node.title}
       </p>
-      <p className="text-center font-body text-[9px] uppercase tracking-wide text-slate-400">{caption}</p>
+      <p className={`text-center font-body text-micro uppercase tracking-wide ${MUTED}`}>{caption}</p>
 
       <Handle type="source" position={Position.Bottom} className="!h-1 !w-1 !border-0 !bg-transparent" />
     </div>

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ANALYZER_ID, MicRecorder } from "@/lib/pitchDetection";
 import type { Exercise, PerformanceAttempt, PerformedNote } from "@/lib/types";
-import { BUTTON_PRIMARY, BUTTON_RECORDING, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_PRIMARY, BUTTON_RECORDING, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 interface PracticePanelProps {
@@ -221,12 +221,12 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 id="practice-heading" className="font-display text-sm font-semibold">Practice</h2>
-          <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
+          <p className={`mt-1 text-mini leading-relaxed ${MUTED}`}>
             Record with your microphone and the browser turns the take into note observations, or run the
             deterministic fixture. Both use the same submission contract.
           </p>
         </div>
-        <span className="rounded-full border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-[10px] text-cyan-300">
+        <span className="rounded-full border border-cyan-900/60 bg-cyan-950/20 px-2 py-1 text-tiny text-cyan-300">
           {listening ? "LIVE" : "DTW"}
         </span>
       </div>
@@ -235,7 +235,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
         <>
           {pinned ? null : (
             <>
-              <label className="mt-3 block text-[11px] text-slate-400" htmlFor="practice-exercise">
+              <label className={`mt-3 block text-mini ${MUTED}`} htmlFor="practice-exercise">
                 Exercise
               </label>
               <select
@@ -265,7 +265,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
           >
             {listening ? "Stop and score recording" : "Record performance"}
           </button>
-          <p className="mt-1.5 text-center text-[10px] text-slate-500">{RECORD_STATUS_LABEL[recordStatus] ?? "Ready"}</p>
+          <p className="mt-1.5 text-center text-tiny text-slate-500">{RECORD_STATUS_LABEL[recordStatus] ?? "Ready"}</p>
           <button
             type="button"
             disabled={loading || selectedExerciseId === null || listening}
@@ -285,7 +285,7 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
           <p className="font-medium text-emerald-200">
             Score {Math.round(result.overall_score * 100)}% · +{result.exp_awarded} EXP
           </p>
-          <p className="mt-1 text-[11px] text-slate-400">
+          <p className={`mt-1 text-mini ${MUTED}`}>
             {result.metrics.pitch_accuracy !== null && (
               <>Pitch {Math.round(result.metrics.pitch_accuracy * 100)}% · </>
             )}
@@ -298,30 +298,30 @@ export function PracticePanel({ courseId, refreshKey, onCompleted, exerciseId, p
             )}
           </p>
           {result.metrics.low_confidence && (
-            <p className="mt-1 text-[11px] text-amber-300">Low-confidence alignment — EXP was withheld for review.</p>
+            <p className="mt-1 text-mini text-amber-300">Low-confidence alignment — EXP was withheld for review.</p>
           )}
-          <p className="mt-2 text-[11px] italic leading-relaxed text-slate-300">
+          <p className="mt-2 text-mini italic leading-relaxed text-slate-300">
             {result.feedback.persona}: {result.feedback.summary}
           </p>
           {result.feedback.strengths.length > 0 && (
-            <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-[11px] text-emerald-300/90">
+            <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-mini text-emerald-300/90">
               {result.feedback.strengths.map((strength) => (
                 <li key={strength}>{strength}</li>
               ))}
             </ul>
           )}
           {result.feedback.corrections.length > 0 && (
-            <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-[11px] text-amber-300/90">
+            <ul className="mt-1.5 list-inside list-disc space-y-0.5 text-mini text-amber-300/90">
               {result.feedback.corrections.map((correction) => (
                 <li key={correction}>{correction}</li>
               ))}
             </ul>
           )}
-          <p className="mt-2 text-[11px] text-cyan-300">Next: {result.feedback.next_step}</p>
+          <p className="mt-2 text-mini text-cyan-300">Next: {result.feedback.next_step}</p>
           <button
             type="button"
             onClick={() => void speakFeedback()}
-            className="mt-2 w-full rounded-md border border-violet-800 bg-violet-950/40 px-3 py-1.5 text-[11px] font-medium text-violet-200 transition hover:bg-violet-900/50"
+            className="mt-2 w-full rounded-md border border-violet-800 bg-violet-950/40 px-3 py-1.5 text-mini font-medium text-violet-200 transition hover:bg-violet-900/50"
           >
             Speak feedback
           </button>

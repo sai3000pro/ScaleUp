@@ -29,7 +29,7 @@ import { useState } from "react";
 import { LiveCoachPanel } from "@/components/course/LiveCoachPanel";
 import { PracticePanel } from "@/components/course/PracticePanel";
 import { TechniquePanel } from "@/components/course/TechniquePanel";
-import { FOCUS_RING } from "@/lib/ui";
+import { FOCUS_RING, MUTED } from "@/lib/ui";
 
 const VIEWS = [
   { key: "live", label: "Live coach", hint: "Be coached while you play" },
@@ -63,10 +63,10 @@ export function LessonWorkspace({ courseId, exerciseId, refreshKey, onCompleted 
             aria-controls={`lesson-view-${option.key}`}
             title={option.hint}
             onClick={() => setView(option.key)}
-            className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition ${FOCUS_RING} ${
+            className={`flex-1 rounded-md px-2 py-1.5 text-mini font-semibold transition ${FOCUS_RING} ${
               view === option.key
                 ? "bg-sky-500 text-slate-950"
-                : "text-slate-400 hover:text-slate-200"
+                : `${MUTED} hover:text-slate-200`
             }`}
           >
             {option.label}

@@ -24,7 +24,7 @@ import Link from "next/link";
 
 import { Quartz } from "@/components/mascot/Quartz";
 import { Reveal } from "@/components/landing/Reveal";
-import { HARD_PARTS, SYSTEM_FIGURES } from "@/lib/landingEvidence";
+import { HARD_PARTS, PUBLISHED_INSTRUMENTS, SYSTEM_FIGURES } from "@/lib/landingEvidence";
 
 export interface LandingPageProps {
   /** Where the primary action goes. Signed-in readers get their courses. */
@@ -194,6 +194,13 @@ export function LandingPage({ primaryHref, primaryLabel, signedIn }: LandingPage
               measured off the recording; a model may improve the wording and never touches
               them.
             </p>
+          </Reveal>
+
+          {/* The instruments by name, from the same manifest the count comes
+              from, so the number above can be checked against the list below it.
+              @spec LAND-STORY-010 */}
+          <Reveal>
+            <p className="landing-body landing-narrow">Shipping today: {PUBLISHED_INSTRUMENTS.join(", ")}.</p>
           </Reveal>
 
           <dl className="landing-figures">

@@ -35,7 +35,7 @@ import type {
   ProgressAnalytics,
   SkillRealm,
 } from "@/lib/types";
-import { BUTTON_SECONDARY, CARD, FOCUS_RING } from "@/lib/ui";
+import { BUTTON_SECONDARY, CARD, FOCUS_RING, MUTED } from "@/lib/ui";
 import { canOpenLesson } from "@/lib/lesson";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 import { useGraphStore } from "@/stores/useGraphStore";
@@ -80,7 +80,7 @@ export default function CoursePage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-[1400px] px-4 py-6 text-sm text-slate-400">
+        <main className={`mx-auto max-w-[1400px] px-4 py-6 text-sm ${MUTED}`}>
           Loading…
         </main>
       }
@@ -329,7 +329,7 @@ function CourseView() {
         <div>
           <Link
             href="/courses"
-            className={`text-xs text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+            className={`text-xs ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
           >
             ← All courses
           </Link>
@@ -339,13 +339,13 @@ function CourseView() {
           {/* @spec CURR-GOAL-013 -- everything here is playable; the label is
               what stops a proposed tree claiming an authority it does not have. */}
           {course?.curriculum_provenance && (
-            <p className="mt-1 text-[11px] text-slate-400">
+            <p className={`mt-1 text-mini ${MUTED}`}>
               {PROVENANCE_LABEL[course.curriculum_provenance] ??
                 "Built from your goal."}
             </p>
           )}
           {snapshot && (
-            <p className="mt-1 text-xs text-slate-400">
+            <p className={`mt-1 text-xs ${MUTED}`}>
               {counts.skills} skills · {counts.ready} ready · {counts.fading}{" "}
               fading · {counts.mastered} mastered
               {counts.sections > 0 && ` · ${counts.sections} sections`}
@@ -391,7 +391,7 @@ function CourseView() {
           </button>
           <details className="max-w-xs">
             <summary
-              className={`cursor-pointer text-[11px] text-slate-400 hover:text-slate-200 ${FOCUS_RING}`}
+              className={`cursor-pointer text-mini ${MUTED} hover:text-slate-200 ${FOCUS_RING}`}
             >
               What the orbs mean
             </summary>
@@ -399,7 +399,7 @@ function CourseView() {
               {LEGEND.map(({ key, style }) => (
                 <div
                   key={key}
-                  className="flex items-baseline gap-1.5 text-[11px]"
+                  className="flex items-baseline gap-1.5 text-mini"
                 >
                   <span
                     aria-hidden
@@ -407,7 +407,7 @@ function CourseView() {
                     style={{ backgroundColor: style.accent }}
                   />
                   <dt className="shrink-0 text-slate-300">{style.label}</dt>
-                  <dd className="text-slate-400">— {style.hint}</dd>
+                  <dd className={`${MUTED}`}>— {style.hint}</dd>
                 </div>
               ))}
             </dl>
@@ -418,7 +418,7 @@ function CourseView() {
       <div className="mt-5 grid min-h-0 gap-4 lg:flex-1 lg:grid-cols-[1fr_340px]">
         <div className="relative hidden min-h-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:block lg:h-full max-lg:h-[70vh]">
           {status === "loading" && (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+            <div className={`flex h-full items-center justify-center text-sm ${MUTED}`}>
               Loading the tree…
             </div>
           )}
@@ -429,8 +429,8 @@ function CourseView() {
           )}
           {status === "ready" && snapshot && snapshot.nodes.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-center">
-              <p className="text-sm text-slate-400">No skills yet.</p>
-              <p className="text-xs text-slate-400">
+              <p className={`text-sm ${MUTED}`}>No skills yet.</p>
+              <p className={`text-xs ${MUTED}`}>
                 Name an instrument you want to learn and the tree builds itself.
               </p>
             </div>
@@ -481,7 +481,7 @@ function CourseView() {
 
         <div className="md:hidden">
           {status === "loading" && (
-            <p className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-400">
+            <p className={`rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm ${MUTED}`}>
               Loading the skill outline…
             </p>
           )}
@@ -495,8 +495,8 @@ function CourseView() {
           )}
           {status === "ready" && snapshot && snapshot.nodes.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950 p-6 text-center">
-              <p className="text-sm text-slate-400">No skills yet.</p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className={`text-sm ${MUTED}`}>No skills yet.</p>
+              <p className={`mt-1 text-xs ${MUTED}`}>
                 Name an instrument you want to learn and the tree builds itself.
               </p>
             </div>
@@ -528,43 +528,43 @@ function CourseView() {
                     so for any graph four levels deep or less difficulty IS
                     depth + 1, exactly. Two names for one number read as two
                     independent judgements. */}
-                <p className="mt-0.5 text-[11px] text-slate-400">
+                <p className={`mt-0.5 text-mini ${MUTED}`}>
                   {selected.assessable
                     ? `${stateStyle(selected.progress.state).label} · ${difficultyLabel(selected.difficulty)}`
                     : STRUCTURAL_STYLE.label}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                <p className={`mt-2 text-xs leading-relaxed ${MUTED}`}>
                   {selected.summary}
                 </p>
 
                 {selected.assessable && (
-                  <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-mini">
                     <div>
-                      <dt className="text-slate-400">Level</dt>
+                      <dt className={`${MUTED}`}>Level</dt>
                       <dd className="text-slate-300">
                         {selected.progress.level} / 5
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-slate-400">EXP</dt>
+                      <dt className={`${MUTED}`}>EXP</dt>
                       <dd className="text-slate-300">
                         {selected.progress.exp}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-slate-400">Mastery</dt>
+                      <dt className={`${MUTED}`}>Mastery</dt>
                       <dd className="text-slate-300">
                         {Math.round(selected.progress.mastery * 100)}%
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-slate-400">Proficiency now</dt>
+                      <dt className={`${MUTED}`}>Proficiency now</dt>
                       <dd className="text-slate-300">
                         {Math.round(selected.progress.proficiency * 100)}%
                       </dd>
                     </div>
                     <div className="col-span-2">
-                      <dt className="text-slate-400">Next review</dt>
+                      <dt className={`${MUTED}`}>Next review</dt>
                       {/* The schedule, forwards. `due_at` has been on the
                           contract since the first version and was rendered
                           nowhere, so the app showed time only after a skill had
@@ -584,7 +584,7 @@ function CourseView() {
                 )}
 
                 {selected.blocked_by.length > 0 && (
-                  <p className="mt-3 text-[11px] text-slate-400">
+                  <p className={`mt-3 text-mini ${MUTED}`}>
                     Blocked by{" "}
                     {selected.blocked_by.map((b) => b.title).join(", ")}
                   </p>
@@ -595,14 +595,14 @@ function CourseView() {
                     className="mt-3 rounded-lg border border-emerald-900/50 bg-emerald-950/10 p-2.5"
                     aria-label="Skill source evidence"
                   >
-                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                    <h3 className="text-tiny font-semibold uppercase tracking-wide text-emerald-300">
                       Skill source evidence
                     </h3>
                     <ul className="mt-2 space-y-2">
                       {selected.sources.map((source) => (
                         <li
                           key={source.chunk_id}
-                          className="text-[10px] text-slate-400"
+                          className={`text-tiny ${MUTED}`}
                         >
                           <p className="text-slate-300">
                             {sourceName(source.document_id)} · page{" "}
@@ -625,7 +625,7 @@ function CourseView() {
                     className="mt-3 rounded-lg border border-amber-900/50 bg-amber-950/10 p-2.5"
                     aria-label="Prerequisite edge evidence"
                   >
-                    <h3 className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                    <h3 className="text-tiny font-semibold uppercase tracking-wide text-amber-300">
                       Prerequisite evidence
                     </h3>
                     <ul className="mt-2 space-y-2">
@@ -636,7 +636,7 @@ function CourseView() {
                         return (
                           <li
                             key={edge.id}
-                            className="text-[10px] text-slate-400"
+                            className={`text-tiny ${MUTED}`}
                           >
                             <p className="text-slate-300">
                               {prerequisite?.title ?? "Prerequisite"} ·{" "}
@@ -678,7 +678,7 @@ function CourseView() {
                 </div>
               </>
             ) : (
-              <p className="text-xs text-slate-400">
+              <p className={`text-xs ${MUTED}`}>
                 Select a skill to see its details, prerequisites, and progress.
               </p>
             )}
