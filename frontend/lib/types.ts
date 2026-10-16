@@ -414,6 +414,7 @@ export interface PerformanceMetrics {
   /** Physical form from browser landmarks. Null when the camera was off. */
   posture_accuracy: number | null;
   posture_version: string | null;
+  posture_threshold_version: string | null;
   /** Per-reading confidence and status; absent when posture was not measured. */
   posture_metrics: PostureMetricResult[] | null;
   /** Which pitch detector produced the observations. */

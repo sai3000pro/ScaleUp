@@ -193,6 +193,9 @@ class PerformanceMetricBundle(Base):
     # row means.
     posture_accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
     posture_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Which threshold bands the browser judged the metrics against. Distinct from
+    # the reducer version: bands are retuned far more often than the geometry.
+    posture_threshold_version: Mapped[str | None] = mapped_column(String(40), nullable=True)
     # The per-metric readings INCLUDING their raw geometry. Without the raw
     # value a threshold retune is impossible after the fact, which would make
     # every posture number permanently unauditable.

@@ -84,38 +84,67 @@ def test_registry_reproduces_the_direct_scorer(case: str) -> None:
     if case == "drums":
         direct = score_drums_performance(
             score,
-            [DrumHit(onset_seconds=o.onset_seconds, duration_seconds=o.duration_seconds,
-                     confidence=o.confidence, drum=o.drum) for o in observations],
+            [
+                DrumHit(onset_seconds=o.onset_seconds, duration_seconds=o.duration_seconds, confidence=o.confidence, drum=o.drum)
+                for o in observations
+            ],
             evaluator_version=version,
         )
     elif case == "guitar":
         direct = score_guitar_performance(
             score,
-            [GuitarNote(pitch_midi=o.pitch_midi, onset_seconds=o.onset_seconds,
-                        duration_seconds=o.duration_seconds, confidence=o.confidence,
-                        string=o.string, fret=o.fret) for o in observations],
+            [
+                GuitarNote(
+                    pitch_midi=o.pitch_midi,
+                    onset_seconds=o.onset_seconds,
+                    duration_seconds=o.duration_seconds,
+                    confidence=o.confidence,
+                    string=o.string,
+                    fret=o.fret,
+                )
+                for o in observations
+            ],
             evaluator_version=version,
         )
     elif case == "guitar-chords":
         direct = score_guitar_chords_performance(
             score,
-            [GuitarNote(pitch_midi=o.pitch_midi, onset_seconds=o.onset_seconds,
-                        duration_seconds=o.duration_seconds, confidence=o.confidence,
-                        string=o.string, fret=o.fret) for o in observations],
+            [
+                GuitarNote(
+                    pitch_midi=o.pitch_midi,
+                    onset_seconds=o.onset_seconds,
+                    duration_seconds=o.duration_seconds,
+                    confidence=o.confidence,
+                    string=o.string,
+                    fret=o.fret,
+                )
+                for o in observations
+            ],
             evaluator_version=version,
         )
     elif case == "violin":
         direct = score_violin_performance(
             score,
-            [ViolinNote(pitch_midi=o.pitch_midi, onset_seconds=o.onset_seconds,
-                        duration_seconds=o.duration_seconds, confidence=o.confidence,
-                        cents_deviation=o.cents_deviation) for o in observations],
+            [
+                ViolinNote(
+                    pitch_midi=o.pitch_midi,
+                    onset_seconds=o.onset_seconds,
+                    duration_seconds=o.duration_seconds,
+                    confidence=o.confidence,
+                    cents_deviation=o.cents_deviation,
+                )
+                for o in observations
+            ],
             evaluator_version=version,
         )
     else:
         performed = [
-            PerformedNote(pitch_midi=o.pitch_midi, onset_seconds=o.onset_seconds,
-                          duration_seconds=o.duration_seconds, confidence=o.confidence)
+            PerformedNote(
+                pitch_midi=o.pitch_midi,
+                onset_seconds=o.onset_seconds,
+                duration_seconds=o.duration_seconds,
+                confidence=o.confidence,
+            )
             for o in observations
         ]
         direct = (
@@ -187,9 +216,13 @@ class TestWeighting:
         observations = _observations(xml)
         clean = evaluate("piano", version, score, observations)
         slouched = evaluate(
-            "piano", version, score, observations,
-            posture=PostureScore(posture_accuracy=0.0, posture_version="posture-v1",
-                                 measured_metric_count=2, low_confidence=False),
+            "piano",
+            version,
+            score,
+            observations,
+            posture=PostureScore(
+                posture_accuracy=0.0, posture_version="posture-v1", measured_metric_count=2, low_confidence=False
+            ),
         )
         assert slouched.overall_score < clean.overall_score
         assert slouched.posture_accuracy == 0.0
@@ -217,9 +250,7 @@ class TestPostureReduction:
     def test_an_uncounted_metric_does_not_drag_the_score_down(self) -> None:
         """A camera that cannot see the hips must not read as bad posture."""
         seen_only = [PostureMetric(key="shoulder_level", value=0.9, confidence=1.0, status="good")]
-        with_blind_spot = seen_only + [
-            PostureMetric(key="torso_lean", value=0.0, confidence=0.0, status="not_detected")
-        ]
+        with_blind_spot = seen_only + [PostureMetric(key="torso_lean", value=0.0, confidence=0.0, status="not_detected")]
         assert score_posture(seen_only, version="v1").posture_accuracy == pytest.approx(
             score_posture(with_blind_spot, version="v1").posture_accuracy
         )
@@ -299,3 +330,12 @@ def test_a_take_that_sent_no_levels_scores_exactly_as_it_did_before_dynamics() -
 
     assert result.dynamics_accuracy is None
     assert result.overall_score == 1.0
+
+
+# @spec EVAL-WEIGHT-005
+@pytest.mark.parametrize("instrument", sorted(INSTRUMENT_WEIGHTS))
+def test_every_weight_row_records_its_rationale(instrument: str) -> None:
+    weights = INSTRUMENT_WEIGHTS[instrument]
+    assert len(weights.rationale) > 40, f"{instrument} weights carry no recorded rationale"
+    declared = [weights.pitch, weights.rhythm, weights.technique, weights.intonation, weights.dynamics, weights.posture]
+    assert abs(sum(declared) - 1.0) < 1e-9

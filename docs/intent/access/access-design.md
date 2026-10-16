@@ -62,9 +62,10 @@ The preview itself is unauthenticated by design: the token is the credential.
 
 ## Current state versus intent
 
-**One router imports a model directly.** A single route module imports an ORM entity rather
-than receiving it from the authentication dependency — the only such case among sixteen
-routers, against the layering rule that routers do not reach past services.
+**Every router takes its principal from `app.api.deps`.** The bearer dependency and the
+WebSocket handshake share `principal_for_token`, so a transport that cannot carry an
+`Authorization` header still resolves the account through the one seam; `tests/test_layering.py`
+fails a router that imports `app.models` at all.
 
 **Development sign-in provisions data.** The development sign-in path creates its account on
 demand, which means the affordance is not purely an authentication shortcut. Its blast
@@ -89,11 +90,9 @@ radius is bounded by the flag that registers it, but the behaviour is broader th
 
 ### Deferred
 
-1. **The router that imports a model directly** should take it from the dependency, or the
-   layering rule should record this as an accepted exception.
-2. **Whether development sign-in should provision accounts** or only authenticate existing
+1. **Whether development sign-in should provision accounts** or only authenticate existing
    ones.
-3. **Deployment-time requirements are enforced in two places** with overlapping but
+2. **Deployment-time requirements are enforced in two places** with overlapping but
    non-identical rule sets — a hard startup check and an advisory report. Which is
    authoritative is unresolved; see `operations`.
 

@@ -622,6 +622,7 @@ _RESPONSE_PAYLOADS: dict[type[BaseModel], dict[str, Any]] = {
             "dynamics_contrast": None,
             "posture_accuracy": None,
             "posture_version": None,
+            "posture_threshold_version": None,
             "posture_metrics": None,
             "analyzer": None,
             "tempo_bpm": 120.0,

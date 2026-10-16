@@ -18,7 +18,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **ACCESS-AUTH-005**: The system shall answer a failed sign-in without revealing whether the account exists.
 - [D] **ACCESS-AUTH-006**: No token issued by the system shall be stored in a form that can be replayed.
 - [x] **ACCESS-AUTH-007**: Where development sign-in is disabled, its route shall not be registered at all.
-- [ ] **ACCESS-AUTH-008**: The system shall refuse to start with a placeholder signing secret when hosted.
+- [x] **ACCESS-AUTH-008**: The system shall refuse to start with a placeholder signing secret when hosted.
 
 ## Sessions
 
@@ -57,4 +57,4 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **ACCESS-OWN-001**: When a caller requests a resource they do not own, the system shall answer as though it does not exist rather than as forbidden.
 - [x] **ACCESS-OWN-002**: The system shall scope every course, document, attempt and recording query to its owner.
 - [x] **ACCESS-OWN-003**: The system shall permit an owner to delete their own recordings permanently.
-- [ ] **ACCESS-OWN-004**: A route shall obtain the authenticated principal from its dependency rather than importing a persistence entity directly.
+- [x] **ACCESS-OWN-004**: A route shall obtain the authenticated principal from its dependency rather than importing a persistence entity directly.

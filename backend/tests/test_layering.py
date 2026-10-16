@@ -16,6 +16,8 @@ Two directions are checked:
   * `app/domain/` imports nothing else from `app`.  (PROG-DAG-001)
   * `app/api/routers/` does not touch SQLAlchemy directly, so query construction
     stays in the service and repository layers.
+  * `app/api/routers/` does not import `app.models`: a route receives its
+    principal from `app.api.deps` and everything else from a service.  (ACCESS-OWN-004)
 
 Both are import-graph facts, so they are read off the AST rather than trusted.
 """
@@ -82,6 +84,20 @@ def test_routers_do_not_construct_queries() -> None:
 
     assert not offenders, (
         "Routers must not touch SQLAlchemy. Query construction belongs in the service and "
-        "repository layers, so a route stays a translation between HTTP and a service call.\n  "
-        + "\n  ".join(offenders)
+        "repository layers, so a route stays a translation between HTTP and a service call.\n  " + "\n  ".join(offenders)
+    )
+
+
+# @spec ACCESS-OWN-004
+def test_routers_do_not_import_persistence_entities() -> None:
+    offenders: list[str] = []
+
+    for path in sorted(ROUTERS.rglob("*.py")):
+        for module, lineno in _imported_modules(path):
+            if module == "app.models" or module.startswith("app.models."):
+                offenders.append(f"{path.relative_to(APP_ROOT.parent)}:{lineno} imports {module}")
+
+    assert not offenders, (
+        "Routers must not import ORM entities. The authenticated principal comes from "
+        "`app.api.deps` and every other object comes back from a service call.\n  " + "\n  ".join(offenders)
     )

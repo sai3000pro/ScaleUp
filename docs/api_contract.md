@@ -766,6 +766,7 @@ type PerformanceAttempt = {
     dynamics_contrast: number | null;
     posture_accuracy: number | null; // null when camera-derived posture was not measured
     posture_version: string | null;
+    posture_threshold_version: string | null; // bands the browser judged against
     posture_metrics: {
       key: string;
       value: number;

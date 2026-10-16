@@ -66,7 +66,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **EVAL-WEIGHT-002**: The system shall renormalise its weights across the dimensions actually present.
 - [x] **EVAL-WEIGHT-003**: When no optional dimension is present, the overall score shall equal the score the base evaluator produced, unchanged.
 - [x] **EVAL-WEIGHT-004**: The system shall record which dimensions contributed to a bundle.
-- [ ] **EVAL-WEIGHT-005**: Each weight in the instrument weight table shall carry a recorded rationale.
+- [x] **EVAL-WEIGHT-005**: Each weight in the instrument weight table shall carry a recorded rationale.
 
 ## Live matching
 

@@ -213,6 +213,7 @@ class PerformanceMetricsOut(BaseModel):
     dynamics_contrast: float | None = None
     posture_accuracy: float | None = None
     posture_version: str | None = None
+    posture_threshold_version: str | None = None
     posture_metrics: list[PostureMetricOut] | None = None
     analyzer: str | None = None
     tempo_bpm: float | None

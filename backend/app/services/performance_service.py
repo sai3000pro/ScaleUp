@@ -618,6 +618,7 @@ async def submit_attempt(
             dynamics_contrast=result.dynamics_contrast,
             posture_accuracy=result.posture_accuracy,
             posture_version=result.posture_version,
+            posture_threshold_version=None if payload.posture is None else payload.posture.threshold_version,
             posture_metrics=posture_metrics,
             analyzer=payload.analyzer,
             tempo_bpm=result.tempo_bpm,
