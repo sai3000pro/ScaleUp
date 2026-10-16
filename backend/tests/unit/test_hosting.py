@@ -47,7 +47,7 @@ def test_nothing_detected_on_a_plain_environment() -> None:
     assert detect_hosting({}) is None
 
 
-# @spec OPS-CONFIG-003, OPS-CONFIG-009, OPS-CONFIG-011
+# @spec ACCESS-AUTH-008, OPS-CONFIG-003, OPS-CONFIG-009, OPS-CONFIG-011
 def test_hosted_refuses_a_placeholder_jwt_secret(monkeypatch) -> None:
     monkeypatch.setenv("RENDER", "true")
     with pytest.raises(ValueError) as caught:

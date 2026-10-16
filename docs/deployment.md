@@ -68,7 +68,7 @@ docker run --rm -p 8080:8080 backend-image
 # Worker command; the worker must run in a long-lived worker runtime.
 docker run --rm backend-image \
   celery -A app.tasks.celery_app worker --loglevel=INFO \
-  -Q default,ingest,llm,graph
+  -Q default,ingest
 ```
 
 ## Required production prerequisites
@@ -157,7 +157,7 @@ gcloud run worker-pools replace deploy/cloud-run/worker-pool.yaml \
 The worker command is:
 
 ```text
-celery -A app.tasks.celery_app worker --loglevel=INFO -Q default,ingest,llm,graph
+celery -A app.tasks.celery_app worker --loglevel=INFO -Q default,ingest
 ```
 
 Do not omit the queue list. A worker consuming only `default` leaves ingest work

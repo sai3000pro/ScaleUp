@@ -97,9 +97,9 @@ under a comment asserting the two match. `MAX_FRET` is 24 in `guitar.py:24` and 
 `score_generator.py:86`. Three unrelated intonation thresholds exist: 30 cents for scoring,
 20 cents for coaching text, and a coaching phrase that says "a quarter-tone", which is 50.
 
-**The weight table carries no rationale.** `INSTRUMENT_WEIGHTS` decides what a performance
-is worth, and no individual number in it is justified. Only the renormalisation property is
-argued for.
+**Every weight row carries its rationale in the table.** `ScoreWeights.rationale` is a field,
+not a comment, so the reasoning travels with the numbers and a test fails a row without one.
+The rows sum to one before renormalisation.
 
 ## Decisions & Alternatives
 
@@ -129,14 +129,12 @@ argued for.
    missed-note / extra-note / silence, per instrument.
 3. **Whether the four alignment cores should be unified.** They are identical today by
    authorship. Unifying them is a real refactor; leaving them is a real drift risk.
-4. **The weight table is unjustified.** Whether piano pitch is worth 0.45 and rhythm 0.30 is
-   the single most consequential set of numbers in the product, and no rationale is recorded.
-5. **Polyphonic scoring is unexercised.** Chord-event grouping exists for guitar and has
+4. **Polyphonic scoring is unexercised.** Chord-event grouping exists for guitar and has
    never been fed real polyphony, because the capture path is monophonic.
-6. **Live-versus-batch divergence is recorded and unread.** Every live take stores its
+5. **Live-versus-batch divergence is recorded and unread.** Every live take stores its
    matched, missed and extra counts specifically so the online matcher's quality is
    measurable. Nobody has looked at the numbers.
-7. **`score_generator.py:453`** documents a rock-groove kick/snare placement that the code
+6. **`score_generator.py:453`** documents a rock-groove kick/snare placement that the code
    at 457-462 does not produce.
 
 ## References

@@ -65,7 +65,12 @@ export interface PostureThresholds {
 
 /**
  * Initial guesses, every one of them. Angles are degrees; ratios are fractions
- * of body scale. `target` semantics are encoded by the rule, not here.
+ * of body scale. `target` semantics are encoded by the rule, not here. Every
+ * key here is computed by a rule in some rule set: a band nothing measures is
+ * a promise the camera cannot keep. Drumstick grip has no band for that reason
+ * -- the stick occludes exactly the fingers it would read.
+ *
+ * @spec OBS-POSE-012
  */
 export const DEFAULT_THRESHOLDS: PostureThresholds = {
   torso_lean: { good: 8, fail: 20 },
@@ -83,7 +88,6 @@ export const DEFAULT_THRESHOLDS: PostureThresholds = {
   elbow_symmetry: { good: 15, fail: 40 },
   seat_posture: { good: 8, fail: 25 },
   wrist_height_symmetry: { good: 0.08, fail: 0.2 },
-  grip_openness: { good: 0.12, fail: 0.35 },
 };
 
 function clamp(value: number, lower: number, upper: number): number {

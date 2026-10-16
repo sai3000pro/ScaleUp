@@ -176,3 +176,12 @@ describe("rule-set coverage", () => {
     expect(banjo).toEqual((POSTURE_RULES.guitar ?? []).map((rule) => rule.key));
   });
 });
+
+describe("threshold bands", () => {
+  // @spec OBS-POSE-012
+  it("declares no band that no rule computes", () => {
+    const computed = new Set(Object.values(POSTURE_RULES).flatMap((rules) => rules.map((rule) => rule.key)));
+    const orphaned = Object.keys(DEFAULT_THRESHOLDS).filter((key) => !computed.has(key));
+    expect(orphaned).toEqual([]);
+  });
+});

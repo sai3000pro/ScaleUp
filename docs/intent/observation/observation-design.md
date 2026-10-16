@@ -250,8 +250,14 @@ store, and the selected-video surface reduces them into a bounded timeline and a
 skill-aware outcome. This proves the signal path and aggregation behavior, not the pedagogical
 correctness of the initial threshold bands.
 
-**`grip_openness` is a band with no rule.** A threshold is declared for it; no rule computes
-it. The drums rule set names three rules, and this is not one of them.
+**Every threshold band is computed by a rule.** `posture.test.ts` fails a key in
+`DEFAULT_THRESHOLDS` that no rule set measures. Drumstick grip has no band: the stick occludes
+the fingers the metric would read, so the drums set is seated posture, shoulder level and
+wrist-height symmetry, and nothing more is promised.
+
+**The submitted threshold version is persisted.** `PostureObservationIn.threshold_version`
+lands in `performance_metric_bundles.posture_threshold_version` beside the reducer's own
+`posture_version`, so a retune can tell which bands a stored take was judged against.
 
 ## Decisions & Alternatives
 
@@ -269,13 +275,14 @@ it. The drums rule set names three rules, and this is not one of them.
 | Visual outcomes | Pass, retry, or insufficient evidence | Binary pass/fail | A binary result must mislabel occlusion as either success or learner failure. |
 | Progression during local validation | No progression mutation; result remains local/exportable | Award EXP or unlock the named skill directly from the browser verdict | The thresholds are not teacher-validated, and bypassing the canonical attempt grade would create a second authority for mastery. |
 | Calibration bound | Clamp to half a band width | Unbounded per-learner shift | An unbounded baseline captured while slouching makes everything pass. |
+| Drumstick grip | No band, no rule | Compute openness from the pose model's thumb/index/pinky tips | Those are the landmarks a stick covers; the metric would read occlusion as form. |
 | Posture absent | Return `None`; weights redistribute | Score 0, or a neutral 0.5 | A take with no camera must score exactly as it would if posture had never existed. |
 
 ## Open Questions & Future Decisions
 
 ### Deferred
 
-1. **No threshold in this segment has been calibrated against real takes.** All 16 posture
+1. **No threshold in this segment has been calibrated against real takes.** All 15 posture
    bands, and every segmenter constant except the first three, are estimates. The
    persistence of raw values and `POSTURE_THRESHOLD_VERSION` exist to make the correction
    possible; the correction has not happened.
@@ -284,14 +291,7 @@ it. The drums rule set names three rules, and this is not one of them.
    recorded, and `reattackWindowFrames` is also 4, which may or may not be the reason.
 3. **The `good` cutoff of 0.7 is a bare literal in twelve places** across `posture.ts` and
    `technique.ts` rather than a named constant.
-4. **`grip_openness` is unimplemented by design or by omission — unknown.** A drumstick
-   occludes exactly the fingers the metric would measure, so a deliberate decision not to
-   ship it would be defensible, but no comment records one.
-5. **`PostureObservationIn.threshold_version` has no destination column.** The wire schema
-   accepts it; `performance_metric_bundles` persists only `posture_version`. As declared,
-   it is inbound data that goes nowhere traceable — which defeats the versioning that the
-   retune story depends on.
-6. **`usePostureStore` caps the wire payload at 12 metric keys** (`metrics.slice(0, 12)`)
+4. **`usePostureStore` caps the wire payload at 12 metric keys** (`metrics.slice(0, 12)`)
    with no stated rationale. The violin rule set has 6 rules and the shared set has 3, so
    the cap is not currently reached — but it is unexplained and would silently truncate a
    richer instrument.

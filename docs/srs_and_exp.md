@@ -2,7 +2,7 @@
 
 **Owner:** `backend/app/domain/srs.py`, `backend/app/domain/exp.py`, `backend/app/domain/states.py`
 **Consumer:** `grading_service`, `GET /api/courses/{id}/graph`, `GET /api/quests/daily`,
-and `frontend/lib/skill-tree/nodeState.ts` (which mirrors `states.py`)
+and `frontend/lib/nodeState.ts` (which mirrors `states.py`)
 
 Everything here is a pure function. No database, no clock reads inside the
 functions themselves — `now` is always a parameter, which is what makes the
@@ -113,7 +113,7 @@ Evaluated in order; first match wins.
 overdue *should* read as decaying. That urgency is the entire retention mechanic —
 if mastery were permanent the Daily Quest board would have nothing to say.
 
-The frontend mirrors this function in `lib/skill-tree/nodeState.ts` rather than
+The frontend mirrors this function in `lib/nodeState.ts` rather than
 trusting a server-sent string alone, so optimistic updates after a grade can
 recolour a node before the next fetch. The server's value is authoritative on
 reconcile.

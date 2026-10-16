@@ -40,7 +40,7 @@ tracked as `CAP-MIC-008`, `CAP-CAM-006` and `CAP-CAM-008`.
 - [x] **OBS-POSE-008**: The reducer shall report each metric's raw value and unit alongside its derived status.
 - [x] **OBS-POSE-009**: The reducer shall report the threshold version under which its metrics were derived.
 - [D] **OBS-POSE-010**: No posture rule shall derive a measurement from a landmark's depth coordinate.
-- [ ] **OBS-POSE-012**: Where the drums rule set declares a grip-openness threshold, a rule shall compute that metric or the threshold shall be withdrawn.
+- [x] **OBS-POSE-012**: Where the drums rule set declares a grip-openness threshold, a rule shall compute that metric or the threshold shall be withdrawn.
 - [x] **OBS-POSE-013**: Every instrument with a published curriculum shall have a declared posture rule set; no instrument shall reach the shared rules alone by omission.
 
 ## Hand technique
@@ -59,7 +59,7 @@ tracked as `CAP-MIC-008`, `CAP-CAM-006` and `CAP-CAM-008`.
 - [x] **OBS-RED-005**: When no metric qualifies, the server shall report posture accuracy as unmeasured rather than as zero.
 - [x] **OBS-RED-006**: When posture is unmeasured, the take shall score exactly as it would if posture had never been submitted.
 - [x] **OBS-RED-007**: The observation payload shall carry derived metrics only, and shall never carry landmarks or video.
-- [ ] **OBS-RED-008**: The server shall persist the threshold version submitted with an observation.
+- [x] **OBS-RED-008**: The server shall persist the threshold version submitted with an observation.
 
 ## Visual timeline
 

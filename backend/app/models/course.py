@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Text, Uuid, func
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, String, Text, Uuid, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -17,6 +17,16 @@ class Course(Base):
         CheckConstraint(
             "status IN ('draft', 'ingesting', 'ready', 'failed')",
             name="status_valid",
+        ),
+        # One learner copies a given course at most once; a second copy returns
+        # the first. Partial, so ordinary (uncopied) courses are unconstrained.
+        # @spec OPS-MIGRATE-007
+        Index(
+            "uq_courses_owner_copy",
+            "owner_id",
+            "copied_from_id",
+            unique=True,
+            postgresql_where=text("copied_from_id IS NOT NULL"),
         ),
     )
 

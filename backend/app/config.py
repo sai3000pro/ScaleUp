@@ -195,9 +195,9 @@ class Settings(BaseSettings):
 
     # ── pipeline ──────────────────────────────────────────────────────────
     #
-    # `local` keeps Docker development and offline tests self-contained. Cloud
-    # Run must use `gcs`: its writable filesystem is ephemeral, while the API
-    # and Celery worker need to see the same textbook bytes across instances.
+    # `local` keeps Docker development and offline tests self-contained. A
+    # deployed API must use `gcs`: a hosted filesystem is ephemeral, while the
+    # API and Celery worker need to see the same bytes across instances.
     storage_backend: str = "local"
     gcs_bucket: str = ""
     gcs_prefix: str = "learn-anything/sources"

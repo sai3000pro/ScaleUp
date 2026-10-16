@@ -22,6 +22,18 @@ bearer_scheme = HTTPBearer(auto_error=False)
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
+# @spec ACCESS-OWN-004
+async def principal_for_token(session: AsyncSession, token: str) -> User | None:
+    """The account behind an access token, or None when the token is bad or the
+    account is gone. The one place a router-side caller resolves a principal, so
+    a transport that cannot carry a bearer header (a WebSocket's first frame)
+    still goes through the same seam instead of touching the model itself."""
+    user_id = decode_access_token(token)
+    if user_id is None:
+        return None
+    return await session.get(User, user_id)
+
+
 # @spec ACCESS-AUTH-003, ACCESS-OWN-004
 async def get_current_user(
     session: DbSession,
@@ -36,13 +48,8 @@ async def get_current_user(
     if credentials is None:
         raise unauthorised
 
-    user_id = decode_access_token(credentials.credentials)
-    if user_id is None:
-        raise unauthorised
-
-    user = await session.get(User, user_id)
+    user = await principal_for_token(session, credentials.credentials)
     if user is None:
-        # Token is well-formed but the account is gone.
         raise unauthorised
 
     return user

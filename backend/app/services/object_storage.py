@@ -73,6 +73,32 @@ def storage_exists(storage_path: str) -> bool:
     return Path(storage_path).is_file()
 
 
+# @spec OPS-STORE-004
+def load_payload(storage_path: str) -> bytes:
+    """Read stored bytes back, whichever backend holds them."""
+    return Path(materialize_storage_path(storage_path)).read_bytes()
+
+
+# @spec OPS-STORE-004, OPS-STORE-005
+def delete_payload(storage_path: str) -> bool:
+    """Remove stored bytes; True when something was removed. Missing is not an error."""
+    if storage_path.startswith("gs://"):
+        parsed = urlparse(storage_path)
+        key = parsed.path.lstrip("/")
+        if parsed.netloc != get_settings().gcs_bucket or not key:
+            return False
+        blob = _gcs_bucket().blob(key)
+        if not blob.exists():
+            return False
+        blob.delete()
+        return True
+    path = Path(storage_path)
+    if not path.is_file():
+        return False
+    path.unlink()
+    return True
+
+
 # @spec OPS-STORE-002
 def materialize_storage_path(storage_path: str) -> str:
     """Return a parser-readable local path, downloading GCS objects when needed."""
@@ -101,4 +127,16 @@ def _content_type(extension: str) -> str:
         return "application/pdf"
     if extension == ".html":
         return "text/html; charset=utf-8"
+    if extension in AUDIO_MEDIA_TYPES:
+        return AUDIO_MEDIA_TYPES[extension]
     return "application/octet-stream"
+
+
+# Audio container extension -> media type, shared by recordings and voice artifacts.
+AUDIO_MEDIA_TYPES = {
+    ".webm": "audio/webm",
+    ".ogg": "audio/ogg",
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".m4a": "audio/mp4",
+}

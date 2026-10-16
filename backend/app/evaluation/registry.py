@@ -97,24 +97,90 @@ class EvaluationResult:
 @dataclass(frozen=True, slots=True)
 # @spec EVAL-WEIGHT-005
 class ScoreWeights:
+    """What a take is worth, dimension by dimension, and why.
+
+    `rationale` is part of the table, not a comment beside it: these are the most
+    consequential numbers in the product, and a weight whose reasoning is not
+    stored is a weight nobody can later argue with.
+    """
+
     pitch: float = 0.0
     rhythm: float = 0.0
     technique: float = 0.0
     intonation: float = 0.0
     dynamics: float = 0.0
     posture: float = 0.0
+    rationale: str = ""
 
 
 INSTRUMENT_WEIGHTS: dict[str, ScoreWeights] = {
-    "piano": ScoreWeights(pitch=0.45, rhythm=0.30, dynamics=0.15, posture=0.10),
-    "guitar": ScoreWeights(pitch=0.40, rhythm=0.25, technique=0.20, dynamics=0.05, posture=0.10),
-    "violin": ScoreWeights(pitch=0.35, rhythm=0.25, intonation=0.20, dynamics=0.10, posture=0.10),
-    "trumpet": ScoreWeights(pitch=0.45, rhythm=0.30, dynamics=0.15, posture=0.10),
-    "drums": ScoreWeights(rhythm=0.70, dynamics=0.15, posture=0.15),
-    # A banjo is a fretted, strummed string instrument: it is scored the way a
-    # guitar is, because the thing being measured -- pitch set, strum timing,
-    # fret position -- is the same thing.
-    "banjo": ScoreWeights(pitch=0.40, rhythm=0.25, technique=0.20, dynamics=0.05, posture=0.10),
+    "piano": ScoreWeights(
+        pitch=0.45,
+        rhythm=0.30,
+        dynamics=0.15,
+        posture=0.10,
+        rationale=(
+            "Fixed-pitch keyboard: a wrong key is the clearest error a beginner makes, so pitch leads; "
+            "rhythm is the next thing a listener notices; dynamics are written but secondary at this level; "
+            "posture is a small, steady nudge rather than a verdict."
+        ),
+    ),
+    "guitar": ScoreWeights(
+        pitch=0.40,
+        rhythm=0.25,
+        technique=0.20,
+        dynamics=0.05,
+        posture=0.10,
+        rationale=(
+            "Fretboard position is a real, measurable skill that pitch alone cannot see (the same note lives "
+            "on several strings), so technique takes a fifth; dynamics are nearly inaudible on a beginner's "
+            "strum and are weighted accordingly."
+        ),
+    ),
+    "violin": ScoreWeights(
+        pitch=0.35,
+        rhythm=0.25,
+        intonation=0.20,
+        dynamics=0.10,
+        posture=0.10,
+        rationale=(
+            "No frets: hitting the right note and hitting it in tune are separate skills, so intonation is "
+            "split out of pitch and the two together still lead; bowing makes dynamics more controllable "
+            "than on a plucked string."
+        ),
+    ),
+    "trumpet": ScoreWeights(
+        pitch=0.45,
+        rhythm=0.30,
+        dynamics=0.15,
+        posture=0.10,
+        rationale=(
+            "Partials are the beginner's problem -- the valves are right and the lip is wrong -- so pitch "
+            "leads as on piano; breath makes dynamics genuinely controllable; no fingering metric exists "
+            "because the camera cannot see the valves."
+        ),
+    ),
+    "drums": ScoreWeights(
+        rhythm=0.70,
+        dynamics=0.15,
+        posture=0.15,
+        rationale=(
+            "Pitch is inapplicable, not perfect, so it carries no weight at all; time is the instrument, "
+            "so rhythm takes most of the mark; stick height and seat are the technique the camera can see, "
+            "so posture is worth more here than anywhere else."
+        ),
+    ),
+    "banjo": ScoreWeights(
+        pitch=0.40,
+        rhythm=0.25,
+        technique=0.20,
+        dynamics=0.05,
+        posture=0.10,
+        rationale=(
+            "A fretted, strummed string instrument is scored the way a guitar is, because the thing being "
+            "measured -- pitch set, strum timing, fret position -- is the same thing."
+        ),
+    ),
 }
 
 
@@ -136,9 +202,7 @@ def combine(components: Mapping[str, float | None], weights: ScoreWeights) -> fl
         "posture": weights.posture,
     }
     present = {
-        name: (components[name], weight)
-        for name, weight in declared.items()
-        if weight > 0 and components.get(name) is not None
+        name: (components[name], weight) for name, weight in declared.items() if weight > 0 and components.get(name) is not None
     }
     total_weight = sum(weight for _, weight in present.values())
     if total_weight <= 0:
@@ -370,9 +434,7 @@ def evaluate(
     """
     if len(observations) > MAX_OBSERVED_NOTES:
         raise ValueError(f"At most {MAX_OBSERVED_NOTES} observed notes are allowed per scoring request.")
-    evaluator = EVALUATORS_BY_VERSION.get(evaluator_version) or EVALUATORS_BY_INSTRUMENT.get(
-        instrument, DEFAULT_EVALUATOR
-    )
+    evaluator = EVALUATORS_BY_VERSION.get(evaluator_version) or EVALUATORS_BY_INSTRUMENT.get(instrument, DEFAULT_EVALUATOR)
     fields, components, scorer_overall = evaluator(score, observations, evaluator_version)
     weights = INSTRUMENT_WEIGHTS.get(instrument, INSTRUMENT_WEIGHTS["piano"])
 
@@ -391,8 +453,7 @@ def evaluate(
         # scorers multiply an extra-note penalty into their overall score, and a
         # fresh weighted mean over the components alone would silently drop it.
         baseline = combine(components, weights)
-        enriched = combine({**components, "dynamics": dynamics.dynamics_accuracy, "posture": posture_accuracy},
-                           weights)
+        enriched = combine({**components, "dynamics": dynamics.dynamics_accuracy, "posture": posture_accuracy}, weights)
         if baseline is None or enriched is None or baseline <= 0:
             overall = scorer_overall
         else:

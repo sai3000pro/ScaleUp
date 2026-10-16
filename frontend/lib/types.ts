@@ -1,10 +1,16 @@
+import type { components } from "./apiSchema";
+
 /**
- * The literal mirror of docs/api_contract.md.
+ * The learner-facing view of docs/api_contract.md.
  *
- * There is no shared codegen between a Python backend and a TypeScript frontend
- * in stage 1, so that document is the type system between them. Change it there
- * first, then here.
+ * The server's published OpenAPI schema is exported to `lib/openapi.json`
+ * (`python scripts/export_openapi.py`) and `lib/apiSchema.ts` is generated from
+ * it (`npm run build:api-types`). `ApiSchemas` below is that generated surface.
+ * The interfaces in this file are the names the UI code reads by, narrowed where
+ * the wire type is a bare string; a backend test proves every one of them carries
+ * exactly the generated schema's fields, so none of them can drift from the server.
  */
+export type ApiSchemas = components["schemas"];
 
 /**
  * Every enum below comes over the wire as a bare `str` -- FastAPI serialises
@@ -414,6 +420,7 @@ export interface PerformanceMetrics {
   /** Physical form from browser landmarks. Null when the camera was off. */
   posture_accuracy: number | null;
   posture_version: string | null;
+  posture_threshold_version: string | null;
   /** Per-reading confidence and status; absent when posture was not measured. */
   posture_metrics: PostureMetricResult[] | null;
   /** Which pitch detector produced the observations. */

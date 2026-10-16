@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build:sprites": "tsx scripts/build-sprites.ts",
-    "build:curricula": "tsx scripts/build-curricula.ts"
+    "build:curricula": "tsx scripts/build-curricula.ts",
+    "build:api-types": "openapi-typescript lib/openapi.json -o lib/apiSchema.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",
@@ -33,6 +34,7 @@
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.0",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "openapi-typescript": "^7.13.0",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.23.12",

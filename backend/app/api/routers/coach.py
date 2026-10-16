@@ -7,8 +7,8 @@ Authentication is the one thing that cannot follow the usual pattern. Browsers
 cannot set an `Authorization` header on a WebSocket handshake, and putting a
 token in the query string writes a credential into every access log between the
 learner and the server. So the token arrives in the first frame instead, and it
-is the same access token `decode_access_token` already validates -- one auth
-seam, not two.
+resolved by the same `principal_for_token` seam the bearer dependency uses --
+one auth seam, not two.
 """
 
 from __future__ import annotations
@@ -17,9 +17,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket
 
-from app.api.deps import DbSession
-from app.core.security import decode_access_token
-from app.models import User
+from app.api.deps import DbSession, principal_for_token
 from app.schemas.coach import CLOSE_UNAUTHENTICATED, PROTOCOL_VERSION
 from app.services import coach_service
 
@@ -40,8 +38,7 @@ async def practice_coach(websocket: WebSocket, session: DbSession) -> None:
         await websocket.close(code=4426, reason="Unsupported coach protocol version.")
         return
 
-    user_id = decode_access_token(str(hello.get("token", "")))
-    user = None if user_id is None else await session.get(User, user_id)
+    user = await principal_for_token(session, str(hello.get("token", "")))
     if user is None:
         await websocket.close(code=CLOSE_UNAUTHENTICATED, reason="Not authenticated.")
         return
