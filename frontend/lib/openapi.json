@@ -5884,28 +5884,6 @@
         ]
       }
     },
-    "/api/auth/dev-login": {
-      "post": {
-        "description": "Hand out a token for the dev user, no password required.\n\nProvisions the user if it is missing rather than 404ing, because the row is\ndestroyed by every `pytest` run -- see `auth_service.ensure_dev_user`. When\nthis route exists at all, it works.",
-        "operationId": "dev_login_api_auth_dev_login_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Dev Login",
-        "tags": [
-          "dev"
-        ]
-      }
-    },
     "/api/auth/google/callback": {
       "get": {
         "operationId": "google_callback_api_auth_google_callback_get",

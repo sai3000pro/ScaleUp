@@ -118,7 +118,7 @@ share one); derived metrics for the life of their attempt, leaving only by owner
 list in each operator document must equal the set routing produces.
 
 **The client types descend from the published schema.** `scripts/export_openapi.py` writes
-the server's OpenAPI document to `frontend/lib/openapi.json`; `npm run build:api-types`
+the server's OpenAPI document to `frontend/lib/openapi.json` (dev-only routes are excluded from the schema, so it is identical in every environment); `npm run build:api-types`
 generates `frontend/lib/apiSchema.ts` from it. The hand-named interfaces the UI reads by are
 checked field-for-field against the generated schema, and the committed schema is checked
 against the running application, so neither can go stale unnoticed.

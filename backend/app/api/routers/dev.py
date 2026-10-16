@@ -15,7 +15,8 @@ from app.api.routers.auth import _set_refresh_cookie
 from app.schemas.auth import TokenResponse
 from app.services import auth_service
 
-router = APIRouter(prefix="/api/auth", tags=["dev"])
+# Dev-only; kept out of the published schema so the contract is the same in every environment.
+router = APIRouter(prefix="/api/auth", tags=["dev"], include_in_schema=False)
 
 
 @router.post("/dev-login", response_model=TokenResponse)

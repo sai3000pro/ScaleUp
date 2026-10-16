@@ -112,30 +112,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/dev-login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Dev Login
-         * @description Hand out a token for the dev user, no password required.
-         *
-         *     Provisions the user if it is missing rather than 404ing, because the row is
-         *     destroyed by every `pytest` run -- see `auth_service.ensure_dev_user`. When
-         *     this route exists at all, it works.
-         */
-        post: operations["dev_login_api_auth_dev_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/auth/google/callback": {
         parameters: {
             query?: never;
@@ -3733,26 +3709,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    dev_login_api_auth_dev_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
         };
