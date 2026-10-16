@@ -21,6 +21,7 @@ import re
 from dataclasses import dataclass
 
 from app.domain.dag import CandidateEdge
+from app.ingestion.confidence import INTRODUCES_CONFIDENCE
 from app.ingestion.parsers.base import TocEntry
 
 __all__ = [
@@ -240,7 +241,30 @@ def build_toc_nodes(entries: list[TocEntry], page_count: int) -> list[TocNode]:
     return nodes
 
 
-INTRODUCES_CONFIDENCE = 0.45
+
+
+# @spec CURR-PARSE-007
+def distinctive_entries(nodes: list[TocNode]) -> tuple[list[TocNode], list[TocNode]]:
+    """Split outline entries into those a learner could tell apart by title and the rest.
+
+    Section-level segmentation multiplies every entry into several nodes, so an
+    entry whose title is generic ("Introduction", "Exercises") or that another
+    entry already uses would multiply into indistinguishable nodes. Those are
+    folded back into their parent rather than segmented.
+    """
+    counts: dict[str, int] = {}
+    for node in nodes:
+        key = slugify(_normalise_for_matching(node.title))
+        counts[key] = counts.get(key, 0) + 1
+    kept: list[TocNode] = []
+    dropped: list[TocNode] = []
+    for node in nodes:
+        key = slugify(_normalise_for_matching(node.title))
+        if is_generic_section(node.title) or counts[key] > 1:
+            dropped.append(node)
+        else:
+            kept.append(node)
+    return kept, dropped
 
 
 def build_introduces_edges(nodes: list[TocNode], drillable: set[str]) -> list[CandidateEdge]:

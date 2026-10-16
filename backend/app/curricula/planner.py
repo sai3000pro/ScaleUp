@@ -42,6 +42,7 @@ from app.curricula.loader import (
     load_curriculum,
 )
 from app.domain.dag import CandidateEdge
+from app.ingestion.confidence import CATALOGUE_DEFAULT_CONFIDENCE
 
 _SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
@@ -258,7 +259,7 @@ def _edges_from_plan(raw_edges: Sequence[object], slugs: set[str]) -> tuple[Cand
                 raise PlanValidationError(f"{context}.{end} names a concept the plan does not define: {value!r}.")
         if prereq == target:
             raise PlanValidationError(f"{context} links a concept to itself.")
-        confidence = raw.get("confidence", 0.8)
+        confidence = raw.get("confidence", CATALOGUE_DEFAULT_CONFIDENCE)
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1:
             raise PlanValidationError(f"{context}.confidence must be between 0 and 1.")
         rationale = raw.get("rationale")
