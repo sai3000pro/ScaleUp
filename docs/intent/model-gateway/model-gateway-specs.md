@@ -69,8 +69,14 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **LLM-FAKE-004**: The deterministic providers shall satisfy the same response schemas as configured providers.
 - [x] **LLM-FAKE-005**: The deterministic provider shall stream incrementally, so streaming consumers are exercised without credentials.
 - [x] **LLM-FAKE-006**: The continuous integration suite shall run with no provider credentials configured.
-- [D] **LLM-FAKE-007**: No test shall depend on a live provider except those explicitly marked as opt-in.
+- [x] **LLM-FAKE-007**: No test shall depend on a live provider except those explicitly marked as opt-in.
 - [x] **LLM-FAKE-008**: Where the deterministic provider parses a renderer's output format, that format shall be shared mechanically rather than restated on each side.
+
+## The live gate
+
+- [x] **LLM-LIVE-001**: An opt-in suite shall exercise each credentialed provider against its real endpoint — a structured call, a streamed call and an embedding call — and shall skip rather than fail where the credential is absent.
+- [x] **LLM-LIVE-002**: A live test shall assert the provider that answered and non-zero reported usage, so a call that quietly fell to the deterministic floor fails the gate rather than passing it.
+- [x] **LLM-LIVE-003**: The continuous integration suite shall exclude the live gate by marker, not by path, so a live test placed anywhere is still never run without a credential.
 
 ## Embeddings
 

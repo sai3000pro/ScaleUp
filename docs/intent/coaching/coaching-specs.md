@@ -57,6 +57,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **COACH-VOICE-007**: The system shall use a latency-optimised model tier for live synthesis.
 - [x] **COACH-VOICE-008**: The system shall record voice synthesis spend in the same ledger as model calls.
 - [x] **COACH-VOICE-009**: A voice or live-coaching seam shall be reached only where its provider has been selected, not merely where a credential is present, so that a deployment running on the deterministic providers opens no connection and spends nothing.
+- [x] **COACH-VOICE-010**: An opt-in live test shall synthesise through the selected real voice provider, one-shot and per sentence, and shall assert audio was returned by that provider rather than by the floor — because synthesis never raises, a dead key is otherwise visible only as a coach who stopped speaking.
 
 ## Live session
 
