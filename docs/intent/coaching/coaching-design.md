@@ -111,6 +111,13 @@ a process-local dictionary, so it cannot see a take held by another replica.
 identifier, version and hash precisely so that "did accuracy change when the rubric was
 edited?" is answerable. The data accumulates and is never queried.
 
+**Voice synthesis is proven live, deliberately.** Because both synthesis seams degrade to
+text rather than raise, the only symptom of a dead ElevenLabs key is a coach who stopped
+speaking. `backend/tests/live/test_elevenlabs_live_gate.py` calls the real endpoint through
+`synthesize_feedback` and `stream_feedback` and asserts the artifact came from ElevenLabs
+as MP3; it is skipped without the key and excluded from CI with the model gateway's live
+gate.
+
 ## Decisions & Alternatives
 
 | Decision | Chosen | Alternatives Considered | Rationale |

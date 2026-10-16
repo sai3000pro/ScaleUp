@@ -181,6 +181,16 @@ groups the ledger by `(role, prompt_id, prompt_version)` into
 `by_prompt_version`, answering "did the edit help?" from the rows the ledger
 was always designed to feed.
 
+**The live gate is a separate, opt-in suite.** `backend/tests/live/` talks to the real
+providers — Gemini structured, streamed and embedding calls; ElevenLabs one-shot and
+per-sentence synthesis — and skips every test whose credential is not in the environment.
+Its `conftest.py` stamps the `live` marker on the whole directory, and CI deselects by that
+marker rather than by path, so the fast and integration jobs never spend. Each live test
+asserts the answering provider and non-zero reported usage: the fallback ladder means a
+dead key or retired model name degrades to the floor without an error anywhere else, and
+this is the one place that degradation is a failure. Run it deliberately before a deploy:
+`GEMINI_API_KEY=... ELEVENLABS_API_KEY=... pytest tests/live -m live -q`.
+
 ## Decisions & Alternatives
 
 | Decision | Chosen | Alternatives Considered | Rationale |
@@ -204,6 +214,7 @@ was always designed to feed.
 | A degraded call in the ledger | Recorded against the provider and model that actually served | Recorded against the role's nominal model | The cost table answers what a workload costs. A row naming a model that did not run makes it fiction, and hides how often the floor is carrying the product. |
 | Where the fallback ladder lives | Model fallback inside the provider; the deterministic floor as a wrapper in the factory | One try/except at each call site | A call site that handles provider outages is a call site that knows about providers, which is what role addressing exists to prevent. |
 | Call timeouts | Per workload lane, budgeting the whole call | One provider-wide value; per attempt | A provider-wide value has to suit the most patient caller, so the impatient ones inherit it. A per-attempt value quietly doubles when a fallback runs, so the number does not mean what it says. |
+| Proving the real providers | An opt-in live suite, excluded from CI by marker, asserting provider identity and usage | Trust the unit suite's mocks; a manual smoke before deploy | Mocks cannot notice a retired model name or a changed endpoint option, and the fallback ladder hides both in production. A manual smoke is skipped on the day it matters. |
 | Retrying a timed-out interactive call | Move to the fallback model | The SDK's own retry against the same model | Retrying the alias that is overloaded doubles the wait before reaching the answer the sibling had all along. |
 ## Open Questions & Future Decisions
 
