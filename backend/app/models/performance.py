@@ -43,7 +43,6 @@ class ScoreAsset(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
-
 class Exercise(Base):
     __tablename__ = "exercises"
     __table_args__ = (
@@ -62,7 +61,6 @@ class Exercise(Base):
     difficulty: Mapped[int] = mapped_column(Integer, default=3, server_default="3")
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-
 
 
 class PracticeSession(Base):
@@ -108,7 +106,6 @@ class PerformanceAttempt(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
-
 class StoredVoiceArtifact(Base):
     """Content-addressed cache of synthesized feedback audio.
 
@@ -128,7 +125,11 @@ class StoredVoiceArtifact(Base):
     provider: Mapped[str] = mapped_column(String(32))
     voice_key: Mapped[str] = mapped_column(String(80))
     format: Mapped[str] = mapped_column(String(8))
-    content: Mapped[bytes] = mapped_column(LargeBinary)
+    # Where the audio bytes live (object storage, keyed by cache_key). `content`
+    # is NULL for every artifact written since audio left the primary database;
+    # it is read only for rows that predate that move.
+    storage_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     spoken_text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
@@ -138,13 +139,12 @@ class Recording(Base):
 
     The browser's pitch detector extracts canonical notes, but the raw take is
     the evidence those notes came from -- preserved here, deduplicated by
-    (user, content sha256), and deletable by its owner. The bytes live in
-    Postgres like voice artifacts do; recordings are short demo clips, not
-    media-library uploads.
+    (user, content sha256), and deletable by its owner. The bytes live in object
+    storage under their content hash; this row is the owned, deletable handle.
     """
 
     __tablename__ = "recordings"
-    __table_args__ = (UniqueConstraint("user_id", "content_sha256", name="recording_user_hash"),)
+    __table_args__ = (UniqueConstraint("user_id", "content_sha256", name="uq_recordings_user_hash"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -156,7 +156,10 @@ class Recording(Base):
     format: Mapped[str] = mapped_column(String(16))
     byte_size: Mapped[int] = mapped_column(Integer)
     duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
-    content: Mapped[bytes] = mapped_column(LargeBinary)
+    # @spec OPS-STORE-004
+    storage_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Pre-move rows only; NULL for every recording stored since.
+    content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 

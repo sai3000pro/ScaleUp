@@ -212,7 +212,7 @@ python -m venv .venv
 # without it consumes only `default`, so every ingest sits queued for ever with
 # no error anywhere.
 cd backend
-.\.venv\Scripts\celery.exe -A app.tasks.celery_app worker --loglevel=INFO --pool=solo -Q default,ingest,llm,graph
+.\.venv\Scripts\celery.exe -A app.tasks.celery_app worker --loglevel=INFO --pool=solo -Q default,ingest
 ```
 
 ```powershell
@@ -389,7 +389,7 @@ between the two halves.
 - Celery must run `--pool=solo`. The default `prefork` pool relies on `fork()`,
   which Windows does not have. (Inside a Linux container `prefork` is correct —
   this constraint is specific to running the worker natively.)
-- Celery must also run `-Q default,ingest,llm,graph`. The failure mode when you
+- Celery must also run `-Q default,ingest`. The failure mode when you
   forget is silent: the job stays `queued` at 0%, the worker logs nothing, and the
   API is healthy. Check with
   `celery -A app.tasks.celery_app inspect active_queues`.

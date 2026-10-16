@@ -384,4 +384,4 @@ and no object storage is configured.
 **Uploads appear to work and never finish.** With no Celery worker the job row is
 created and stays at `queued` 0%. The API is healthy and nothing logs an error.
 This is the same silent failure a worker started without
-`-Q default,ingest,llm,graph` produces locally.
+`-Q default,ingest` produces locally.

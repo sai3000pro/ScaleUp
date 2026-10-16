@@ -89,10 +89,9 @@ class SkillDefinition(Base):
 
 class CurriculumNode(Base):
     __tablename__ = "curriculum_nodes"
-    __table_args__ = (
-        UniqueConstraint("curriculum_version_id", "skill_definition_id", name="curriculum_node_skill"),
-        Index("ix_curriculum_nodes_version_id", "curriculum_version_id"),
-    )
+    # (curriculum_version_id, skill_definition_id) is the primary key, which is
+    # already the one-skill-per-version guarantee; no separate unique constraint.
+    __table_args__ = (Index("ix_curriculum_nodes_version_id", "curriculum_version_id"),)
 
     curriculum_version_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("curriculum_versions.id", ondelete="CASCADE"), primary_key=True
@@ -116,11 +115,12 @@ class PrerequisiteCandidate(Base):
         ),
         CheckConstraint("confidence BETWEEN 0 AND 1", name="confidence_range"),
         Index("ix_prerequisite_candidates_version_status", "curriculum_version_id", "status"),
+        Index("ix_prerequisite_candidates_version_id", "curriculum_version_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     curriculum_version_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("curriculum_versions.id", ondelete="CASCADE"), index=True
+        ForeignKey("curriculum_versions.id", ondelete="CASCADE")
     )
     prereq_skill_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("skill_definitions.id", ondelete="RESTRICT"))
     target_skill_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("skill_definitions.id", ondelete="RESTRICT"))

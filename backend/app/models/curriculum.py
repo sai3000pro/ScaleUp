@@ -17,9 +17,7 @@ SOURCE_STATUSES = ("proposed", "approved", "ingesting", "ingested", "failed")
 
 class CurriculumProposal(Base):
     __tablename__ = "curriculum_proposals"
-    __table_args__ = (
-        CheckConstraint("status IN ('draft','approved','ingesting','completed')", name="status_valid"),
-    )
+    __table_args__ = (CheckConstraint("status IN ('draft','approved','ingesting','completed')", name="status_valid"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"), index=True)
@@ -50,9 +48,7 @@ class CurriculumSource(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    proposal_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("curriculum_proposals.id", ondelete="CASCADE"), index=True
-    )
+    proposal_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("curriculum_proposals.id", ondelete="CASCADE"), index=True)
     rank: Mapped[int] = mapped_column(Integer)
     title: Mapped[str] = mapped_column(String(300))
     url: Mapped[str] = mapped_column(Text)
@@ -63,7 +59,7 @@ class CurriculumSource(Base):
     quality_score: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
     quality_reasons: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")
     policy_status: Mapped[str] = mapped_column(String(24), default="review_required", server_default="review_required")
-    robots_url: Mapped[str] = mapped_column(Text)
+    robots_url: Mapped[str] = mapped_column(Text, default="", server_default="")
     robots_status: Mapped[str] = mapped_column(String(16), default="not_checked", server_default="not_checked")
     license_status: Mapped[str] = mapped_column(String(24), default="not_identified", server_default="not_identified")
     policy_reasons: Mapped[list] = mapped_column(JSONB, default=list, server_default="[]")

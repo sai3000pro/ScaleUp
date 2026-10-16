@@ -98,32 +98,35 @@ free of datastores is what keeps it fast enough that people run it.
 
 ## Current state versus intent
 
-**A promised migration was never written.** One revision deferred a naming-convention drift
-to "its own migration"; a later revision independently hit the same wall and also deferred.
-Neither was followed. Every future generated diff will re-propose dropping a unique index and
-rewriting four constraints — which makes this the one self-identified, twice-blocked, never
-resolved structural debt in the system, and a latent blocker for any schema change.
+**The schema and the models agree.** `alembic check` against a migrated database proposes
+nothing; the integration suite runs it. The naming-convention drift that two earlier
+revisions deferred is settled by one revision that moved the live schema to the models'
+form (a column declared `unique=True, index=True` is one unique index, not a constraint
+plus a non-unique index). Every constraint the code relies on -- including the partial
+unique index that makes "copy to my account" idempotent -- is declared on its model.
 
-**The chain has one degenerate merge**, whose second parent is already an ancestor. The head
-is single and the chain is otherwise linear.
+**Binary content lives in object storage.** Practice recordings and synthesised speech are
+written content-addressed through the storage backend and the row holds a `storage_path`;
+the former binary columns are nullable and read only for rows that predate the move.
 
-**Binary content lives in the primary database.** Practice recordings and synthesised speech
-are stored as large binary columns. The deployment document discusses object storage for
-document bytes and does not mention that audio grows the primary database.
+**Retention is a stated policy.** `retention_service.RETENTION_POLICY` names what is kept
+for how long: raw audio for thirty days, then rows and objects go together (an object is
+released only once no row still points at it, because content addressing lets two rows
+share one); derived metrics for the life of their attempt, leaving only by owner deletion.
 
-**An invariant is documented but not declared.** A model comment describes a partial unique
-index that does not appear in the model's table arguments; a schema elsewhere depends on that
-index existing. It exists, if at all, only in a migration.
+**Queue routing is tested.** Every registered task must resolve to a queue, and the queue
+list in each operator document must equal the set routing produces.
 
-**Thirteen documentation-versus-code disagreements** are catalogued, including three
-documents disagreeing on whether a scoring feature shipped and three disagreeing on the
-deployment platform. Two documented request contracts are contradicted by the repository's
-own scripts.
+**The client types descend from the published schema.** `scripts/export_openapi.py` writes
+the server's OpenAPI document to `frontend/lib/openapi.json`; `npm run build:api-types`
+generates `frontend/lib/apiSchema.ts` from it. The hand-named interfaces the UI reads by are
+checked field-for-field against the generated schema, and the committed schema is checked
+against the running application, so neither can go stale unnoticed.
 
-**No test exercises real queue routing.** Background work runs eagerly under test, so the
-routing configuration — and the operator instruction that depends on it — is untested by
-construction. That instruction is now wrong: it names queues nothing routes to, which the
-routing module's own comment describes as dead letterboxes.
+**Documentation is held to the code.** A test fails when a document names a repository
+file that does not exist. The catalogued disagreements -- the worker queue list, the
+deployment platform named in comments, whether guitar chord scoring shipped, a moved
+frontend module -- are reconciled.
 
 ## Decisions & Alternatives
 
@@ -143,26 +146,17 @@ routing module's own comment describes as dead letterboxes.
 | Readiness probe | Reports, with a bounded timeout | Raises on failure | An endpoint that throws has told the operator nothing. |
 | Containerisation | Datastores only; app on the host | Containerise everything | The working tree sits on a synced path where bind mounts do not propagate change events, which forces polling watchers and puts dependency trees inside a synced mount. |
 | Fast CI job | No datastores | One job for everything | A slow check is a skipped check. |
+| Naming-convention drift | Move the live schema to the models' form in one revision | Rename the models to match the first migrations | Both forms enforce the same rule; the models are what every future diff is generated from, so they are the side to keep. |
+| Audio bytes | Object storage, `storage_path` on the row, old column nullable and read-only | Keep bytes in Postgres; migrate old rows in the revision | Audio grows the primary database without bound; the thirty-day window retires the pre-move rows on its own, so copying them would be wasted work. |
+| Derived-metric retention | For the life of the attempt | A time window like audio | Metrics are the learner's progress and hold no media; a window would erase history the learner can still see. |
+| Client types | Generated schema committed; hand-named interfaces proven to project it exactly | Replace `types.ts` with the generated module outright | The UI narrows bare wire strings to known-member unions and reads by product names; the generated module is the authority, the hand file a verified view of it. |
 | Deployment target | Supabase Postgres + Upstash Redis + Vercel frontend + a long-lived container host (Koyeb free instance; Render as the alternative) | Cloud Run (kept as the DEPLOYED=true production shape); Vercel serverless for the API | The live coach is a WebSocket and needs a process that stays up; Render has been unreliable for this project. |
 
 ## Open Questions & Future Decisions
 
 ### Deferred
 
-1. **The naming-convention migration must be written** before any further schema change is
-   safe to generate.
-2. **Should binary content move out of the primary database?** The object-store backend
-   already exists.
-3. **Type generation for the wire contract.** The client type module is a hand-maintained
-   mirror of the contract document, and the server already emits a machine-readable schema.
-4. **No retention or deletion job exists** for recordings and derived metrics, though
-   owner-deletion is implemented and the privacy position is stated.
-5. **The declared partial unique index** should be declared in the model or removed from the
-   comment.
-
-## References
-
-- `docs/api_contract.md` — the contract between the backend and the client
-- `docs/integrations.md` — external services and their fallbacks
-- `docs/deployment.md` — the deployment target, disputed
-- `CLAUDE.md` — repository-wide engineering conventions
+1. **Copying pre-move audio into object storage** rather than letting retention retire it;
+   worth doing only if the retention window ever lengthens.
+2. **Replacing `types.ts` with the generated module** once the UI no longer needs the
+   known-member narrowing of wire strings.

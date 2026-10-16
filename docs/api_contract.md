@@ -635,8 +635,8 @@ guitar low-E fretting drill with string/fret tab, a violin open-string scale
 with intonation tracking, a trumpet C-major arpeggio, and a rhythm-only drums
 rock groove). The browser can use this same response for a real microphone
 path or the deterministic reference-note path. Every instrument with a score
-asset has a working evaluator; guitar open-chord/strumming scoring remains
-follow-on work.
+asset has a working evaluator, including the guitar open-chord evaluator
+(`guitar-chords-v1`) described under "Instrument evaluators" below.
 
 ```ts
 type Exercise = {

@@ -61,8 +61,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **OPS-STORE-001**: The system shall store source bytes content-addressed.
 - [x] **OPS-STORE-002**: The system shall support a local filesystem backend and an object-store backend, selected by configuration.
 - [x] **OPS-STORE-003**: When marked as deployed, the system shall require the object-store backend so that the API and the worker read the same bytes.
-- [ ] **OPS-STORE-004**: Practice recordings and synthesised audio shall be stored outside the primary relational database.
-- [ ] **OPS-STORE-005**: The system shall apply a retention policy to recordings and derived metrics.
+- [x] **OPS-STORE-004**: Practice recordings and synthesised audio shall be stored outside the primary relational database.
+- [x] **OPS-STORE-005**: The system shall apply a retention policy to recordings and derived metrics.
 
 ## Schema
 
@@ -71,8 +71,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **OPS-MIGRATE-003**: A migration that alters meaning rather than shape shall record its rationale.
 - [x] **OPS-MIGRATE-004**: A column shall be nullable where its absence means inapplicable, and that meaning shall be recorded.
 - [x] **OPS-MIGRATE-005**: Idempotency shall be enforced by database constraint rather than by application check alone.
-- [ ] **OPS-MIGRATE-006**: A generated migration diff shall contain only intended changes, with no drift proposed by naming-convention mismatch.
-- [ ] **OPS-MIGRATE-007**: Every constraint the models rely on shall be declared in the models, not only in a migration.
+- [x] **OPS-MIGRATE-006**: A generated migration diff shall contain only intended changes, with no drift proposed by naming-convention mismatch.
+- [x] **OPS-MIGRATE-007**: Every constraint the models rely on shall be declared in the models, not only in a migration.
 
 ## Continuous integration
 
@@ -81,12 +81,12 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **OPS-CI-003**: The suite shall pass with no external credentials configured.
 - [x] **OPS-CI-004**: The system shall reject a loop-continuation statement in either language.
 - [x] **OPS-CI-005**: The seed shall be idempotent for structure and shall not reset existing progress.
-- [ ] **OPS-CI-006**: Queue routing shall be exercised by test rather than assumed.
+- [x] **OPS-CI-006**: Queue routing shall be exercised by test rather than assumed.
 
 ## The documented seam
 
 - [x] **OPS-CONTRACT-001**: The contract document and the client type module shall be changed together.
 - [x] **OPS-CONTRACT-002**: A test shall assert that the client types match the documented contract.
-- [ ] **OPS-CONTRACT-003**: The client types shall be generated from the server's published schema rather than maintained by hand.
-- [ ] **OPS-CONTRACT-004**: Where documentation states a behaviour, the code shall implement it or the documentation shall be corrected.
-- [ ] **OPS-CONTRACT-005**: A file referenced by documentation or by live code shall exist in the repository.
+- [x] **OPS-CONTRACT-003**: The client types shall be generated from the server's published schema rather than maintained by hand.
+- [x] **OPS-CONTRACT-004**: Where documentation states a behaviour, the code shall implement it or the documentation shall be corrected.
+- [x] **OPS-CONTRACT-005**: A file referenced by documentation or by live code shall exist in the repository.

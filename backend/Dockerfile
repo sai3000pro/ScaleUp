@@ -23,6 +23,6 @@ USER appuser
 ENV PORT=8080
 EXPOSE 8080
 
-# Cloud Run supplies PORT. Override this command for a long-running worker
+# The platform (Koyeb, Cloud Run, Render) supplies PORT. Override this command for a worker
 # runtime with the queue list documented in docs/deployment.md.
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]

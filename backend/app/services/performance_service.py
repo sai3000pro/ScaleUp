@@ -50,9 +50,10 @@ from app.schemas.performance import (
     SkillRealmOut,
     VoiceArtifactOut,
 )
-from app.services import n8n_service
+from app.services import n8n_service, object_storage
 from app.services.graph_read import ensure_progress_rows, review_state_of
 from app.services.llm_gateway import recording_llm_client
+from app.services.recording_service import audio_bytes
 from app.services.voice import cache_key_for, synthesize_feedback
 
 logger = logging.getLogger(__name__)
@@ -716,7 +717,7 @@ async def speech_for_attempt(
             provider=stored.provider,
             voice_key=stored.voice_key,
             format=stored.format,
-            audio_base64=base64.b64encode(stored.content).decode("ascii"),
+            audio_base64=base64.b64encode(audio_bytes(stored.storage_path, stored.content)).decode("ascii"),
             spoken_text=stored.spoken_text,
             cache_key=cache_key,
             cached=True,
@@ -731,7 +732,7 @@ async def speech_for_attempt(
                 provider=artifact.provider,
                 voice_key=actual_voice,
                 format=artifact.format,
-                content=artifact.content,
+                storage_path=object_storage.store_payload(artifact.content, cache_key, f".{artifact.format}"),
                 spoken_text=artifact.spoken_text,
             )
         )

@@ -877,3 +877,25 @@ def test_recording_content_and_delete_routes_exist() -> None:
     assert "200" in content_operation["responses"]
     delete_operation = OPENAPI["paths"]["/api/recordings/{recording_id}"]["delete"]
     assert "204" in delete_operation["responses"]
+
+
+GENERATED_OPENAPI = ROOT / "frontend" / "lib" / "openapi.json"
+GENERATED_TYPES = ROOT / "frontend" / "lib" / "apiSchema.ts"
+
+
+# @spec OPS-CONTRACT-003
+def test_committed_openapi_schema_is_the_servers_current_one() -> None:
+    import json
+
+    committed = json.loads(GENERATED_OPENAPI.read_text(encoding="utf-8"))
+    assert committed == OPENAPI, "frontend/lib/openapi.json is stale; run `python scripts/export_openapi.py`"
+    assert GENERATED_TYPES.exists(), "run `npm run build:api-types` in frontend/"
+    assert "export interface components" in GENERATED_TYPES.read_text(encoding="utf-8")
+
+
+# @spec OPS-CONTRACT-003
+@pytest.mark.parametrize("model, frontend_name", _FRONTEND_MODELS.items())
+def test_hand_named_interfaces_project_the_generated_schema_exactly(model: type[BaseModel], frontend_name: str) -> None:
+    schema = OPENAPI["components"]["schemas"][model.__name__]
+    generated_fields = set(schema.get("properties", {}))
+    assert _frontend_fields(frontend_name, _frontend_interfaces()) == generated_fields

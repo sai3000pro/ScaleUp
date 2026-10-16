@@ -67,3 +67,26 @@ def test_gcs_storage_uploads_and_materializes_for_parsers(monkeypatch, tmp_path)
     local_path = object_storage.materialize_storage_path(storage_path)
     assert Path(local_path).read_bytes() == b"html-bytes"
     assert object_storage.materialize_storage_path(storage_path) == local_path
+
+
+# @spec OPS-STORE-004
+def test_audio_round_trips_through_object_storage_and_is_deletable(tmp_path, monkeypatch) -> None:
+    settings = Settings(upload_dir=tmp_path)
+    monkeypatch.setattr(object_storage, "get_settings", lambda: settings)
+
+    storage_path = object_storage.store_payload(b"webm-bytes", "b" * 64, ".webm")
+
+    assert object_storage.load_payload(storage_path) == b"webm-bytes"
+    assert object_storage.delete_payload(storage_path) is True
+    assert object_storage.delete_payload(storage_path) is False
+    assert not object_storage.storage_exists(storage_path)
+
+
+# @spec OPS-STORE-004
+def test_audio_models_hold_a_storage_path_not_bytes() -> None:
+    from app.models import Recording, StoredVoiceArtifact
+
+    for model in (Recording, StoredVoiceArtifact):
+        columns = model.__table__.columns
+        assert "storage_path" in columns
+        assert columns["content"].nullable, f"{model.__name__}.content must be nullable: new rows store no bytes"

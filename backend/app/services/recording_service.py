@@ -20,21 +20,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Course, Recording, User
+from app.models import Course, Recording, StoredVoiceArtifact, User
 from app.schemas.performance import RecordingCreate, RecordingOut
+from app.services import object_storage
 
 # Short practice clips: a 30-second WebM/opus take is a few hundred KB. The cap
 # protects the demo from a misbehaving client, not from legitimate recordings.
 MAX_RECORDING_BYTES = 20 * 1024 * 1024
 
 # Recording container format -> media type for the content endpoint.
-MEDIA_TYPES = {
-    "webm": "audio/webm",
-    "wav": "audio/wav",
-    "mp3": "audio/mpeg",
-    "ogg": "audio/ogg",
-    "m4a": "audio/mp4",
-}
+MEDIA_TYPES = {extension.lstrip("."): media_type for extension, media_type in object_storage.AUDIO_MEDIA_TYPES.items()}
 
 
 # @spec CAP-TAKE-002
@@ -104,7 +99,7 @@ async def upload_recording(
         format=payload.format,
         byte_size=len(content),
         duration_seconds=payload.duration_seconds,
-        content=content,
+        storage_path=object_storage.store_payload(content, content_sha256, f".{payload.format}"),
     )
     session.add(recording)
     try:
@@ -129,17 +124,49 @@ async def get_recording(session: AsyncSession, recording_id: uuid.UUID, user: Us
     return _out(await _owned(session, recording_id, user), deduplicated=False)
 
 
-async def get_recording_content(
-    session: AsyncSession, recording_id: uuid.UUID, user: User
-) -> tuple[bytes, str]:
+async def get_recording_content(session: AsyncSession, recording_id: uuid.UUID, user: User) -> tuple[bytes, str]:
     """Return (bytes, media type) for the owner, so the router can stream them."""
     recording = await _owned(session, recording_id, user)
     media_type = MEDIA_TYPES.get(recording.format, "application/octet-stream")
-    return recording.content, media_type
+    return audio_bytes(recording.storage_path, recording.content), media_type
+
+
+# @spec OPS-STORE-004
+def audio_bytes(storage_path: str | None, legacy_content: bytes | None) -> bytes:
+    """The audio behind a row: object storage when it has a path, else the pre-move column."""
+    if storage_path is not None:
+        return object_storage.load_payload(storage_path)
+    return legacy_content or b""
+
+
+# @spec OPS-STORE-004, OPS-STORE-005
+async def release_audio_objects(session: AsyncSession, storage_paths: set[str | None]) -> int:
+    """Delete stored objects no remaining row refers to. Content addressing means two
+    rows may share one object, so a path is released only once nobody holds it."""
+    candidates = {path for path in storage_paths if path is not None}
+    if not candidates:
+        return 0
+    still_held = set(
+        (await session.execute(select(Recording.storage_path).where(Recording.storage_path.in_(candidates)))).scalars()
+    ) | set(
+        (
+            await session.execute(
+                select(StoredVoiceArtifact.storage_path).where(StoredVoiceArtifact.storage_path.in_(candidates))
+            )
+        ).scalars()
+    )
+    released = 0
+    for path in sorted(candidates - still_held):
+        if object_storage.delete_payload(path):
+            released += 1
+    return released
 
 
 # @spec ACCESS-OWN-003, CAP-TAKE-004
 async def delete_recording(session: AsyncSession, recording_id: uuid.UUID, user: User) -> None:
     recording = await _owned(session, recording_id, user)
+    storage_path = recording.storage_path
     await session.delete(recording)
+    await session.flush()
+    await release_audio_objects(session, {storage_path})
     await session.commit()
