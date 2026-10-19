@@ -71,7 +71,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-PARSE-004**: The system shall treat a heading owning no prose of its own as structural rather than as a skill.
 - [x] **CURR-PARSE-005**: The system shall extract concepts from content windows where structure is not usable.
 - [x] **CURR-PARSE-006**: The system shall merge near-duplicate concepts by embedding similarity.
-- [ ] **CURR-PARSE-007**: The system shall filter outline entries by title distinctiveness before section-level segmentation is enabled.
+- [x] **CURR-PARSE-007**: The system shall filter outline entries by title distinctiveness before section-level segmentation is enabled.
 - [D] **CURR-PARSE-008**: Section-level segmentation shall remain disabled while it improves granularity at the cost of prerequisite precision.
 
 ## Prerequisite inference
@@ -82,7 +82,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-EDGE-004**: The system shall emit a containment edge only where the containing heading is itself a skill.
 - [x] **CURR-EDGE-005**: The system shall discard an inferred edge below the confidence floor.
 - [x] **CURR-EDGE-006**: Given identical input, prerequisite inference shall produce an identical edge set.
-- [ ] **CURR-EDGE-007**: The relative confidence ordering between edge kinds shall be declared in one place and asserted, rather than implied by constants in separate modules.
+- [x] **CURR-EDGE-007**: The relative confidence ordering between edge kinds shall be declared in one place and asserted, rather than implied by constants in separate modules.
 
 ## Graph persistence
 
@@ -90,8 +90,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-GRAPH-002**: Persisting a graph shall preserve every learner's experience, mastery and review history for nodes that survive the replacement.
 - [x] **CURR-GRAPH-003**: The system shall map stable skill identifiers across revisions.
 - [x] **CURR-GRAPH-004**: The system shall reject a graph containing a cycle.
-- [ ] **CURR-GRAPH-005**: Graph replacement shall be incapable of deleting learner progress by cascade, by construction rather than by test coverage.
-- [ ] **CURR-GRAPH-006**: The system shall support explicit split, merge, rename and retirement of a skill across versions.
+- [x] **CURR-GRAPH-005**: Graph replacement shall be incapable of deleting learner progress by cascade, by construction rather than by test coverage.
+- [x] **CURR-GRAPH-006**: The system shall support explicit split, merge, rename and retirement of a skill across versions.
 
 ## Versioning and publication
 
@@ -104,8 +104,8 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-VERSION-005**: Publication shall generate an exercise for each node that lacks one.
 - [x] **CURR-VERSION-011**: Publication shall generate a graded run of lessons for each playable node, differing in tempo and length rather than in name, so a skill has ground between never attempted and mastered.
 - [x] **CURR-VERSION-006**: The system shall compile a curriculum from source data with no instrument-specific code path.
-- [ ] **CURR-VERSION-007**: Publication shall be refused where assessment coverage or edge confidence falls below a declared gate.
-- [ ] **CURR-VERSION-008**: A reviewer shall be shown which unlock paths a candidate edge would change.
+- [x] **CURR-VERSION-007**: Publication shall be refused where assessment coverage or edge confidence falls below a declared gate.
+- [x] **CURR-VERSION-008**: A reviewer shall be shown which unlock paths a candidate edge would change.
 
 ## Derived stores
 
@@ -124,4 +124,4 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CURR-JOB-003**: The system shall report ingest progress as a proportion with a stage description.
 - [x] **CURR-JOB-004**: The system shall deduplicate a re-submitted ingest on its idempotency key.
 - [x] **CURR-JOB-005**: The system shall bound a task's runtime and mark its job failed when the bound is exceeded.
-- [ ] **CURR-JOB-006**: A caller shall be able to cancel a running ingest.
+- [x] **CURR-JOB-006**: A caller shall be able to cancel a running ingest.

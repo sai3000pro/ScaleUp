@@ -72,18 +72,24 @@ from dataclasses import dataclass, field
 from app.core.sync_bridge import run_sync
 from app.domain.dag import CandidateEdge
 from app.domain.wire_formats import candidate_head, skill_line
+from app.ingestion.confidence import (
+    BACKWARD_MIN_CONFIDENCE,
+    MAX_AGREED_CONFIDENCE,
+    MAX_SINGLE_CONFIDENCE,
+    MIN_CONFIDENCE,
+    REVERSE_MIN_CONFIDENCE,
+)
 from app.llm.base import LLMClient, LLMRole, RefusalError, SchemaValidationError
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["SkillRef", "PrereqOutcome", "infer_prerequisites"]
 
-# Below this the model is guessing from topic overlap rather than reading.
-MIN_CONFIDENCE = 0.5
-# The reverse question is answered from an excerpt rather than a whole section,
-# so it gets a higher bar. A wrong prerequisite locks a learner out of content
-# they are ready for; a missing one only fails to gate.
-REVERSE_MIN_CONFIDENCE = 0.6
+# Below MIN_CONFIDENCE the model is guessing from topic overlap rather than
+# reading. The reverse question is answered from an excerpt rather than a whole
+# section, so it gets a higher bar: a wrong prerequisite locks a learner out of
+# content they are ready for; a missing one only fails to gate. Both values,
+# and every other confidence threshold, sit on the ladder in `confidence.py`.
 # A section with almost no prose cannot support an inference worth making.
 MIN_SECTION_CHARS = 400
 # The skill list is sent with every call, so it has to stay affordable.
@@ -148,14 +154,10 @@ MAX_PREREQS_PER_SECTION = 2
 #
 # So this is a higher bar, not a ban: a pass that is genuinely confident can
 # still say a later section is needed first.
-BACKWARD_MIN_CONFIDENCE = 0.8
-
-# Structural (outline) edges are 0.95 and must keep winning cycle contests
-# against inference -- see `build_acyclic_edges`, which admits greedily by
-# descending confidence. Inference stays below that, and a single direction
-# stays below agreement so that agreement is worth something.
-MAX_SINGLE_CONFIDENCE = 0.85
-MAX_AGREED_CONFIDENCE = 0.9
+#
+# Structural (outline) edges sit BELOW every inferred edge on the ladder, so in
+# a cycle contest the prose wins; a single direction stays below agreement so
+# that agreement is worth something. See `confidence.py` for the ordering.
 AGREEMENT_BONUS = 0.1
 
 

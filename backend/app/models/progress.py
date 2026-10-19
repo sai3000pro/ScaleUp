@@ -26,7 +26,7 @@ class NodeProgress(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     node_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("skill_nodes.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("skill_nodes.id", ondelete="RESTRICT"), primary_key=True
     )
 
     exp: Mapped[int] = mapped_column(Integer, default=0, server_default="0")

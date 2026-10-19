@@ -79,7 +79,7 @@ class Attempt(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    node_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("skill_nodes.id", ondelete="CASCADE"))
+    node_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("skill_nodes.id", ondelete="RESTRICT"))
     course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"))
     question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("questions.id", ondelete="CASCADE"))
 

@@ -164,3 +164,29 @@ class CurriculumReview(Base):
     __table_args__ = (
         CheckConstraint("decision IN ('accepted', 'rejected', 'ambiguous')", name="decision_valid"),
     )
+
+
+TRANSITION_KINDS = ("split", "merge", "rename", "retire")
+
+
+class SkillTransition(Base):
+    """How a skill in the previous published version maps onto this one.
+
+    A skill that disappears between versions must be accounted for: renamed to
+    one new slug, split across several, merged with others into one, or retired
+    outright. Publication refuses a version that drops a skill silently.
+    """
+
+    __tablename__ = "skill_transitions"
+    __table_args__ = (
+        CheckConstraint("kind IN ('split', 'merge', 'rename', 'retire')", name="skill_transitions_kind"),
+        Index("ix_skill_transitions_version_id", "curriculum_version_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    curriculum_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("curriculum_versions.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(16))
+    from_slugs: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default="{}")
+    to_slugs: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list, server_default="{}")
+    rationale: Mapped[str] = mapped_column(Text, default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

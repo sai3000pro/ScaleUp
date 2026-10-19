@@ -20,6 +20,7 @@ from app.models.curriculum_graph import (
     Instrument,
     PrerequisiteCandidate,
     SkillDefinition,
+    SkillTransition,
 )
 from app.models.document import Chunk, Document, DocumentPage, IngestJob
 from app.models.llm_call import LlmCall
@@ -56,6 +57,7 @@ __all__ = [
     "CurriculumEvidence",
     "CurriculumNode",
     "CurriculumReview",
+    "SkillTransition",
     "CurriculumVersion",
     "Instrument",
     "PrerequisiteCandidate",

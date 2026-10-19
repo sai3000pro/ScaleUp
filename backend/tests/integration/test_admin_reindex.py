@@ -406,6 +406,7 @@ async def test_admin_routes_are_owner_scoped_and_404_rather_than_403(
 
 
 # ── cancellation ──────────────────────────────────────────────────────────
+# @spec CURR-JOB-006
 
 
 async def test_cancelling_a_queued_job_stops_it_before_it_starts(

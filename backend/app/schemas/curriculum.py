@@ -108,6 +108,13 @@ class CurriculumEdgeIn(BaseModel):
     evidence: list[CurriculumEvidenceIn] = Field(default_factory=list, max_length=8)
 
 
+class CurriculumTransitionIn(BaseModel):
+    kind: Literal["split", "merge", "rename", "retire"]
+    from_skills: list[str] = Field(min_length=1, max_length=32)
+    to_skills: list[str] = Field(default_factory=list, max_length=32)
+    rationale: str = Field(default="", max_length=2000)
+
+
 class CurriculumVersionCreate(BaseModel):
     instrument: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", min_length=1, max_length=48)
     instrument_title: str = Field(min_length=1, max_length=120)
@@ -117,6 +124,7 @@ class CurriculumVersionCreate(BaseModel):
     source_bundle_sha256: str | None = Field(default=None, min_length=64, max_length=64)
     concepts: list[CurriculumConceptIn] = Field(min_length=1, max_length=500)
     edges: list[CurriculumEdgeIn] = Field(default_factory=list, max_length=2000)
+    transitions: list[CurriculumTransitionIn] = Field(default_factory=list, max_length=500)
 
 
 class CurriculumVersionOut(BaseModel):
@@ -160,6 +168,9 @@ class CurriculumCandidateOut(BaseModel):
     cycle_path: list[str]
     evidence_count: int
     evidence: list[CurriculumEvidenceOut] = Field(default_factory=list)
+    # Skills whose unlock path runs through this edge if it is accepted: the
+    # target and everything downstream of it along the accepted edges.
+    affected_unlocks: list[str] = Field(default_factory=list)
 
 
 class CurriculumPublishOut(BaseModel):

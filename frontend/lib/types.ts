@@ -299,6 +299,7 @@ export interface CurriculumCandidate {
   cycle_path: string[];
   evidence_count: number;
   evidence: CurriculumEvidence[];
+  affected_unlocks: string[];
 }
 
 export interface CurriculumPublishResult {

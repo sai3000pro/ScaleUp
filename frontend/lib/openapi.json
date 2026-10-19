@@ -1330,6 +1330,13 @@
       },
       "CurriculumCandidateOut": {
         "properties": {
+          "affected_unlocks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Affected Unlocks",
+            "type": "array"
+          },
           "confidence": {
             "title": "Confidence",
             "type": "number"
@@ -2080,6 +2087,49 @@
         "title": "CurriculumSourceOut",
         "type": "object"
       },
+      "CurriculumTransitionIn": {
+        "properties": {
+          "from_skills": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "From Skills",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "split",
+              "merge",
+              "rename",
+              "retire"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "rationale": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "to_skills": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 32,
+            "title": "To Skills",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "from_skills"
+        ],
+        "title": "CurriculumTransitionIn",
+        "type": "object"
+      },
       "CurriculumVersionCreate": {
         "properties": {
           "compiler_version": {
@@ -2143,6 +2193,14 @@
             "minLength": 1,
             "title": "Title",
             "type": "string"
+          },
+          "transitions": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumTransitionIn"
+            },
+            "maxItems": 500,
+            "title": "Transitions",
+            "type": "array"
           }
         },
         "required": [

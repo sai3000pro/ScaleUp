@@ -29,6 +29,7 @@ from app.ingestion.toc import (
     TocNode,
     build_introduces_edges,
     build_toc_nodes,
+    distinctive_entries,
     is_drillable,
     owner_of_page,
     section_labels,
@@ -498,6 +499,9 @@ def _toc_graph(
     # or fail any one of them separately while they share a node. Split on the
     # boundaries the BOOK already marked (`Definition:`, `Theorem:`), never on
     # boundaries a model invents; see app/ingestion/segment.py.
+    # Only entries a learner could tell apart by title are worth multiplying into
+    # several nodes; generic and duplicated headings stay whole.
+    segmentable, _ = distinctive_entries(nodes)
     fragments = segment_sections(
         [
             SectionInput(
@@ -513,7 +517,7 @@ def _toc_graph(
                 difficulty=3,
                 chunks=tuple(owned_by[node.slug]),
             )
-            for node in nodes
+            for node in segmentable
             # Structural headings are no longer nodes, so they cannot parent a
             # fragment. They own no chunks either, so this drops nothing a
             # fragment could have been cut from.
