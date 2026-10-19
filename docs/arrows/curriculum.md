@@ -106,7 +106,8 @@ the relational store as the only authority and everything else rebuildable from 
    and review history — an incident recorded verbatim in three source comments
    (`admin_service.py:15`, `ingest_pipeline.py:582`, `test_admin_reindex.py:12`) as **1325 EXP
    and 9 reviews**. Six integration test modules independently guard the operation. Six tests
-   defending one call is the boundary asking to be moved (`CURR-GRAPH-005`).
+   defending one call was the boundary asking to be moved; learner rows now hold a restrictive
+   foreign key and practised nodes retire rather than delete (`CURR-GRAPH-005`, done).
 
 2. **Extraction quality is measured and mediocre.** The reference corpus yields 37 nodes at
    recall 0.397 and precision 0.600, with zero backwards edges. Edge direction is reliable;
@@ -122,12 +123,12 @@ the relational store as the only authority and everything else rebuildable from 
    edges sit at 0.95 and "must keep winning cycle contests against inference", which is the
    stated reason the inference caps sit at 0.85 and 0.9. Outline edges were deliberately
    lowered to 0.45 after measurement (`toc.py:243`, with its rationale at 249). The caps
-   remain; the guarantee they protected is now reversed, and inference outranks structure
-   (`CURR-EDGE-007`).
+   remain; the ordering is now declared once in `app/ingestion/confidence.py` and asserted
+   (`CURR-EDGE-007`, done).
 
 5. **Sub-section segmentation is off, and the reason is measured** — it improves granularity
    and collapses prerequisite precision. Title-distinctiveness filtering is the named
-   prerequisite for switching it on (`CURR-PARSE-007`).
+   prerequisite for switching it on and has landed (`CURR-PARSE-007`, done); re-measurement is next.
 
 6. **Sibling modules collide on names** — two section-length minimums, three summary-length
    constants, three unrelated `_absorb` functions, two unrelated `_merge` functions, and three
@@ -139,20 +140,17 @@ the relational store as the only authority and everything else rebuildable from 
 ## Work Required
 
 ### Must Fix
-1. Separate graph replacement from learner-progress lifetime by construction
-   (`CURR-GRAPH-005`). Test coverage is currently the only thing preventing a repeat.
+1. ~~Separate graph replacement from learner-progress lifetime by construction~~ (`CURR-GRAPH-005`, done).
 2. Restore or replace the measurement harness and reference tree, or withdraw the accuracy
    claims that depend on them.
 
 ### Should Fix
-3. Declare the confidence ordering in one place and assert it; correct the stale comment
-   (`CURR-EDGE-007`).
-4. Implement skill split, merge, rename and retirement across versions (`CURR-GRAPH-006`) —
-   without them a substantive revision cannot preserve progress.
-5. Land title-distinctiveness filtering, then re-measure with segmentation enabled
-   (`CURR-PARSE-007`).
+3. ~~Declare the confidence ordering in one place and assert it~~ (`CURR-EDGE-007`, done).
+4. ~~Implement skill split, merge, rename and retirement across versions~~ (`CURR-GRAPH-006`, done).
+5. Title-distinctiveness filtering has landed (`CURR-PARSE-007`, done); re-measure with
+   segmentation enabled.
 
 ### Consider
-6. Build the candidate-review surface showing affected unlock paths (`CURR-VERSION-008`).
-7. Add publication quality gates (`CURR-VERSION-007`).
+6. ~~Expose affected unlock paths on candidates~~ (`CURR-VERSION-008`, done; API only).
+7. ~~Add publication quality gates~~ (`CURR-VERSION-007`, done).
 8. Resolve the sibling-module name collisions.

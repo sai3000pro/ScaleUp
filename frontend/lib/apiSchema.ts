@@ -1831,6 +1831,8 @@ export interface components {
         };
         /** CurriculumCandidateOut */
         CurriculumCandidateOut: {
+            /** Affected Unlocks */
+            affected_unlocks?: string[];
             /** Confidence */
             confidence: number;
             /** Cycle Path */
@@ -2134,6 +2136,23 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** CurriculumTransitionIn */
+        CurriculumTransitionIn: {
+            /** From Skills */
+            from_skills: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "split" | "merge" | "rename" | "retire";
+            /**
+             * Rationale
+             * @default
+             */
+            rationale: string;
+            /** To Skills */
+            to_skills?: string[];
+        };
         /** CurriculumVersionCreate */
         CurriculumVersionCreate: {
             /**
@@ -2155,6 +2174,8 @@ export interface components {
             source_bundle_sha256?: string | null;
             /** Title */
             title: string;
+            /** Transitions */
+            transitions?: components["schemas"]["CurriculumTransitionIn"][];
         };
         /** CurriculumVersionOut */
         CurriculumVersionOut: {

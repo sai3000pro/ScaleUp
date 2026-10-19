@@ -179,16 +179,29 @@ the shelf is a statement about where a course came from, not about what it is.
 
 Edges compete. When admitting edges greedily by descending confidence, the confidence
 assigned to each *kind* of edge decides which survives a cycle contest, so the ordering
-between kinds is a design decision rather than a set of independent constants.
+between kinds is a design decision rather than a set of independent constants. The ladder
+is declared once, in `app/ingestion/confidence.py`, and every module that assigns or
+thresholds confidence imports from it; a test asserts the ladder is monotone:
+
+```
+outline_introduces < inferred_floor < reverse_pass_floor < catalogue_default
+  <= backwards_floor < inferred_ceiling_single < inferred_ceiling_agreed
+```
 
 Prose inference is capped below certainty, and a single-direction inference is capped below
 an agreed bidirectional one, so that agreement is worth something.
 
-Containment edges derived from the outline are deliberately *low* confidence and narrow in
-scope: they are emitted only where the containing heading is a skill in its own right.
-Contributing one edge per outline entry at high confidence was measured to turn half the
-graph into a table of contents and every chapter into a root — a filing system rather than a
-dependency structure.
+Containment edges derived from the outline are deliberately the *lowest* rung and narrow in
+scope: they are emitted only where the containing heading is a skill in its own right, and
+in a cycle contest content-derived inference outranks outline structure. Contributing one
+edge per outline entry at high confidence was measured to turn half the graph into a table
+of contents and every chapter into a root — a filing system rather than a dependency
+structure.
+
+Sub-section segmentation is gated on title distinctiveness: an outline entry whose title is
+generic ("Introduction", "Exercises") or duplicated elsewhere in the outline is held back
+from segmentation, because splitting it would multiply indistinguishable nodes and collapse
+prerequisite precision. Distinctive titles remain eligible.
 
 ## Projections
 
@@ -199,11 +212,37 @@ staleness.
 ## Versioning and publication
 
 Skill definitions carry stable identifiers across revisions, so a graph revision preserves a
-learner's progress rather than orphaning it. Versions are immutable once published.
-Candidate edges are reviewed with their quote, confidence and provenance, and review
+learner's progress rather than orphaning it. A re-extraction never deletes a node a learner
+has touched: learner rows (progress, attempts) reference a skill node with a *restrictive*
+foreign key, and a practised node that disappears from the new extraction is marked
+`retired_at` rather than removed. A node with no learner rows may be deleted; a retired skill
+that reappears is un-retired and the learner's progress is still attached to it.
+
+A substantive revision names what happened to each skill that is no longer present.
+Transitions are recorded against the new version as `split`, `merge`, `rename` or `retire`,
+each with its source slugs, destination slugs and a rationale, and are checked for arity
+(a rename maps one to one, a split one to many, a merge many to one, a retirement one to
+none) and for destinations that exist in the new version. Publication is refused when a
+skill that was live in the previous published version vanishes without a transition
+accounting for it.
+
+Versions are immutable once published, and publication is further gated by two declared
+constants: at least `MIN_ASSESSMENT_COVERAGE` of concepts must be assessable, and no
+accepted edge may sit below `MIN_PUBLISHED_EDGE_CONFIDENCE`. A refusal names the measured
+coverage or the weak edges.
+
+Candidate edges are reviewed with their quote, confidence and provenance, and with the set
+of unlock paths the edge would change — its target and every skill downstream of it
+through accepted edges — so a reviewer sees the blast radius before deciding. Review
 decisions are recorded.
 
+An ingest can be cancelled by its owner. Cancellation is cooperative: a queued job never
+starts, and a running job stops at its next stage boundary rather than mid-write, which is
+what keeps every stage idempotent.
+
 ## Current state versus intent
+
+**Sub-section segmentation remains off by default.** Title-distinctiveness filtering now gates it, so the remaining step is re-measuring granularity and precision with it enabled.
 
 **Extraction quality is measured, and mediocre.** The reference corpus yields 37 nodes at
 recall 0.397 and precision 0.600, with zero backwards edges. The direction of the edges is
@@ -213,22 +252,6 @@ reliable; the granularity of the nodes is not.
 were produced with is cited as real by both the archived contract document and by live code,
 and imported at runtime by a root-level measurement module — and it does not exist in the
 repository. Neither does the hand-authored reference tree those numbers were scored against.
-
-**A stale comment inverts a live invariant.** The prerequisite module still asserts that
-outline edges sit at high confidence and "must keep winning cycle contests against
-inference", which is the stated reason the inference caps sit where they do. Outline edges
-were deliberately lowered below those caps after measurement. The caps remain; the guarantee
-they were protecting is now reversed, and inference outranks structure in a contest.
-
-**Sub-section segmentation is off, and the reason is measured.** Enabling it improves node
-granularity and collapses prerequisite precision. Title-distinctiveness filtering is the
-gate that has to land before it can be switched on.
-
-**Graph replacement can take learner progress with it.** The persistence routine replaces a
-course's graph wholesale, and its cascade has previously destroyed a learner's experience
-and review history — an incident recorded in three separate source comments and defended
-against by six integration test modules. Six tests guarding one operation is the boundary
-asking to be moved.
 
 **Sibling modules collide on names.** Two different section-length minimums, three different
 summary-length constants, three unrelated private absorb functions, two unrelated merge

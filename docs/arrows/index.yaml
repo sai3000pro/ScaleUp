@@ -107,8 +107,8 @@ arrows:
     blocks: [progression]
     blockedBy: [model-gateway, operations]
     detail: curriculum.md
-    next: "Separate graph replacement from learner-progress lifetime by construction (CURR-GRAPH-005); link compiled concepts to catalogue skills, as goal-first construction already does."
-    drift: "persist_graph cascade has destroyed learner progress once and is guarded only by six tests. A stale comment inverts the live confidence ordering. The measurement harness is missing from the repository. Compiled concepts are still not linked to catalogue skills, though goal-built ones now are."
+    next: "Re-measure extraction with segmentation enabled now that title-distinctiveness gates it; link compiled concepts to catalogue skills, as goal-first construction already does."
+    drift: "The measurement harness is missing from the repository. Compiled concepts are still not linked to catalogue skills, though goal-built ones now are."
 
   model-gateway:
     status: AUDITED

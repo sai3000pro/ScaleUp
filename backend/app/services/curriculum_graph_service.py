@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, aliased
 
 from app.domain.dag import CandidateEdge, RejectedEdge, build_acyclic_edges
+from app.ingestion.confidence import MIN_CONFIDENCE
 from app.models import (
     Chunk,
     Course,
@@ -29,11 +30,13 @@ from app.models import (
     PrerequisiteCandidate,
     SkillDefinition,
     SkillNode,
+    SkillTransition,
 )
 from app.schemas.curriculum import (
     CurriculumCandidateOut,
     CurriculumEvidenceOut,
     CurriculumPublishOut,
+    CurriculumTransitionIn,
     CurriculumVersionCreate,
     CurriculumVersionOut,
 )
@@ -41,6 +44,19 @@ from app.services import score_service
 from app.services.graph_service import ConceptSpec, persist_graph
 
 CURRICULUM_COMPILER_VERSION = "curriculum-compiler-v1"
+
+# Publication gates. A version below either is refused with the figure it missed.
+# @spec CURR-VERSION-007
+MIN_ASSESSMENT_COVERAGE = 0.5  # share of nodes a learner can actually be graded on
+MIN_PUBLISHED_EDGE_CONFIDENCE = MIN_CONFIDENCE  # the inference floor; nothing weaker ships
+
+TRANSITION_ARITY: dict[str, tuple[int, int | None]] = {
+    # kind: (minimum from-skills, exact to-skills or None for "two or more")
+    "rename": (1, 1),
+    "split": (1, None),
+    "merge": (2, 1),
+    "retire": (1, 0),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +137,11 @@ def _get_or_create_skill(
         )
         session.add(definition)
         session.flush()
+    else:
+        definition.title = concept.title
+        definition.summary = concept.summary
+        definition.difficulty = concept.difficulty or definition.difficulty
+        definition.assessable = concept.assessable
     return definition
 
 
@@ -183,6 +204,69 @@ def _validate_evidence(
 
 
 # @spec CURR-VERSION-002, CURR-VERSION-003
+# @spec CURR-GRAPH-006
+def _validate_transitions(transitions: Sequence[CurriculumTransitionIn], slugs: set[str]) -> None:
+    for transition in transitions:
+        minimum_from, exact_to = TRANSITION_ARITY[transition.kind]
+        if len(transition.from_skills) < minimum_from:
+            raise ValueError(f"A {transition.kind} transition needs at least {minimum_from} source skill(s).")
+        if exact_to is None and len(transition.to_skills) < 2:
+            raise ValueError("A split transition needs at least two destination skills.")
+        if exact_to is not None and len(transition.to_skills) != exact_to:
+            raise ValueError(f"A {transition.kind} transition needs exactly {exact_to} destination skill(s).")
+        missing = [slug for slug in transition.to_skills if slug not in slugs]
+        if missing:
+            raise ValueError(f"Transition destinations are not in this version: {', '.join(missing)}.")
+
+
+# @spec CURR-GRAPH-006
+def _unaccounted_disappearances(session: Session, version: CurriculumVersion, current_slugs: set[str]) -> list[str]:
+    """Slugs of the live version that this one drops without a transition."""
+    live = session.scalar(
+        select(CurriculumVersion).where(
+            CurriculumVersion.course_id == version.course_id,
+            CurriculumVersion.slug == version.slug,
+            CurriculumVersion.status == "published",
+            CurriculumVersion.id != version.id,
+        )
+    )
+    if live is None:
+        return []
+    live_slugs = set(
+        session.scalars(
+            select(SkillDefinition.slug)
+            .join(CurriculumNode, CurriculumNode.skill_definition_id == SkillDefinition.id)
+            .where(CurriculumNode.curriculum_version_id == live.id)
+        )
+    )
+    covered: set[str] = set()
+    for transition in session.scalars(
+        select(SkillTransition).where(SkillTransition.curriculum_version_id == version.id)
+    ):
+        covered.update(transition.from_slugs)
+    return sorted(live_slugs - current_slugs - covered)
+
+
+# @spec CURR-VERSION-007
+def _publication_gate_failures(concepts: Sequence[ConceptSpec], edges: Sequence[CandidateEdge]) -> list[str]:
+    failures: list[str] = []
+    coverage = sum(1 for concept in concepts if concept.assessable) / len(concepts)
+    if coverage < MIN_ASSESSMENT_COVERAGE:
+        failures.append(
+            f"assessment coverage {coverage:.2f} is below the {MIN_ASSESSMENT_COVERAGE:.2f} gate"
+        )
+    weak = sorted(
+        f"{edge.prereq}->{edge.target} ({edge.confidence:.2f})"
+        for edge in edges
+        if edge.confidence < MIN_PUBLISHED_EDGE_CONFIDENCE
+    )
+    if weak:
+        failures.append(
+            f"accepted edges below the {MIN_PUBLISHED_EDGE_CONFIDENCE:.2f} confidence gate: {', '.join(weak)}"
+        )
+    return failures
+
+
 def create_draft(
     session: Session,
     course: Course,
@@ -195,10 +279,12 @@ def create_draft(
     evidence_by_edge: Mapping[tuple[str, str], Sequence[EvidenceSpec]] | None = None,
     source_bundle_sha256: str | None = None,
     compiler_version: str = CURRICULUM_COMPILER_VERSION,
+    transitions: Sequence[CurriculumTransitionIn] = (),
 ) -> CurriculumWriteResult:
     """Persist a safe, reviewable draft without touching ``skill_nodes``."""
     if not concepts:
         raise ValueError("A curriculum must contain at least one concept.")
+    _validate_transitions(transitions, {concept.slug for concept in concepts})
     evidence = _validate_evidence(session, course, evidence_by_edge or {})
     instrument = _get_or_create_instrument(session, instrument_slug, instrument_title)
     latest = session.scalar(
@@ -220,6 +306,16 @@ def create_draft(
     )
     session.add(version)
     session.flush()
+    for transition in transitions:
+        session.add(
+            SkillTransition(
+                curriculum_version_id=version.id,
+                kind=transition.kind,
+                from_slugs=list(transition.from_skills),
+                to_slugs=list(transition.to_skills),
+                rationale=transition.rationale,
+            )
+        )
 
     definitions = {
         concept.slug: _get_or_create_skill(session, instrument.id, concept)
@@ -515,6 +611,15 @@ def publish(
         )
         for candidate in accepted
     ]
+    gate_failures = _publication_gate_failures(concepts, edges)
+    if gate_failures:
+        raise ValueError("Publication refused: " + "; ".join(gate_failures) + ".")
+    dropped = _unaccounted_disappearances(session, version, {concept.slug for concept in concepts})
+    if dropped:
+        raise ValueError(
+            "Publication refused: these skills exist in the live version but not in this one and no "
+            f"split, merge, rename or retire transition accounts for them: {', '.join(dropped)}."
+        )
     build_acyclic_edges({concept.slug for concept in concepts}, edges, min_confidence=0.0)
     # Refusals the compiler made when this draft was built. A candidate a *human*
     # rejected carries no rejection_reason and is deliberately excluded: it is a
@@ -701,6 +806,30 @@ def _project_version(session: Session, version_id: uuid.UUID) -> CurriculumVersi
     )
 
 
+# @spec CURR-VERSION-008
+def _affected_unlocks(session: Session, candidate: PrerequisiteCandidate, target_slug: str) -> list[str]:
+    """The target and every skill downstream of it along accepted edges of the same version."""
+    accepted = session.execute(
+        select(PrerequisiteCandidate.prereq_skill_id, PrerequisiteCandidate.target_skill_id).where(
+            PrerequisiteCandidate.curriculum_version_id == candidate.curriculum_version_id,
+            PrerequisiteCandidate.status == "accepted",
+            PrerequisiteCandidate.id != candidate.id,
+        )
+    ).all()
+    downstream: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for prereq_id, target_id in accepted:
+        downstream.setdefault(prereq_id, []).append(target_id)
+    reached: set[uuid.UUID] = set()
+    frontier = [candidate.target_skill_id]
+    while frontier:
+        skill_id = frontier.pop()
+        if skill_id not in reached:
+            reached.add(skill_id)
+            frontier.extend(downstream.get(skill_id, []))
+    slugs = dict(session.execute(select(SkillDefinition.id, SkillDefinition.slug).where(SkillDefinition.id.in_(reached))).all())
+    return [target_slug] + sorted(slug for skill_id, slug in slugs.items() if slug != target_slug)
+
+
 def _project_candidate(session: Session, candidate_id: uuid.UUID) -> CurriculumCandidateOut:
     prereq_definition = aliased(SkillDefinition)
     target_definition = aliased(SkillDefinition)
@@ -731,6 +860,7 @@ def _project_candidate(session: Session, candidate_id: uuid.UUID) -> CurriculumC
         rejection_reason=candidate.rejection_reason,
         cycle_path=list(candidate.cycle_path),
         evidence_count=len(evidence_rows),
+        affected_unlocks=_affected_unlocks(session, candidate, row[2].slug),
         evidence=[
             CurriculumEvidenceOut(
                 chunk_id=evidence.chunk_id,
@@ -759,6 +889,7 @@ async def create_version_api(session: AsyncSession, course: Course, payload: Cur
             evidence_by_edge=evidence,
             source_bundle_sha256=payload.source_bundle_sha256,
             compiler_version=payload.compiler_version,
+            transitions=payload.transitions,
         )
     )
     await session.commit()
