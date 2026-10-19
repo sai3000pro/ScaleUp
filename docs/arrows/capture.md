@@ -54,7 +54,7 @@ making no judgements, because this layer is deliberately untested.
 | Category | Spec IDs | Implemented | Deferred | Gaps |
 |---|---|---|---|---|
 | Audio | `CAP-MIC-001` – `008` | 6 | 0 | 2 |
-| Pitch detection | `CAP-PITCH-001` – `008` | 6 | 0 | 2 |
+| Pitch detection | `CAP-PITCH-001` – `008` | 8 | 0 | 0 |
 | Camera | `CAP-CAM-001` – `008` | 6 | 1 | 1 |
 | Selected video | `CAP-VID-001` – `007` | 6 | 1 | 0 |
 | Take persistence | `CAP-TAKE-001` – `006` | 6 | 0 | 0 |
@@ -72,10 +72,9 @@ and registering the browser model hosts in the backend integration report.
    the system measures is substantially the browser's correction rather than the learner's
    playing — and `evaluation` scores dynamics from that signal (`CAP-MIC-007`).
 
-2. **The intended detector was never adopted.** `noteSegmentation.ts` names CREPE four times
-   as the target detector and was written detector-agnostic for the swap. The live path still
-   runs monophonic autocorrelation, so any polyphonic exercise is scored from its fixture note
-   path rather than from audio (`CAP-PITCH-007`).
+2. **The detector resolves polyphony.** `polyphonicPitch.ts` picks every voice in a window by
+   harmonic salience and `voiceTracking.ts` runs one shared segmenter per voice, so a chord
+   is scored from audio rather than from its fixture note path (`CAP-PITCH-007`, done).
 
 3. **Two external hosts are documented but absent from the backend register.**
    `visualTracking.ts` fetches the pinned MediaPipe runtime from `cdn.jsdelivr.net` and two
@@ -101,8 +100,7 @@ and registering the browser model hosts in the backend integration report.
 ### Should Fix
 3. Route the recorder through the shared segmenter and delete the inline duplicate
    (`CAP-MIC-008`) — this blocks the detector swap below.
-4. Adopt a polyphony-capable detector (`CAP-PITCH-007`, `CAP-PITCH-008`) — after
-   `CAP-MIC-008`, since the segmenter built to receive it is not the one in the live path.
+4. ~~Adopt a polyphony-capable detector~~ (`CAP-PITCH-007`, `CAP-PITCH-008`, done).
 
 ### Consider
 5. Vendor the MediaPipe runtime/models if offline visual analysis becomes a hard requirement.

@@ -34,11 +34,27 @@ at all.
 `AudioContext` and `AnalyserNode`, and drives a `requestAnimationFrame` loop that reads
 time-domain samples and emits pitch frames.
 
-Pitch is detected by normalised autocorrelation over the time-domain buffer. The search
-band spans roughly 55 Hz to 1200 Hz, expressed as lag bounds against the sample rate. A
-frame is rejected when its energy falls below the silence gate or its clarity — the
-normalised autocorrelation at the winning lag — falls below the clarity threshold.
-Parabolic interpolation refines the winning lag, guarded against a near-zero denominator.
+Pitch is detected per window by harmonic-salience peak picking over a Hann-windowed
+spectrum (`frontend/lib/polyphonicPitch.ts`). Every candidate fundamental on the MIDI grid
+between 36 and 96 is scored by the magnitude found at its first six harmonics; the strongest
+candidate becomes a voice, its expected `1/h` harmonic series is subtracted from the
+spectrum, and the search repeats until the next candidate falls below a fraction of the
+first or six voices are found. A candidate only qualifies if its fundamental is an audible
+local spectral peak that refines back onto the candidate and carries a minimum share of its
+own salience — which is what stops a sub-octave, or a coincidence of other notes'
+harmonics, from being heard as a note. Each voice's frequency is refined by parabolic
+interpolation on the log spectrum, guarded against a degenerate denominator, and reported
+with a clarity equal to the fraction of its harmonics present. A chord is therefore scored
+from what was played. The monophonic autocorrelation detector remains available for callers
+that want one dominant pitch.
+
+Polyphonic segmentation (`frontend/lib/voiceTracking.ts`) keeps one shared note segmenter
+per sounding voice: a detected voice continues the track within three-quarters of a
+semitone of it, an unmatched voice opens a new track, and a track that hears nothing in a
+frame receives a silent frame so its note closes on the same terms as a monophonic rest.
+Notes from all tracks are rebased to the earliest onset and ordered by onset, then pitch.
+What counts as a note is decided only in the segmenter; the tracker decides only which
+stream a voice belongs to.
 
 The analyser is configured with an FFT size of 4096 and a smoothing time constant of zero.
 Smoothing is disabled deliberately: the analyser's built-in smoothing would blur exactly
@@ -113,7 +129,7 @@ that practice audio grows the primary database.
 |---|---|---|---|
 | Where decisions live | Adapters are thin; all judgement in `observation` | Segment inside the recorder | The adapters are deliberately untested (`vitest.config.ts`), which is only safe if they hold no decisions. |
 | Analyser smoothing | Disabled (`smoothingTimeConstant = 0`) | Browser default | Smoothing blurs the frame-to-frame transitions onset detection depends on. |
-| Pitch algorithm | Normalised autocorrelation, pending replacement | FFT peak-picking; a learned detector (CREPE) | An interim choice, not the intended one. A learned detector resolves polyphony and yields a cents residual directly; autocorrelation is monophonic and cannot hear a chord. The segmenter above was written detector-agnostic expressly for this swap and names CREPE throughout as the target. |
+| Pitch algorithm | Harmonic-salience peak picking with iterative spectral subtraction | Normalised autocorrelation (the previous detector); a learned detector (CREPE) | Autocorrelation is monophonic and cannot hear a chord. A learned detector would resolve polyphony too, but costs a model download and a runtime; salience peak picking resolves chords of harmonic instruments with the Web Audio API alone and keeps the capture layer dependency-free. The segmenter stays detector-agnostic so a learned detector remains a contained swap. |
 | Landmark model | MediaPipe Tasks Vision | A server-side pose service | Keeps video in the browser, which the privacy position requires. |
 | Silence threshold | −50 dBFS, named for its purpose | Any level gate | The coach speaks only at a rest, so this constant is the boundary between coaching and interrupting. |
 | Take storage | Content-addressed by sha256, owner-deletable | Store every submission | Dedupe comes free from the hash, and a learner's own audio must be theirs to remove. |
@@ -127,10 +143,10 @@ that practice audio grows the primary database.
 
 ### Deferred
 
-1. **The intended detector has not been adopted.** The current detector cannot resolve a
-   chord, so any polyphonic exercise is scored from its fixture note path rather than from
-   what was played. The replacement is a contained swap only once the live path runs through
-   the shared segmenter rather than its inline duplicate — see `observation`.
+1. **A learned detector is not used.** Salience peak picking resolves chords of harmonic
+   instruments; dense clusters, strongly inharmonic timbres and very low fundamentals are
+   where a learned detector would still do better. The segmenter and tracker would receive
+   it unchanged.
 2. **Should the browser's audio processing be disabled?** Turning off AGC, echo cancellation
    and noise suppression is a one-line constraint change, and every dynamics measurement
    depends on it. Nothing records whether the current behaviour was chosen or inherited.

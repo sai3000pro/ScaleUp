@@ -4,8 +4,9 @@
  * This is the missing front of the evaluation boundary: the backend scores
  * canonical note events, and this module produces them from a live recording
  * using only the Web Audio API (no ML, no build dependencies). Pitch is found
- * by normalized autocorrelation over the time-domain buffer, a well-known
- * robust-enough approach for the monophonic fixtures this demo ships.
+ * by harmonic-salience peak picking over the window's spectrum, which resolves
+ * every voice of a chord; the monophonic autocorrelation detector is kept for
+ * callers that want a single dominant pitch.
  *
  * Notes are emitted as `PerformedNote` values with onsets relative to the first
  * detected note, so a short silence before the user starts playing does not
@@ -16,13 +17,16 @@
 import type { PerformedNote } from "@/lib/types";
 import {
   DEFAULT_SEGMENTER_CONFIG,
-  finalizeSegments,
-  initialSegmenterState,
-  pushFrame,
-  type PitchFrame,
   type SegmenterConfig,
-  type SegmenterState,
 } from "@/lib/noteSegmentation";
+import { detectPitches, frequencyToMidi, POLYPHONIC_ANALYZER_ID } from "@/lib/polyphonicPitch";
+import {
+  finalizePolyphonic,
+  initialVoiceTrackerState,
+  pushPolyphonicFrame,
+  type PolyphonicFrame,
+  type VoiceTrackerState,
+} from "@/lib/voiceTracking";
 
 export interface PitchDetection {
   frequency: number;
@@ -36,11 +40,7 @@ export interface NoteSegment extends PerformedNote {
   confidence: number;
 }
 
-/** MIDI pitch of a frequency, in 12-EDO tuning (A4 = 440 Hz = MIDI 69). */
-// @spec CAP-PITCH-008
-export function frequencyToMidi(frequency: number): number {
-  return 69 + 12 * Math.log2(frequency / 440);
-}
+export { frequencyToMidi };
 
 /**
  * Detect the dominant pitch of one time-domain window by autocorrelation.
@@ -49,7 +49,7 @@ export function frequencyToMidi(frequency: number): number {
  * trust. `clarity` is the normalized autocorrelation at the winning lag
  * (1.0 = perfect periodicity, 0 = noise).
  */
-// @spec CAP-PITCH-001, CAP-PITCH-002, CAP-PITCH-003, CAP-PITCH-004, CAP-PITCH-005, CAP-PITCH-006, CAP-PITCH-007
+// @spec CAP-PITCH-001, CAP-PITCH-002, CAP-PITCH-003, CAP-PITCH-004, CAP-PITCH-005, CAP-PITCH-006
 export function detectPitch(timeDomain: Float32Array, sampleRate: number): PitchDetection | null {
   const size = timeDomain.length;
 
@@ -175,11 +175,11 @@ export interface RecordingTake {
 }
 
 /**
- * Records a monophonic performance from the microphone and segments it into
- * canonical note observations. Call `start()`, wait for the status to become
+ * Records a performance from the microphone -- monophonic or chordal -- and
+ * segments it into canonical note observations. Call `start()`, wait for the status to become
  * `listening`, then `stop()` to get the notes.
  */
-// @spec CAP-MIC-001, CAP-MIC-002, CAP-MIC-003, CAP-MIC-004, CAP-MIC-005, CAP-MIC-006, CAP-MIC-007, CAP-MIC-008, CAP-PERM-001
+// @spec CAP-MIC-001, CAP-MIC-002, CAP-MIC-003, CAP-MIC-004, CAP-MIC-005, CAP-MIC-006, CAP-MIC-007, CAP-MIC-008, CAP-PERM-001, CAP-PITCH-007
 /**
  * Which detector produced a take's notes, recorded on the attempt.
  *
@@ -190,7 +190,7 @@ export interface RecordingTake {
  *
  * @spec CAP-MIC-010
  */
-export const ANALYZER_ID = "autocorrelation-v1";
+export const ANALYZER_ID = POLYPHONIC_ANALYZER_ID;
 
 export class MicRecorder {
   private stream: MediaStream | null = null;
@@ -208,7 +208,7 @@ export class MicRecorder {
   private onLevel: (rmsDb: number, silenceSeconds: number) => void = () => {};
   private quietSince: number | null = null;
 
-  private segmenterState: SegmenterState = initialSegmenterState();
+  private trackerState: VoiceTrackerState = initialVoiceTrackerState();
   private segmenterConfig: SegmenterConfig = {
     ...DEFAULT_SEGMENTER_CONFIG,
     confidenceOn: 0.42,
@@ -310,7 +310,7 @@ export class MicRecorder {
     this.timeDomain = new Float32Array(this.analyser.fftSize);
     this.sampleRate = this.context.sampleRate;
     this.startedAt = performance.now();
-    this.segmenterState = initialSegmenterState();
+    this.trackerState = initialVoiceTrackerState();
 
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported("audio/webm")) {
       this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: "audio/webm" });
@@ -330,40 +330,33 @@ export class MicRecorder {
     if (this.analyser === null || this.timeDomain === null) return;
     this.analyser.getFloatTimeDomainData(this.timeDomain);
     const now = (performance.now() - this.startedAt) / 1000;
-    const detection = detectPitch(this.timeDomain, this.sampleRate);
-    const midiExact = detection === null ? null : frequencyToMidi(detection.frequency);
-    const clarity = detection === null ? 0 : detection.clarity;
-
+    const voices = detectPitches(this.timeDomain, this.sampleRate);
     let energy = 0;
     for (let index = 0; index < this.timeDomain.length; index += 1) {
       energy += this.timeDomain[index] * this.timeDomain[index];
     }
     const rms = Math.sqrt(energy / this.timeDomain.length);
     const rmsDb = rms > 1e-8 ? 20 * Math.log10(rms) : -100;
-
     if (rmsDb < this.segmenterConfig.noteOffRmsDb) {
       if (this.quietSince === null) this.quietSince = now;
     } else {
       this.quietSince = null;
     }
     this.onLevel(rmsDb, this.quietSince === null ? 0 : now - this.quietSince);
-
-    const prevCount = this.segmenterState.completed.length;
-    const frame: PitchFrame = {
+    const before = this.trackerState.tracks.reduce((sum, track) => sum + track.state.completed.length, 0);
+    const frame: PolyphonicFrame = {
       timeSeconds: now,
-      midiExact: clarity >= this.segmenterConfig.confidenceOff ? midiExact : null,
-      confidence: clarity,
+      voices: voices
+        .filter((voice) => voice.clarity >= this.segmenterConfig.confidenceOff)
+        .map((voice) => ({ midiExact: voice.midiExact, confidence: voice.clarity })),
       rmsDb,
     };
-    this.segmenterState = pushFrame(this.segmenterState, frame, this.segmenterConfig);
-
-    if (this.segmenterState.completed.length > prevCount) {
-      for (let i = prevCount; i < this.segmenterState.completed.length; i++) {
-        const seg = this.segmenterState.completed[i];
-        this.onNote(seg);
-      }
+    this.trackerState = pushPolyphonicFrame(this.trackerState, frame, this.segmenterConfig);
+    const after = this.trackerState.tracks.reduce((sum, track) => sum + track.state.completed.length, 0);
+    if (after > before) {
+      const settled = finalizePolyphonic(this.trackerState, now, this.segmenterConfig);
+      for (const seg of settled.slice(before)) this.onNote(seg);
     }
-
     this.rafId = requestAnimationFrame(this.tick);
   };
 
@@ -380,7 +373,7 @@ export class MicRecorder {
       this.rafId = null;
     }
     const now = (performance.now() - this.startedAt) / 1000;
-    const finalized = finalizeSegments(this.segmenterState, now, this.segmenterConfig);
+    const finalized = finalizePolyphonic(this.trackerState, now, this.segmenterConfig);
 
     if (this.stream !== null) {
       for (const track of this.stream.getTracks()) {
@@ -394,7 +387,7 @@ export class MicRecorder {
     }
     this.analyser = null;
     this.timeDomain = null;
-    this.segmenterState = initialSegmenterState();
+    this.trackerState = initialVoiceTrackerState();
     this.setStatus("idle");
     return finalized;
   }
