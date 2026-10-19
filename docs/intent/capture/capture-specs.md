@@ -32,7 +32,7 @@ Status: `[x]` observed working in current code · `[ ]` specified but broken or 
 - [x] **CAP-PITCH-004**: The detector shall search only within a bounded frequency band appropriate to the instruments in scope.
 - [x] **CAP-PITCH-005**: The detector shall refine its estimate by interpolation, guarded against a degenerate denominator.
 - [x] **CAP-PITCH-006**: The detector's pure functions shall be callable without acquiring an audio device.
-- [ ] **CAP-PITCH-007**: The detector shall resolve simultaneously sounding pitches, so that a chord is scored from what was played rather than from a fixture.
+- [x] **CAP-PITCH-007**: The detector shall resolve simultaneously sounding pitches, so that a chord is scored from what was played rather than from a fixture.
 - [x] **CAP-PITCH-008**: The detector shall report each note's deviation in cents from equal temperament.
 
 ## Camera capture
