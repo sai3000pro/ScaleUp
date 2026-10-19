@@ -14,7 +14,7 @@ down_revision = "d9e0f1a2b3c4"
 branch_labels = None
 depends_on = None
 
-LEARNER_TABLES = (("node_progress", "node_progress_node_id_fkey"), ("attempts", "attempts_node_id_fkey"))
+LEARNER_TABLES = (("node_progress", "fk_node_progress_node_id_skill_nodes"), ("attempts", "fk_attempts_node_id_skill_nodes"))
 
 
 def _repoint(table: str, name: str, ondelete: str) -> None:
@@ -24,7 +24,7 @@ def _repoint(table: str, name: str, ondelete: str) -> None:
 
 # @spec CURR-GRAPH-005
 def upgrade() -> None:
-    op.add_column("skill_nodes", sa.Column("retired_at", sa.DateTime(), nullable=True))
+    op.add_column("skill_nodes", sa.Column("retired_at", sa.DateTime(timezone=True), nullable=True))
     for table, name in LEARNER_TABLES:
         _repoint(table, name, "RESTRICT")
 
