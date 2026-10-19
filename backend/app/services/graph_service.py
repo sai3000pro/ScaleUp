@@ -14,6 +14,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -26,7 +27,7 @@ from app.domain.dag import (
     transitive_reduction,
 )
 from app.ingestion.toc import difficulty_from_depth
-from app.models import Course, SkillEdge, SkillEdgeRejection, SkillNode
+from app.models import Attempt, Course, Exercise, NodeProgress, PerformanceAttempt, SkillEdge, SkillEdgeRejection, SkillNode
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +62,19 @@ class GraphWriteResult:
 
 
 # @spec CURR-GRAPH-001, CURR-GRAPH-002, CURR-GRAPH-003, CURR-GRAPH-004, CURR-GRAPH-005, CURR-GRAPH-006
+# @spec CURR-GRAPH-005
+def _has_learner_rows(session: Session, node_id: uuid.UUID) -> bool:
+    held = (
+        select(NodeProgress.user_id).where(NodeProgress.node_id == node_id).limit(1),
+        select(Attempt.id).where(Attempt.node_id == node_id).limit(1),
+        select(PerformanceAttempt.id)
+        .join(Exercise, Exercise.id == PerformanceAttempt.exercise_id)
+        .where(Exercise.node_id == node_id)
+        .limit(1),
+    )
+    return any(session.scalar(query) is not None for query in held)
+
+
 def persist_graph(
     session: Session,
     course: Course,
@@ -126,14 +140,19 @@ def persist_graph(
         node.source_chunk_ids = list(concept.source_chunk_ids)
         node.mention_count = concept.mention_count
         node.depth = depths[concept.slug]
+        node.retired_at = None
         session.flush()
         node_ids[concept.slug] = node.id
 
-    # Concepts that vanished from a re-extraction. Cascades take their edges and
-    # progress rows with them.
+    # Concepts that vanished from a re-extraction. A node nobody has practised is
+    # deleted; one with learner rows cannot be (they RESTRICT the delete), so it
+    # is retired in place: it keeps its progress and leaves the edge set.
     for slug, node in existing_nodes.items():
         if slug not in slugs:
-            session.delete(node)
+            if _has_learner_rows(session, node.id):
+                node.retired_at = node.retired_at or datetime.now(timezone.utc)
+            else:
+                session.delete(node)
     session.flush()
 
     # ── edges: full replace ───────────────────────────────────────────────

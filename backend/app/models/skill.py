@@ -54,6 +54,11 @@ class SkillNode(Base):
     # Topological layer from Kahn's algorithm; becomes the dagre rank so the
     # rendered tree layers by genuine prerequisite depth.
     depth: Mapped[int] = mapped_column(SmallInteger, default=0, server_default="0")
+    # Set when a re-extraction no longer produces this node but a learner holds
+    # progress or attempts on it. Learner rows RESTRICT node deletion, so the
+    # only way for such a node to leave the graph is to be retired in place.
+    # @spec CURR-GRAPH-005
+    retired_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     # False for structural concepts too thin to write a question about. They
     # still carry the tree's shape but never appear in drills or quests.
